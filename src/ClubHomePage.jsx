@@ -100,7 +100,10 @@ export default function ClubHomePage() {
           {MENU.map((item, i) => (
             <a key={item} href="#" className={`ch-nav-item${i === 0 ? ' on' : ''}`}
               aria-current={i === 0 ? 'page' : undefined}
-              onClick={e => e.preventDefault()}>
+              onClick={e => {
+                e.preventDefault()
+                if (item === '팬 의견') navigate(`/club/${team.id}/opinions`)
+              }}>
               {item}
             </a>
           ))}
