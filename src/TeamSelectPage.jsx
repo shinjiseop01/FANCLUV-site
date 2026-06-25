@@ -9,7 +9,7 @@ export default function TeamSelectPage() {
 
   function handleStart() {
     if (!selected) return
-    window.location.href = `/club/${selected}`
+    navigate(`/club/${selected}`)
   }
 
   function handleBack() {

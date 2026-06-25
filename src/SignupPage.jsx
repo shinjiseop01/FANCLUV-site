@@ -27,7 +27,7 @@ export default function SignupPage() {
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
-      window.location.href = '/team-select'
+      navigate('/team-select')
     }, 800)
   }
 

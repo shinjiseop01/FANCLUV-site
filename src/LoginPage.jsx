@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import './LoginPage.css'
 
 const DEMO_EMAIL = 'fan@fancluv.kr'
 const DEMO_PASSWORD = '1234'
 
 export default function LoginPage() {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -21,7 +22,7 @@ export default function LoginPage() {
     setTimeout(() => {
       setLoading(false)
       if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
-        window.location.href = '/team-select'
+        navigate('/team-select')
       } else {
         setError('이메일 또는 비밀번호가 올바르지 않습니다.')
       }
