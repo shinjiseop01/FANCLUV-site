@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getTeam, TeamEmblem } from './teams.jsx'
+import { getCreatedOpinions } from './opinionStore.js'
 import './ClubHomePage.css'
 import './OpinionsPage.css'
 
@@ -61,11 +62,13 @@ export default function OpinionsPage() {
   const opinions = useMemo(() => {
     if (!team) return []
     const seed = seedOf(team.id)
-    return BASE_OPINIONS.map((o, i) => {
+    const base = BASE_OPINIONS.map((o, i) => {
       const likes = 40 + ((seed * (i + 3)) % 320)
       const comments = 4 + ((seed * (i + 7)) % 46)
       return { ...o, id: i + 1, likes, comments }
     })
+    // fan-created opinions show first (newest at the very top)
+    return [...getCreatedOpinions(team.id), ...base]
   }, [team])
 
   const popularThreshold = useMemo(() => {
@@ -260,7 +263,7 @@ export default function OpinionsPage() {
       </main>
 
       {/* Floating write button */}
-      <button className="ch-fab" aria-label="의견 작성하기">
+      <button className="ch-fab" aria-label="의견 작성하기" onClick={() => navigate(`/club/${team.id}/write`)}>
         <span className="op-fab-emoji" aria-hidden="true">✏️</span>
         <span>의견 작성하기</span>
       </button>

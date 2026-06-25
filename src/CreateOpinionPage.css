@@ -1,0 +1,181 @@
+/* Create opinion page — relies on ClubHomePage.css for header + theme tokens
+   (--team, --team-deep, --ink, --body, --muted, --canvas, --page-bg,
+   --border, --border-soft) defined on .ch-root. */
+
+.cw-main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 28px 24px 80px;
+}
+
+.cw-back {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--body);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 6px 4px;
+  margin-bottom: 18px;
+  transition: color 0.15s;
+}
+.cw-back:hover { color: var(--team-deep); }
+
+/* Card */
+.cw-card {
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 32px 34px 34px;
+}
+.cw-head { margin-bottom: 26px; }
+.cw-title {
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+.cw-desc { font-size: 14.5px; color: var(--muted); line-height: 1.6; }
+
+/* Form */
+.cw-form { display: flex; flex-direction: column; gap: 22px; }
+.cw-field { display: flex; flex-direction: column; }
+.cw-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 11px;
+}
+.cw-optional { font-weight: 500; color: var(--muted); font-size: 12.5px; }
+
+/* Categories */
+.cw-cats { display: flex; flex-wrap: wrap; gap: 8px; }
+.cw-cat {
+  border: 1px solid var(--border);
+  background: var(--canvas);
+  color: var(--body);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 100px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.14s;
+}
+.cw-cat:hover { border-color: color-mix(in srgb, var(--team) 40%, var(--border)); color: var(--team-deep); }
+.cw-cat.on {
+  background: var(--team-deep);
+  border-color: var(--team-deep);
+  color: #fff;
+}
+
+/* Stars */
+.cw-stars { display: flex; align-items: center; gap: 6px; }
+.cw-star { background: none; border: none; padding: 2px; cursor: pointer; line-height: 0; }
+.cw-star svg { width: 34px; height: 34px; fill: #E2E5EA; transition: fill 0.12s, transform 0.12s; }
+.cw-star:hover svg { transform: scale(1.1); }
+.cw-star.on svg { fill: #F5B400; }
+.cw-stars-label { margin-left: 10px; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+
+/* Inputs */
+.cw-input, .cw-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 15px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.cw-input::placeholder, .cw-textarea::placeholder { color: var(--muted); }
+.cw-textarea { line-height: 1.7; resize: vertical; min-height: 140px; }
+.cw-input:focus, .cw-textarea:focus {
+  border-color: var(--team);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--team) 14%, transparent);
+}
+
+/* Photo */
+.cw-photo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.cw-photo:hover { border-color: color-mix(in srgb, var(--team) 45%, var(--border)); background: var(--page-bg); }
+.cw-photo-icon {
+  width: 38px; height: 38px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--team) 12%, white);
+  color: var(--team-deep);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.cw-photo-icon svg { width: 20px; height: 20px; }
+.cw-photo-text { font-size: 14px; color: var(--muted); word-break: break-all; }
+
+/* Error */
+.cw-error {
+  background: rgba(224, 82, 82, 0.1);
+  border: 1px solid rgba(224, 82, 82, 0.3);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 13.5px;
+  color: #C0392B;
+  font-weight: 600;
+}
+
+/* Submit */
+.cw-submit {
+  height: 56px;
+  background: var(--team-deep);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter 0.15s, transform 0.1s;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--team) 35%, transparent);
+}
+.cw-submit:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.cw-submit:active { transform: translateY(0); }
+
+/* Success state */
+.cw-done {
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 56px 32px;
+  text-align: center;
+}
+.cw-done-icon {
+  width: 64px; height: 64px;
+  margin: 0 auto 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--team) 14%, white);
+  color: var(--team-deep);
+  display: flex; align-items: center; justify-content: center;
+}
+.cw-done-icon svg { width: 32px; height: 32px; }
+.cw-done h1 { font-size: 22px; font-weight: 800; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 12px; }
+.cw-done p { font-size: 15px; color: var(--muted); line-height: 1.6; }
+
+/* Responsive */
+@media (max-width: 680px) {
+  .cw-main { padding: 22px 16px 64px; }
+  .cw-card { padding: 24px 20px 26px; }
+  .cw-title { font-size: 22px; }
+  .cw-input, .cw-textarea { font-size: 16px; }
+  .cw-star svg { width: 30px; height: 30px; }
+}

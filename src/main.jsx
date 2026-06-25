@@ -9,6 +9,7 @@ import ClubHomePage from './ClubHomePage.jsx'
 import OpinionsPage from './OpinionsPage.jsx'
 import OpinionDetailPage from './OpinionDetailPage.jsx'
 import SurveyPage from './SurveyPage.jsx'
+import CreateOpinionPage from './CreateOpinionPage.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -21,6 +22,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/opinions" element={<OpinionsPage />} />
         <Route path="/club/:teamId/opinions/:opinionId" element={<OpinionDetailPage />} />
         <Route path="/club/:teamId/survey" element={<SurveyPage />} />
+        <Route path="/club/:teamId/write" element={<CreateOpinionPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,
