@@ -1,0 +1,204 @@
+/* Survey page — relies on ClubHomePage.css for header + theme tokens
+   (--team, --team-deep, --ink, --body, --muted, --canvas, --page-bg,
+   --border, --border-soft) defined on .ch-root. */
+
+.sv-main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 24px 80px;
+}
+
+.sv-back {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--body);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 6px 4px;
+  margin-bottom: 18px;
+  transition: color 0.15s;
+}
+.sv-back:hover { color: var(--team-deep); }
+
+/* Intro */
+.sv-head { margin-bottom: 28px; }
+.sv-tag {
+  display: inline-block;
+  font-size: 12px; font-weight: 700;
+  color: var(--team-deep);
+  background: color-mix(in srgb, var(--team) 12%, white);
+  padding: 5px 12px; border-radius: 100px;
+  margin-bottom: 14px;
+}
+.sv-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: var(--ink);
+  line-height: 1.35;
+  margin-bottom: 12px;
+}
+.sv-desc {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+/* Form */
+.sv-form { display: flex; flex-direction: column; gap: 16px; }
+
+.sv-q {
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px 26px;
+  margin: 0;
+}
+.sv-q legend {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.5;
+  padding: 0;
+  margin-bottom: 18px;
+}
+.sv-q legend em { font-style: normal; font-weight: 500; color: var(--muted); font-size: 13px; }
+.sv-qnum { color: var(--team-deep); margin-right: 6px; }
+
+/* Stars */
+.sv-stars { display: flex; align-items: center; gap: 6px; }
+.sv-star {
+  background: none; border: none; padding: 2px; cursor: pointer; line-height: 0;
+}
+.sv-star svg { width: 32px; height: 32px; fill: #E2E5EA; transition: fill 0.12s, transform 0.12s; }
+.sv-star:hover svg { transform: scale(1.1); }
+.sv-star.on svg { fill: #F5B400; }
+.sv-stars-label { margin-left: 10px; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+
+/* Options */
+.sv-options { display: flex; flex-direction: column; gap: 10px; }
+.sv-option {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14.5px;
+  color: var(--ink);
+  transition: all 0.14s;
+}
+.sv-option:hover { border-color: color-mix(in srgb, var(--team) 40%, var(--border)); background: var(--page-bg); }
+.sv-option input { accent-color: var(--team-deep); width: 17px; height: 17px; flex-shrink: 0; }
+.sv-option.on {
+  border-color: var(--team);
+  background: color-mix(in srgb, var(--team) 7%, white);
+  font-weight: 600;
+}
+
+/* Textarea */
+.sv-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 15px;
+  font-size: 14.5px;
+  font-family: inherit;
+  color: var(--ink);
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.sv-textarea::placeholder { color: var(--muted); }
+.sv-textarea:focus {
+  border-color: var(--team);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--team) 14%, transparent);
+}
+
+/* Submit */
+.sv-submit {
+  margin-top: 8px;
+  height: 54px;
+  background: var(--team-deep);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter 0.15s, transform 0.1s;
+}
+.sv-submit:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.sv-submit:active { transform: translateY(0); }
+
+/* Thank-you state */
+.sv-done {
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 56px 32px;
+  text-align: center;
+}
+.sv-done-icon {
+  width: 64px; height: 64px;
+  margin: 0 auto 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--team) 14%, white);
+  color: var(--team-deep);
+  display: flex; align-items: center; justify-content: center;
+}
+.sv-done-icon svg { width: 32px; height: 32px; }
+.sv-done h1 {
+  font-size: 23px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.5px;
+  margin-bottom: 12px;
+}
+.sv-done p {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.7;
+  max-width: 420px;
+  margin: 0 auto 28px;
+}
+.sv-done-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.sv-btn-primary {
+  background: var(--team-deep);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px; font-weight: 700;
+  padding: 12px 22px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter 0.15s;
+}
+.sv-btn-primary:hover { filter: brightness(1.08); }
+.sv-btn-ghost {
+  background: var(--canvas);
+  color: var(--body);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px; font-weight: 700;
+  padding: 12px 22px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.sv-btn-ghost:hover { background: var(--page-bg); }
+
+/* Responsive */
+@media (max-width: 680px) {
+  .sv-main { padding: 22px 16px 64px; }
+  .sv-q { padding: 20px 18px; }
+  .sv-title { font-size: 22px; }
+  .sv-star svg { width: 28px; height: 28px; }
+}

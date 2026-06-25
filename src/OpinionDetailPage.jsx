@@ -290,7 +290,7 @@ export default function OpinionDetailPage() {
               <span className="od-survey-tag">참여 가능 · D-5</span>
               <p className="od-survey-name">2026 시즌 홈 경기장 시설 만족도 조사</p>
               <p className="od-survey-desc">여러분의 의견이 구단에 그대로 전달됩니다.</p>
-              <button className="od-survey-btn">설문 참여하기</button>
+              <button className="od-survey-btn" onClick={() => navigate(`/club/${team.id}/survey`)}>설문 참여하기</button>
             </section>
           </aside>
         </div>

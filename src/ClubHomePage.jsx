@@ -141,7 +141,7 @@ export default function ClubHomePage() {
                   <div className="ch-progress"><span style={{ width: '64%' }} /></div>
                   <span className="ch-survey-count">1,842명 참여</span>
                 </div>
-                <button className="ch-btn-primary">설문 참여하기</button>
+                <button className="ch-btn-primary" onClick={() => navigate(`/club/${team.id}/survey`)}>설문 참여하기</button>
               </div>
             </Panel>
 
