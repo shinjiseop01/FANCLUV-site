@@ -1,0 +1,224 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold:        #C9A84C;
+  --gold-dark:   #B0902F;
+  --gold-soft:   rgba(201, 168, 76, 0.12);
+  --ink:         #14171F;
+  --body:        #555B66;
+  --muted:       #8A909C;
+  --canvas:      #FFFFFF;
+  --page-bg:     #F6F7F9;
+  --border:      #E4E7EC;
+  --border-soft: #EDEFF2;
+}
+
+.ts-root {
+  min-height: 100vh;
+  background: var(--page-bg);
+  /* subtle bright wash so the page feels like a fresh start */
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -5%, rgba(201, 168, 76, 0.08) 0%, transparent 60%);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 56px 24px 64px;
+}
+
+.ts-container {
+  width: 100%;
+  max-width: 920px;
+}
+
+/* ── Header ── */
+.ts-header {
+  text-align: center;
+  margin-bottom: 44px;
+}
+
+.ts-brand {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: var(--ink);
+  margin-bottom: 28px;
+}
+
+.ts-title {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.8px;
+  margin-bottom: 14px;
+}
+
+.ts-subtitle {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.65;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+/* ── Grid ── */
+.ts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+@media (min-width: 600px) {
+  .ts-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 1000px) {
+  .ts-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ── Card ── */
+.ts-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 16px 22px;
+  background: var(--canvas);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.16s ease, border-color 0.16s, box-shadow 0.16s;
+}
+
+.ts-card:hover {
+  border-color: #D2D6DD;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(20, 23, 31, 0.06);
+}
+
+.ts-card:focus-visible {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-soft);
+}
+
+.ts-card--selected,
+.ts-card--selected:hover {
+  border-color: var(--gold);
+  border-width: 2px;
+  background: #FFFDF7;
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 8px 24px rgba(201, 168, 76, 0.22);
+}
+
+.team-emblem {
+  width: 62px;
+  height: 62px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,0.16));
+}
+
+.ts-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: center;
+  letter-spacing: -0.2px;
+  line-height: 1.35;
+}
+
+/* Check badge */
+.ts-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.16s, transform 0.16s;
+}
+
+.ts-check svg { width: 15px; height: 15px; }
+
+.ts-card--selected .ts-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ── Actions ── */
+.ts-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.ts-cta {
+  min-width: 280px;
+  height: 56px;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--gold);
+  color: #1A1407;
+  border: none;
+  border-radius: 100px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  box-shadow: 0 6px 20px rgba(201, 168, 76, 0.3);
+}
+
+.ts-cta:hover:not(:disabled) {
+  background: var(--gold-dark);
+  box-shadow: 0 8px 24px rgba(201, 168, 76, 0.4);
+  transform: translateY(-1px);
+}
+
+.ts-cta:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.ts-cta:disabled {
+  background: #E4E7EC;
+  color: #A9AEB8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.ts-cta-arrow { width: 18px; height: 18px; flex-shrink: 0; }
+
+.ts-back {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 6px 10px;
+  transition: color 0.15s;
+}
+
+.ts-back:hover { color: var(--body); }
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .ts-root { padding: 40px 16px 48px; }
+  .ts-title { font-size: 24px; }
+  .ts-subtitle { font-size: 14px; }
+  .ts-cta { min-width: 100%; width: 100%; height: 58px; }
+}

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "fancluv-dev",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["/Users/jiseop/fancluv-site/start-dev.sh"],
+      "port": 5173
+    }
+  ]
+}
