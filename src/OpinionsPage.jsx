@@ -138,7 +138,7 @@ export default function OpinionsPage() {
       <main className="op-main">
         <section className="op-title">
           <h1>팬 의견</h1>
-          <p>우리 구단을 더 좋은 방향으로 만들기 위한 팬들의 다양한 의견을 확인하고 함께 이야기해 보세요.</p>
+          <p>팬들의 다양한 의견을 확인하고 함께 더 나은 구단을 만들어 보세요.</p>
         </section>
 
         {/* Search + category filter */}
@@ -182,36 +182,45 @@ export default function OpinionsPage() {
             {visible.length === 0 ? (
               <div className="op-empty">검색 결과가 없습니다.</div>
             ) : (
-              <ul className="op-list">
-                {visible.map(o => (
-                  <li key={o.id}>
+              <div className="op-feed">
+                {visible.map(o => {
+                  const popular = o.likes >= popularThreshold
+                  const isNew = o.hours <= 6
+                  return (
                     <article
-                      className="op-card"
+                      key={o.id}
+                      className="op-feed-item"
                       role="button"
                       tabIndex={0}
                       onClick={() => navigate(`/club/${team.id}/opinions/${o.id}`)}
                       onKeyDown={e => { if (e.key === 'Enter') navigate(`/club/${team.id}/opinions/${o.id}`) }}
                     >
-                      {o.likes >= popularThreshold && (
-                        <span className="op-popular">🔥 인기 의견</span>
-                      )}
-                      <div className="op-card-head">
+                      <div className="op-item-head">
                         <span className="op-avatar" aria-hidden="true">{o.author[0]}</span>
                         <span className="op-author">{o.author}</span>
+                        <span className="op-dot-sep" aria-hidden="true">·</span>
                         <span className="op-time">{timeLabel(o.hours)}</span>
                         <span className="op-cat-pill">{o.category}</span>
                         <Stars rating={o.rating} />
                       </div>
-                      <h3 className="op-card-title">{o.title}</h3>
-                      <p className="op-card-body">{o.body}</p>
-                      <div className="op-card-foot">
-                        <span>♥ 공감 {o.likes}</span>
-                        <span>💬 댓글 {o.comments}</span>
+
+                      {(popular || isNew) && (
+                        <div className="op-badges">
+                          {popular && <span className="op-badge op-badge-hot">🔥 인기 의견</span>}
+                          {isNew && <span className="op-badge op-badge-new">🆕 NEW</span>}
+                        </div>
+                      )}
+
+                      <h3 className="op-item-title">{o.title}</h3>
+                      <p className="op-item-body">{o.body}</p>
+                      <div className="op-item-foot">
+                        <span className="op-foot-stat">♥ 공감 {o.likes}</span>
+                        <span className="op-foot-stat">💬 댓글 {o.comments}</span>
                       </div>
                     </article>
-                  </li>
-                ))}
-              </ul>
+                  )
+                })}
+              </div>
             )}
           </div>
 

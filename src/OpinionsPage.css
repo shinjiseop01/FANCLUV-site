@@ -119,44 +119,35 @@
   background: color-mix(in srgb, var(--team) 12%, white);
 }
 
-/* List */
-.op-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+/* Feed (read-flow list, not separated cards) */
+.op-feed {
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
 
-.op-card {
-  position: relative;
+.op-feed-item {
   display: block;
   width: 100%;
   text-align: left;
   background: var(--canvas);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 20px 22px;
+  border: none;
+  border-top: 1px solid var(--border-soft);
+  padding: 24px 26px;
   cursor: pointer;
-  transition: transform 0.14s ease, border-color 0.14s, box-shadow 0.14s;
+  font-family: inherit;
+  transition: background 0.14s;
 }
-.op-card:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--team) 45%, var(--border));
-  box-shadow: 0 8px 22px rgba(20, 23, 31, 0.07);
-}
-.op-card:focus-visible {
+.op-feed-item:first-child { border-top: none; }
+.op-feed-item:hover { background: var(--page-bg); }
+.op-feed-item:focus-visible {
   outline: none;
-  border-color: var(--team);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--team) 16%, transparent);
+  background: color-mix(in srgb, var(--team) 7%, white);
+  box-shadow: inset 3px 0 0 var(--team);
 }
 
-.op-popular {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 13%, white);
-  padding: 4px 10px;
-  border-radius: 100px;
-  margin-bottom: 12px;
-}
-
-.op-card-head {
+.op-item-head {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -173,6 +164,7 @@
   flex-shrink: 0;
 }
 .op-author { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.op-dot-sep { color: var(--muted); font-weight: 700; }
 .op-time { font-size: 12.5px; color: var(--muted); }
 .op-cat-pill {
   font-size: 11.5px; font-weight: 600;
@@ -186,25 +178,39 @@
 .op-stars svg { width: 14px; height: 14px; fill: #D9DCE1; }
 .op-stars svg.on { fill: #F5B400; }
 
-.op-card-title {
-  font-size: 16.5px;
+.op-badges { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.op-badge {
+  font-size: 12px; font-weight: 700;
+  padding: 3px 10px; border-radius: 100px;
+}
+.op-badge-hot {
+  color: var(--team-deep);
+  background: color-mix(in srgb, var(--team) 13%, white);
+}
+.op-badge-new {
+  color: #0A7C4A;
+  background: #E4F6EC;
+}
+
+.op-item-title {
+  font-size: 17px;
   font-weight: 700;
   color: var(--ink);
   letter-spacing: -0.3px;
-  margin-bottom: 7px;
+  margin-bottom: 8px;
   line-height: 1.4;
 }
-.op-card-body {
-  font-size: 14px;
+.op-item-body {
+  font-size: 14.5px;
   color: var(--body);
-  line-height: 1.65;
+  line-height: 1.7;
   margin-bottom: 14px;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.op-card-foot {
+.op-item-foot {
   display: flex;
   gap: 18px;
   font-size: 12.5px;
