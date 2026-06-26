@@ -103,6 +103,7 @@ export default function ClubHomePage() {
               onClick={e => {
                 e.preventDefault()
                 if (item === '팬 의견') navigate(`/club/${team.id}/opinions`)
+                else if (item === '내 활동') navigate(`/club/${team.id}/activity`)
               }}>
               {item}
             </a>
