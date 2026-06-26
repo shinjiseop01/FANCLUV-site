@@ -182,11 +182,11 @@ export default function MatchCenterPage() {
                     </div>
                     <div className="mc-match-teams">
                       <span className="mc-team-line">
-                        <TeamEmblem color={m.home.color} size={22} /> {m.home.name}
+                        <TeamEmblem color={m.home.color} size={12} /> {m.home.name}
                         <span className="mc-ha">홈</span>
                       </span>
                       <span className="mc-team-line">
-                        <TeamEmblem color={m.away.color} size={22} /> {m.away.name}
+                        <TeamEmblem color={m.away.color} size={12} /> {m.away.name}
                         <span className="mc-ha away">원정</span>
                       </span>
                     </div>
@@ -212,9 +212,9 @@ export default function MatchCenterPage() {
                         <span className={`mc-outcome ${o.cls}`}>{o.label}</span>
                       </div>
                       <div className="mc-result">
-                        <span className="mc-result-team right"><TeamEmblem color={m.home.color} size={22} /> {m.home.name}</span>
+                        <span className="mc-result-team right"><TeamEmblem color={m.home.color} size={12} /> {m.home.name}</span>
                         <span className="mc-score">{m.homeScore} : {m.awayScore}</span>
-                        <span className="mc-result-team"><TeamEmblem color={m.away.color} size={22} /> {m.away.name}</span>
+                        <span className="mc-result-team"><TeamEmblem color={m.away.color} size={12} /> {m.away.name}</span>
                       </div>
                       <div className="mc-match-info">
                         <span className="mc-stadium">📍 {m.stadium}</span>
@@ -261,7 +261,7 @@ export default function MatchCenterPage() {
                   {standings.map((s, i) => (
                     <tr key={s.team.id} className={s.team.id === team.id ? 'me' : ''}>
                       <td className="mc-rank">{i + 1}</td>
-                      <td className="mc-tname"><TeamEmblem color={s.team.color} size={20} /> {s.team.name}</td>
+                      <td className="mc-tname"><TeamEmblem color={s.team.color} size={11} /> {s.team.name}</td>
                       <td className="mc-pts">{s.pts}</td>
                     </tr>
                   ))}

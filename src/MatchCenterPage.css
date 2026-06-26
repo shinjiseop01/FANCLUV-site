@@ -126,8 +126,9 @@
 .mc-time { font-size: 12.5px; color: var(--muted); }
 
 .mc-match-teams { display: flex; flex-direction: column; gap: 7px; }
-.mc-team-line { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--ink); }
-.mc-team-line svg { flex-shrink: 0; }
+.mc-team-line { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; color: var(--ink); }
+/* override the global .team-emblem 62px so list logos stay small + text leads */
+.mc-team-line svg { width: 20px !important; height: 20px !important; flex-shrink: 0; }
 .mc-ha {
   font-size: 10.5px; font-weight: 700; color: var(--team-deep);
   background: color-mix(in srgb, var(--team) 12%, white);
@@ -155,6 +156,7 @@
 
 .mc-result { display: flex; align-items: center; justify-content: center; gap: 12px; }
 .mc-result-team { display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 600; color: var(--ink); width: 130px; }
+.mc-result-team svg { width: 20px !important; height: 20px !important; flex-shrink: 0; }
 .mc-result-team.right { justify-content: flex-end; text-align: right; }
 .mc-score { font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: 0.5px; white-space: nowrap; }
 .mc-op-btn {
@@ -191,7 +193,8 @@
 .mc-table td { padding: 10px 0; border-bottom: 1px solid var(--border-soft); font-size: 13.5px; }
 .mc-table tr:last-child td { border-bottom: none; }
 .mc-rank { font-weight: 800; color: var(--muted); width: 36px; }
-.mc-tname { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink); }
+.mc-tname { display: flex; align-items: center; gap: 7px; font-weight: 600; color: var(--ink); }
+.mc-tname svg { width: 18px !important; height: 18px !important; flex-shrink: 0; }
 .mc-pts { text-align: right; font-weight: 800; color: var(--ink); }
 .mc-table tr.me td { background: color-mix(in srgb, var(--team) 8%, white); }
 .mc-table tr.me .mc-rank, .mc-table tr.me .mc-pts { color: var(--team-deep); }
