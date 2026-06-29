@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getTeam, TEAMS, TeamEmblem } from './teams.jsx'
 import './ClubHomePage.css'
@@ -7,8 +7,8 @@ import './FanRankingPage.css'
 const NICKNAME = '민준'
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
-// ── Mock ranking data (deterministic) ──
-const NAMES = [
+// fans competing across the whole league
+const LEAGUE_NAMES = [
   '블루윙', '레전드7', '직관러', '서포터K', '풋볼러버', '응원단장', '굿즈수집가', '시즌권홀더',
   '평일직관', '홈경기지킴이', '원정메이트', '풋볼맘', '필드의신', '12번째선수', '북패치', '응원가장인',
   '티켓요정', '골넣자', '주말축구', '클린시트', '미드필더', '라스트맨', '풋살왕', '관중석불꽃',
@@ -17,19 +17,45 @@ const NAMES = [
   '하프타임', '추가시간', '득점기계', '리그광', '구단사랑', '인저리타임', '백넘버', '잔디남',
   '응원폼', '풋볼브레인',
 ]
+// fans within our own club
+const CLUB_NAMES = [
+  '홈경기단골', '시즌권1호', '울트라스', '직관마스터', '응원대장', '굿즈덕후', '원정버스', '깃발지기',
+  '북소리', '응원가왕', '골세리머니', '팬존터줏대감', '하이파이브', '스카프장인', '경기장요정', '주말직관러',
+  '12th맨', '클럽러버', '서포터스', '응원불사조', '관중석터줏', '풀스타디움', '티켓헌터', '레전드팬',
+]
 
-function teamByIndex(i) {
-  return TEAMS[i % TEAMS.length]
+const CRITERIA = [
+  { key: 'score', label: '활동 점수', unit: '점' },
+  { key: 'opinions', label: '의견 작성', unit: '건' },
+  { key: 'comments', label: '댓글 작성', unit: '개' },
+  { key: 'surveys', label: '설문 참여', unit: '회' },
+  { key: 'empathy', label: '공감 받은 수', unit: '개' },
+]
+
+function hash(str) {
+  let h = 2166136261
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) }
+  return h >>> 0
+}
+function fanMetrics(key) {
+  const h = hash(key)
+  return {
+    score: 380 + (h % 1500),
+    opinions: 4 + ((h >> 3) % 64),
+    comments: 8 + ((h >> 6) % 190),
+    surveys: 1 + ((h >> 9) % 42),
+    empathy: 18 + ((h >> 12) % 620),
+    change: (h % 7) - 3, // -3 ~ +3
+  }
 }
 
-const RANKING = NAMES.map((name, i) => ({
-  rank: i + 1,
-  name,
-  team: teamByIndex(i * 3 + 1),
-  score: 1820 - i * 27 - (i % 4) * 9,
-}))
+const MEDALS = ['🥇', '🥈', '🥉']
 
-const MY_RANK = { rank: 38, score: 245, toNext: 15, nextThreshold: 30 }
+// my rank (mock) per scope
+const MY = {
+  league: { total: 12483, rank: 328, change: 5, score: 245, opinions: 18, comments: 64, surveys: 9, empathy: 320 },
+  club: { total: 1428, rank: 15, change: 2, score: 245, opinions: 18, comments: 64, surveys: 9, empathy: 320 },
+}
 
 const WEEK_STATS = [
   { key: 'opinions', icon: '📝', label: '가장 많은 의견 작성', name: '블루윙', value: '32건' },
@@ -37,21 +63,18 @@ const WEEK_STATS = [
   { key: 'surveys', icon: '📊', label: '가장 많은 설문 참여', name: '서포터K', value: '19회' },
   { key: 'empathy', icon: '❤️', label: '가장 많은 공감', name: '직관러', value: '540개' },
 ]
-
 const SCORE_RULES = [
   { label: '의견 작성', points: '+10점' },
   { label: '댓글 작성', points: '+3점' },
   { label: '설문 참여', points: '+5점' },
   { label: '공감 받기', points: '+2점' },
 ]
-
 const LEVELS = [
   { emoji: '🌱', name: 'Rookie Fan', min: 0 },
   { emoji: '⚽', name: 'Active Fan', min: 200 },
   { emoji: '🔥', name: 'Super Fan', min: 600 },
   { emoji: '🏆', name: 'Legend Fan', min: 1200 },
 ]
-
 const BADGES = [
   { icon: '📝', label: '첫 의견 작성', desc: '의견 1건 작성하기', done: true },
   { icon: '💬', label: '댓글 10개 작성', desc: '댓글 10개 남기기', progress: 70 },
@@ -59,13 +82,32 @@ const BADGES = [
   { icon: '❤️', label: '공감 50개 받기', desc: '내 의견에 공감 50개', progress: 24 },
 ]
 
-const MEDALS = ['🥇', '🥈', '🥉']
+function Change({ value }) {
+  if (value > 0) return <span className="fr-chg up" title="상승">▲ {value}</span>
+  if (value < 0) return <span className="fr-chg down" title="하락">▼ {Math.abs(value)}</span>
+  return <span className="fr-chg same" title="변동 없음">—</span>
+}
 
 export default function FanRankingPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const [lang, setLang] = useState('ko')
+  const [scope, setScope] = useState('league') // 'league' | 'club'
+  const [criteria, setCriteria] = useState('score')
+
+  // build + sort the ranking for current scope/criteria
+  const ranking = useMemo(() => {
+    if (!team) return []
+    const fans =
+      scope === 'league'
+        ? LEAGUE_NAMES.map((name, i) => ({ name, team: TEAMS[(i * 3 + 1) % TEAMS.length], ...fanMetrics(name) }))
+        : CLUB_NAMES.map(name => ({ name, team, ...fanMetrics(name + team.id) }))
+    return fans
+      .slice()
+      .sort((a, b) => b[criteria] - a[criteria])
+      .map((f, i) => ({ ...f, rank: i + 1 }))
+  }, [team, scope, criteria])
 
   if (!team) {
     return (
@@ -80,19 +122,26 @@ export default function FanRankingPage() {
   const goWrite = () => navigate(`/club/${team.id}/write`)
   const goSurvey = () => navigate(`/club/${team.id}/survey`)
 
-  // my level (mock, from MY_RANK score)
+  const crit = CRITERIA.find(c => c.key === criteria)
+  const fmt = v => v.toLocaleString()
+  const mine = MY[scope]
+  const myValue = mine[criteria]
+  const scopeLabel = scope === 'league' ? '전체 랭킹' : '우리 팀 랭킹'
+
+  // my level (from activity score)
   let myLevelIdx = 0
   for (let i = LEVELS.length - 1; i >= 0; i--) {
-    if (MY_RANK.score >= LEVELS[i].min) { myLevelIdx = i; break }
+    if (mine.score >= LEVELS[i].min) { myLevelIdx = i; break }
   }
   const myLevel = LEVELS[myLevelIdx]
   const nextLevel = LEVELS[myLevelIdx + 1]
   const levelProgress = nextLevel
-    ? Math.min(100, Math.round(((MY_RANK.score - myLevel.min) / (nextLevel.min - myLevel.min)) * 100))
+    ? Math.min(100, Math.round(((mine.score - myLevel.min) / (nextLevel.min - myLevel.min)) * 100))
     : 100
+  const percentile = Math.max(1, Math.round((mine.rank / mine.total) * 100))
 
-  const top3 = RANKING.slice(0, 3)
-  const rest = RANKING.slice(3, 50)
+  const top3 = ranking.slice(0, 3)
+  const rest = ranking.slice(3, 50)
 
   return (
     <div className="ch-root" style={themeStyle}>
@@ -147,25 +196,45 @@ export default function FanRankingPage() {
           <p>팬들의 활동을 확인하고 함께 FANCLUV를 만들어 가세요.</p>
         </section>
 
+        {/* Scope tabs */}
+        <div className="fr-tabs" role="tablist" aria-label="랭킹 범위">
+          <button role="tab" aria-selected={scope === 'league'}
+            className={`fr-tab${scope === 'league' ? ' on' : ''}`} onClick={() => setScope('league')}>
+            전체 랭킹
+          </button>
+          <button role="tab" aria-selected={scope === 'club'}
+            className={`fr-tab${scope === 'club' ? ' on' : ''}`} onClick={() => setScope('club')}>
+            우리 팀 랭킹
+          </button>
+        </div>
+
+        {/* Criteria filter */}
+        <div className="fr-criteria" role="group" aria-label="랭킹 기준">
+          {CRITERIA.map(c => (
+            <button key={c.key} className={`fr-crit${criteria === c.key ? ' on' : ''}`}
+              onClick={() => setCriteria(c.key)}>{c.label}</button>
+          ))}
+        </div>
+
         <div className="fr-grid">
           {/* Left 70% */}
           <div className="fr-col-main">
 
             {/* TOP 3 */}
-            <section className="fr-top3" aria-label="이번 주 TOP 3">
-              {[top3[1], top3[0], top3[2]].map((p, podiumIdx) => {
-                const medalIdx = p.rank - 1
+            <section className="fr-top3" aria-label="TOP 3">
+              {[top3[1], top3[0], top3[2]].map(p => {
+                if (!p) return null
                 const center = p.rank === 1
                 return (
                   <div key={p.rank} className={`fr-podium r${p.rank}${center ? ' first' : ''}`}>
-                    <div className="fr-medal" aria-hidden="true">{MEDALS[medalIdx]}</div>
+                    <div className="fr-medal" aria-hidden="true">{MEDALS[p.rank - 1]}</div>
                     <span className="fr-podium-avatar">{p.name[0]}</span>
                     <span className="fr-podium-name">{p.name}</span>
                     <span className="fr-podium-team">
                       <TeamEmblem color={p.team.color} size={16} /> {p.team.short}
                     </span>
-                    <span className="fr-podium-score">{p.score.toLocaleString()}<em>점</em></span>
-                    <span className="fr-podium-rank">{p.rank}위</span>
+                    <span className="fr-podium-score">{fmt(p[criteria])}<em>{crit.unit}</em></span>
+                    <span className="fr-podium-rank">{p.rank}위 <Change value={p.change} /></span>
                   </div>
                 )
               })}
@@ -179,42 +248,47 @@ export default function FanRankingPage() {
                   <span className="fr-myrank-name">{NICKNAME}님의 순위</span>
                   <span className="fr-myrank-level">{myLevel.emoji} {myLevel.name}</span>
                 </div>
+                <span className="fr-myrank-scope">{scopeLabel}</span>
               </div>
               <div className="fr-myrank-stats">
                 <div className="fr-myrank-stat">
-                  <span className="fr-myrank-value">{MY_RANK.rank}<em>위</em></span>
-                  <span className="fr-myrank-label">현재 순위</span>
+                  <span className="fr-myrank-value">{fmt(mine.rank)}<em>위</em></span>
+                  <span className="fr-myrank-label">/ {fmt(mine.total)}명 중</span>
                 </div>
                 <div className="fr-myrank-stat">
-                  <span className="fr-myrank-value">{MY_RANK.score}<em>점</em></span>
-                  <span className="fr-myrank-label">활동 점수</span>
+                  <span className="fr-myrank-value">{fmt(myValue)}<em>{crit.unit}</em></span>
+                  <span className="fr-myrank-label">{crit.label}</span>
+                </div>
+                <div className="fr-myrank-stat">
+                  <span className="fr-myrank-value fr-myrank-chg"><Change value={mine.change} /></span>
+                  <span className="fr-myrank-label">지난주 대비</span>
                 </div>
               </div>
               <p className="fr-myrank-hint">
-                상위 {MY_RANK.nextThreshold}위까지 <strong>{MY_RANK.toNext}점</strong> 남았습니다.
+                현재 상위 <strong>{percentile}%</strong> 입니다. 의견을 하나 더 남기면 순위가 올라가요!
               </p>
-              <div className="fr-myrank-bar"><span style={{ width: '72%' }} /></div>
+              <div className="fr-myrank-bar"><span style={{ width: `${100 - percentile}%` }} /></div>
             </section>
 
             {/* Full ranking */}
             <section className="fr-panel">
               <div className="fr-panel-head">
-                <h2 className="fr-panel-title">전체 랭킹 TOP 50</h2>
-                <span className="fr-week">이번 주</span>
+                <h2 className="fr-panel-title">{scopeLabel} TOP 50</h2>
+                <span className="fr-week">{crit.label} 기준</span>
               </div>
-              <ul className="fr-list">
-                {rest.map(p => {
-                  const me = false
-                  return (
-                    <li key={p.rank} className={`fr-row${me ? ' me' : ''}`}>
-                      <span className="fr-rank">{p.rank}</span>
-                      <span className="fr-avatar">{p.name[0]}</span>
-                      <span className="fr-name">{p.name}</span>
-                      <span className="fr-team"><TeamEmblem color={p.team.color} size={18} /> {p.team.short}</span>
-                      <span className="fr-score">{p.score.toLocaleString()}점</span>
-                    </li>
-                  )
-                })}
+              <ul className={`fr-list ${scope}`}>
+                {rest.map(p => (
+                  <li key={p.rank} className="fr-row">
+                    <span className="fr-rank">{p.rank}</span>
+                    <span className="fr-rowchg"><Change value={p.change} /></span>
+                    <span className="fr-avatar">{p.name[0]}</span>
+                    <span className="fr-name">{p.name}</span>
+                    {scope === 'league' && (
+                      <span className="fr-team"><TeamEmblem color={p.team.color} size={18} /> {p.team.name}</span>
+                    )}
+                    <span className="fr-score">{fmt(p[criteria])}{crit.unit}</span>
+                  </li>
+                ))}
               </ul>
             </section>
           </div>

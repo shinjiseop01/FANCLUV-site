@@ -12,6 +12,40 @@
 .fr-pagehead h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.6px; color: var(--ink); margin-bottom: 8px; }
 .fr-pagehead p { font-size: 15px; color: var(--muted); }
 
+/* ── Scope tabs ── */
+.fr-tabs {
+  display: inline-flex;
+  background: var(--page-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.fr-tab {
+  border: none; background: none; cursor: pointer; font-family: inherit;
+  font-size: 14px; font-weight: 700; color: var(--muted);
+  padding: 9px 22px; border-radius: 9px; transition: all 0.15s;
+}
+.fr-tab:hover { color: var(--body); }
+.fr-tab.on { background: var(--canvas); color: var(--team-deep); box-shadow: 0 1px 3px rgba(20,23,31,0.08); }
+
+/* ── Criteria filter ── */
+.fr-criteria { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+.fr-crit {
+  border: 1px solid var(--border); background: var(--canvas); color: var(--body);
+  font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 100px;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.fr-crit:hover { border-color: color-mix(in srgb, var(--team) 40%, var(--border)); color: var(--team-deep); }
+.fr-crit.on { background: var(--team-deep); border-color: var(--team-deep); color: #fff; }
+
+/* ── Change indicator ── */
+.fr-chg { font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.fr-chg.up { color: #0E9F6E; }
+.fr-chg.down { color: #E05252; }
+.fr-chg.same { color: var(--muted-soft, #B4B8C0); }
+
 .fr-grid { display: grid; grid-template-columns: minmax(0, 7fr) 3fr; gap: 24px; align-items: start; }
 .fr-col-main, .fr-col-side { display: flex; flex-direction: column; gap: 20px; }
 
@@ -51,8 +85,9 @@
 .fr-podium-score { font-size: 19px; font-weight: 800; color: var(--team-deep); letter-spacing: -0.3px; }
 .fr-podium-score em { font-style: normal; font-size: 12px; font-weight: 600; margin-left: 2px; }
 .fr-podium-rank {
+  display: inline-flex; align-items: center; gap: 6px;
   font-size: 11.5px; font-weight: 700; color: var(--muted);
-  background: var(--page-bg); padding: 2px 10px; border-radius: 100px;
+  background: var(--page-bg); padding: 3px 11px; border-radius: 100px;
 }
 
 /* ── My rank ── */
@@ -63,6 +98,11 @@
   color: #fff;
 }
 .fr-myrank-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.fr-myrank-scope {
+  margin-left: auto; align-self: flex-start;
+  font-size: 11.5px; font-weight: 700; color: #fff;
+  background: rgba(255,255,255,0.22); padding: 4px 11px; border-radius: 100px;
+}
 .fr-myrank-avatar {
   width: 46px; height: 46px; border-radius: 50%;
   background: rgba(255,255,255,0.2); color: #fff;
@@ -71,9 +111,14 @@
 }
 .fr-myrank-name { display: block; font-size: 15px; font-weight: 700; }
 .fr-myrank-level { display: block; font-size: 13px; opacity: 0.85; margin-top: 2px; }
-.fr-myrank-stats { display: flex; gap: 36px; margin-bottom: 14px; }
-.fr-myrank-value { font-size: 32px; font-weight: 800; letter-spacing: -0.6px; line-height: 1; }
-.fr-myrank-value em { font-style: normal; font-size: 15px; font-weight: 600; margin-left: 3px; opacity: 0.9; }
+.fr-myrank-stats { display: flex; gap: 28px; margin-bottom: 14px; flex-wrap: wrap; }
+.fr-myrank-value { font-size: 30px; font-weight: 800; letter-spacing: -0.6px; line-height: 1; }
+.fr-myrank-value em { font-style: normal; font-size: 14px; font-weight: 600; margin-left: 3px; opacity: 0.9; }
+.fr-myrank-chg { font-size: 22px; }
+.fr-myrank-chg .fr-chg { font-size: 22px; }
+.fr-myrank-chg .fr-chg.up { color: #6EE7B7; }
+.fr-myrank-chg .fr-chg.down { color: #FCA5A5; }
+.fr-myrank-chg .fr-chg.same { color: rgba(255,255,255,0.7); }
 .fr-myrank-label { display: block; font-size: 12.5px; opacity: 0.8; margin-top: 5px; }
 .fr-myrank-hint { font-size: 13.5px; opacity: 0.92; margin-bottom: 10px; }
 .fr-myrank-hint strong { font-weight: 800; }
@@ -93,11 +138,13 @@
 .fr-list { list-style: none; display: flex; flex-direction: column; }
 .fr-row {
   display: grid;
-  grid-template-columns: 36px 32px 1fr auto auto;
   align-items: center; gap: 12px;
   padding: 11px 0; border-top: 1px solid var(--border-soft);
 }
+.fr-list.league .fr-row { grid-template-columns: 34px 42px 32px 1fr minmax(120px, auto) auto; }
+.fr-list.club .fr-row { grid-template-columns: 34px 42px 32px 1fr auto; }
 .fr-row:first-child { border-top: none; }
+.fr-rowchg { text-align: center; }
 .fr-row.me { background: color-mix(in srgb, var(--team) 8%, white); border-radius: 10px; padding: 11px 10px; }
 .fr-rank { font-size: 14px; font-weight: 800; color: var(--muted); text-align: center; }
 .fr-avatar {
@@ -107,7 +154,10 @@
   display: flex; align-items: center; justify-content: center;
 }
 .fr-name { font-size: 14px; font-weight: 600; color: var(--ink); }
-.fr-team { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.fr-team { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+/* override the global .team-emblem 62px so list/podium logos stay small */
+.fr-team svg { width: 18px !important; height: 18px !important; flex-shrink: 0; }
+.fr-podium-team svg { width: 16px !important; height: 16px !important; flex-shrink: 0; }
 .fr-score { font-size: 13.5px; font-weight: 800; color: var(--team-deep); white-space: nowrap; }
 
 /* ── Week stats ── */
@@ -187,7 +237,8 @@
 @media (max-width: 680px) {
   .fr-main { padding: 24px 16px 64px; }
   .fr-pagehead h1 { font-size: 23px; }
-  .fr-myrank-stats { gap: 28px; }
-  .fr-row { grid-template-columns: 28px 30px 1fr auto; }
+  .fr-myrank-stats { gap: 20px; }
+  .fr-list.league .fr-row { grid-template-columns: 28px 36px 30px 1fr auto; }
+  .fr-list.club .fr-row { grid-template-columns: 28px 36px 30px 1fr auto; }
   .fr-row .fr-team { display: none; }
 }
