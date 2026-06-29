@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { login } from './lib/auth.js'
 import './LoginPage.css'
-
-const DEMO_EMAIL = 'fan@fancluv.kr'
-const DEMO_PASSWORD = '1234'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -21,10 +19,16 @@ export default function LoginPage() {
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
-      if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
-        navigate('/team-select')
+      const result = login({ email: email.trim(), password })
+      if (result.ok) {
+        // 응원팀을 이미 선택했다면 해당 구단 홈으로, 아니면 응원팀 선택으로 이동
+        if (result.user.selectedTeam) {
+          navigate(`/club/${result.user.selectedTeam}`)
+        } else {
+          navigate('/team-select')
+        }
       } else {
-        setError('이메일 또는 비밀번호가 올바르지 않습니다.')
+        setError(result.error)
       }
     }, 800)
   }

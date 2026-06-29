@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { signup } from './lib/auth.js'
 import './SignupPage.css'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -27,7 +28,13 @@ export default function SignupPage() {
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
-      navigate('/team-select')
+      const result = signup({ nickname: nickname.trim(), email: email.trim(), password })
+      if (result.ok) {
+        // 가입 직후 자동 로그인 → 응원팀 선택으로 이동
+        navigate('/team-select')
+      } else {
+        setError(result.error)
+      }
     }, 800)
   }
 

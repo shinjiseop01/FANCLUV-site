@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TEAMS, TeamEmblem } from './teams.jsx'
+import { setSelectedTeam } from './lib/auth.js'
 import './TeamSelectPage.css'
 
 export default function TeamSelectPage() {
@@ -9,6 +10,7 @@ export default function TeamSelectPage() {
 
   function handleStart() {
     if (!selected) return
+    setSelectedTeam(selected) // 선택한 응원팀을 사용자 정보에 저장 (다음 로그인 시 바로 구단 홈으로)
     navigate(`/club/${selected}`)
   }
 

@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { isAuthenticated } from './lib/auth.js'
 import './index.css'
 import LoginPage from './LoginPage.jsx'
 import SignupPage from './SignupPage.jsx'
@@ -16,24 +17,29 @@ import TeamNewsPage from './TeamNewsPage.jsx'
 import AIInsightsPage from './AIInsightsPage.jsx'
 import FanRankingPage from './FanRankingPage.jsx'
 
+// 보호 라우트: 로그인하지 않은 사용자가 접근하면 로그인 페이지로 이동
+function RequireAuth({ children }) {
+  return isAuthenticated() ? children : <Navigate to="/" replace />
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route path="/team-select" element={<TeamSelectPage />} />
-        <Route path="/club/:teamId" element={<ClubHomePage />} />
-        <Route path="/club/:teamId/opinions" element={<OpinionsPage />} />
-        <Route path="/club/:teamId/opinions/:opinionId" element={<OpinionDetailPage />} />
-        <Route path="/club/:teamId/survey" element={<SurveyPage />} />
-        <Route path="/club/:teamId/write" element={<CreateOpinionPage />} />
-        <Route path="/club/:teamId/activity" element={<MyActivityPage />} />
-        <Route path="/club/:teamId/matches" element={<MatchCenterPage />} />
-        <Route path="/club/:teamId/news" element={<TeamNewsPage />} />
-        <Route path="/club/:teamId/news/:newsId" element={<TeamNewsPage />} />
-        <Route path="/club/:teamId/insights" element={<AIInsightsPage />} />
-        <Route path="/club/:teamId/ranking" element={<FanRankingPage />} />
+        <Route path="/team-select" element={<RequireAuth><TeamSelectPage /></RequireAuth>} />
+        <Route path="/club/:teamId" element={<RequireAuth><ClubHomePage /></RequireAuth>} />
+        <Route path="/club/:teamId/opinions" element={<RequireAuth><OpinionsPage /></RequireAuth>} />
+        <Route path="/club/:teamId/opinions/:opinionId" element={<RequireAuth><OpinionDetailPage /></RequireAuth>} />
+        <Route path="/club/:teamId/survey" element={<RequireAuth><SurveyPage /></RequireAuth>} />
+        <Route path="/club/:teamId/write" element={<RequireAuth><CreateOpinionPage /></RequireAuth>} />
+        <Route path="/club/:teamId/activity" element={<RequireAuth><MyActivityPage /></RequireAuth>} />
+        <Route path="/club/:teamId/matches" element={<RequireAuth><MatchCenterPage /></RequireAuth>} />
+        <Route path="/club/:teamId/news" element={<RequireAuth><TeamNewsPage /></RequireAuth>} />
+        <Route path="/club/:teamId/news/:newsId" element={<RequireAuth><TeamNewsPage /></RequireAuth>} />
+        <Route path="/club/:teamId/insights" element={<RequireAuth><AIInsightsPage /></RequireAuth>} />
+        <Route path="/club/:teamId/ranking" element={<RequireAuth><FanRankingPage /></RequireAuth>} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,
