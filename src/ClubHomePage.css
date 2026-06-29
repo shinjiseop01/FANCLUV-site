@@ -188,7 +188,7 @@
   flex-shrink: 0;
   border-radius: 11px;
   display: flex; align-items: center; justify-content: center;
-  background: color-mix(in srgb, var(--team) 14%, white);
+  background: color-mix(in srgb, var(--team) 14%, var(--mix-base));
   color: var(--team-deep);
 }
 .ch-stat-icon svg { width: 22px; height: 22px; }
@@ -240,7 +240,7 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 12%, white);
+  background: color-mix(in srgb, var(--team) 12%, var(--mix-base));
   padding: 4px 10px;
   border-radius: 100px;
   margin-bottom: 12px;
@@ -282,7 +282,7 @@
 .ch-avatar {
   width: 26px; height: 26px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--team) 16%, white);
+  background: color-mix(in srgb, var(--team) 16%, var(--mix-base));
   color: var(--team-deep);
   font-size: 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
@@ -314,7 +314,7 @@
 .ch-deadline {
   font-size: 12px; font-weight: 700;
   color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 12%, white);
+  background: color-mix(in srgb, var(--team) 12%, var(--mix-base));
   padding: 4px 9px; border-radius: 8px;
   white-space: nowrap; flex-shrink: 0;
 }

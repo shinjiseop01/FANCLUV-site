@@ -33,7 +33,7 @@
 .tn-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .tn-cat-pill {
   font-size: 11.5px; font-weight: 700; color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 12%, white);
+  background: color-mix(in srgb, var(--team) 12%, var(--mix-base));
   padding: 3px 10px; border-radius: 100px;
 }
 .tn-date { font-size: 12.5px; color: var(--muted); }
@@ -42,8 +42,8 @@
   position: relative;
   background:
     linear-gradient(135deg,
-      color-mix(in srgb, var(--team) 22%, white) 0%,
-      color-mix(in srgb, var(--team) 8%, white) 100%);
+      color-mix(in srgb, var(--team) 22%, var(--mix-base)) 0%,
+      color-mix(in srgb, var(--team) 8%, var(--mix-base)) 100%);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
@@ -69,10 +69,10 @@
 .tn-cta-btn.primary { background: var(--team-deep); color: #fff; border: none; }
 .tn-cta-btn.primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .tn-cta-btn.secondary {
-  background: color-mix(in srgb, var(--team) 10%, white);
-  color: var(--team-deep); border: 1px solid color-mix(in srgb, var(--team) 28%, white);
+  background: color-mix(in srgb, var(--team) 10%, var(--mix-base));
+  color: var(--team-deep); border: 1px solid color-mix(in srgb, var(--team) 28%, var(--mix-base));
 }
-.tn-cta-btn.secondary:hover { background: color-mix(in srgb, var(--team) 16%, white); transform: translateY(-1px); }
+.tn-cta-btn.secondary:hover { background: color-mix(in srgb, var(--team) 16%, var(--mix-base)); transform: translateY(-1px); }
 
 /* Hero news */
 .tn-hero {
@@ -128,8 +128,8 @@
 .tn-tags { display: flex; flex-wrap: wrap; gap: 8px; }
 .tn-tag {
   font-size: 13px; font-weight: 600; color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 10%, white);
-  border: 1px solid color-mix(in srgb, var(--team) 24%, white);
+  background: color-mix(in srgb, var(--team) 10%, var(--mix-base));
+  border: 1px solid color-mix(in srgb, var(--team) 24%, var(--mix-base));
   padding: 6px 12px; border-radius: 100px; cursor: default;
 }
 
@@ -148,7 +148,7 @@
 /* Survey card */
 .tn-survey-tag {
   display: inline-block; font-size: 11.5px; font-weight: 700; color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 12%, white); padding: 4px 10px; border-radius: 100px; margin-bottom: 10px;
+  background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); padding: 4px 10px; border-radius: 100px; margin-bottom: 10px;
 }
 .tn-survey-name { font-size: 14px; font-weight: 700; color: var(--ink); line-height: 1.45; margin-bottom: 14px; }
 .tn-survey-btn {

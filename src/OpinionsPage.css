@@ -116,7 +116,7 @@
 .op-sort:hover { color: var(--body); }
 .op-sort.on {
   color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 12%, white);
+  background: color-mix(in srgb, var(--team) 12%, var(--mix-base));
 }
 
 /* Feed (read-flow list, not separated cards) */
@@ -143,7 +143,7 @@
 .op-feed-item:hover { background: var(--page-bg); }
 .op-feed-item:focus-visible {
   outline: none;
-  background: color-mix(in srgb, var(--team) 7%, white);
+  background: color-mix(in srgb, var(--team) 7%, var(--mix-base));
   box-shadow: inset 3px 0 0 var(--team);
 }
 
@@ -157,7 +157,7 @@
 .op-avatar {
   width: 28px; height: 28px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--team) 16%, white);
+  background: color-mix(in srgb, var(--team) 16%, var(--mix-base));
   color: var(--team-deep);
   font-size: 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
@@ -185,7 +185,7 @@
 }
 .op-badge-hot {
   color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 13%, white);
+  background: color-mix(in srgb, var(--team) 13%, var(--mix-base));
 }
 .op-badge-new {
   color: #0A7C4A;
@@ -242,7 +242,7 @@
   display: inline-block;
   font-size: 11.5px; font-weight: 700;
   color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 12%, white);
+  background: color-mix(in srgb, var(--team) 12%, var(--mix-base));
   padding: 4px 10px; border-radius: 100px;
   margin-bottom: 10px;
 }
@@ -277,8 +277,8 @@
 .op-tag {
   font-size: 13px; font-weight: 600;
   color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 10%, white);
-  border: 1px solid color-mix(in srgb, var(--team) 24%, white);
+  background: color-mix(in srgb, var(--team) 10%, var(--mix-base));
+  border: 1px solid color-mix(in srgb, var(--team) 24%, var(--mix-base));
   padding: 6px 12px;
   border-radius: 100px;
   cursor: default;

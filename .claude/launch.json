@@ -5,7 +5,8 @@
       "name": "fancluv-dev",
       "runtimeExecutable": "/bin/bash",
       "runtimeArgs": ["/Users/jiseop/fancluv-site/start-dev.sh"],
-      "port": 5173
+      "port": 5173,
+      "autoPort": true
     }
   ]
 }

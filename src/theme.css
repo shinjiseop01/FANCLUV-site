@@ -1,0 +1,53 @@
+/* FANCLUV — light/dark theme tokens.
+   <html data-theme="light|dark"> is set by ThemeProvider and the boot
+   script in index.html. Team brand colours (--team / --team-deep) are set
+   per-page from JS and are intentionally NOT overridden here. */
+
+:root {
+  /* Base colour that team-tinted surfaces blend into via color-mix().
+     Flips to a dark surface in dark mode so tints don't wash out to white. */
+  --mix-base: #FFFFFF;
+}
+
+/* Smooth light <-> dark transitions on surfaces & text (never transforms,
+   so hover lifts / scales keep their own snappy timing). */
+.ch-root, .ch-root *,
+.ts-root, .ts-root * {
+  transition: background-color 0.28s ease, border-color 0.28s ease, color 0.2s ease;
+}
+
+/* ───────────────────────── DARK MODE ───────────────────────── */
+/* Applies to:
+   - html itself  -> overrides the global :root palette used by Team Select
+   - .ch-root      -> overrides the local palette redefined on club pages   */
+html[data-theme="dark"],
+html[data-theme="dark"] .ch-root {
+  --ink:         #EEF1F6;
+  --body:        #B9C0CC;
+  --muted:       #828B99;
+  --canvas:      #181B22;
+  --page-bg:     #0F1116;
+  --border:      #2A2F3A;
+  --border-soft: #222630;
+  --mix-base:    #1E222B;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  background: #0F1116;
+}
+
+/* A handful of decorative pure-white fills read poorly on dark surfaces. */
+html[data-theme="dark"] .ch-fallback button { background: var(--canvas); color: var(--ink); border-color: var(--border); }
+
+/* Empty (unfilled) rating stars — light grey reads as glowing on dark.
+   :not(.on) keeps the gold filled stars (#F5B400) untouched. */
+html[data-theme="dark"] .op-stars svg:not(.on),
+html[data-theme="dark"] .od-stars svg:not(.on),
+html[data-theme="dark"] .ai-stars svg:not(.on),
+html[data-theme="dark"] .sv-star:not(.on) svg,
+html[data-theme="dark"] .cw-star:not(.on) svg { fill: #3A3F4A; }
+
+/* "New / done" success badges — light green tint -> dark green tint. */
+html[data-theme="dark"] .op-badge-new { color: #4ADE80; background: rgba(16, 159, 110, 0.16); }
+html[data-theme="dark"] .ma-done-badge { color: #4ADE80; background: rgba(16, 159, 110, 0.16); }

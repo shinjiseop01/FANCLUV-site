@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
+import { useTheme } from './contexts/ThemeContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
@@ -14,6 +15,7 @@ export default function SettingsPage() {
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, setLang, t } = useLang()
+  const { theme, setTheme } = useTheme()
   const user = getCurrentUser()
   const nickname = user?.nickname || '팬'
   const email = user?.email || '-'
@@ -119,6 +121,27 @@ export default function SettingsPage() {
               {t('set.langEn')}
             </button>
           </div>
+        </section>
+
+        {/* Theme */}
+        <section className="st-card">
+          <h2 className="st-card-title">{t('set.theme')}</h2>
+          <div className="st-lang-toggle" role="group" aria-label={t('set.theme')}>
+            {[
+              ['light', 'set.themeLight'],
+              ['dark', 'set.themeDark'],
+              ['system', 'set.themeSystem'],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                className={`st-lang${theme === key ? ' on' : ''}`}
+                aria-pressed={theme === key}
+                onClick={() => setTheme(key)}>
+                {t(label)}
+              </button>
+            ))}
+          </div>
+          <p className="st-hint">{t('set.themeHint')}</p>
         </section>
 
         {/* Notifications */}

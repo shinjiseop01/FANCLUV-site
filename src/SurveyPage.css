@@ -30,7 +30,7 @@
   display: inline-block;
   font-size: 12px; font-weight: 700;
   color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 12%, white);
+  background: color-mix(in srgb, var(--team) 12%, var(--mix-base));
   padding: 5px 12px; border-radius: 100px;
   margin-bottom: 14px;
 }
@@ -97,7 +97,7 @@
 .sv-option input { accent-color: var(--team-deep); width: 17px; height: 17px; flex-shrink: 0; }
 .sv-option.on {
   border-color: var(--team);
-  background: color-mix(in srgb, var(--team) 7%, white);
+  background: color-mix(in srgb, var(--team) 7%, var(--mix-base));
   font-weight: 600;
 }
 
@@ -150,7 +150,7 @@
   width: 64px; height: 64px;
   margin: 0 auto 22px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--team) 14%, white);
+  background: color-mix(in srgb, var(--team) 14%, var(--mix-base));
   color: var(--team-deep);
   display: flex; align-items: center; justify-content: center;
 }
@@ -242,7 +242,7 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 12%, white);
+  background: color-mix(in srgb, var(--team) 12%, var(--mix-base));
   padding: 4px 11px;
   border-radius: 100px;
 }

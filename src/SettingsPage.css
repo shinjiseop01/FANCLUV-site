@@ -34,7 +34,7 @@
 }
 .st-avatar {
   width: 52px; height: 52px; border-radius: 50%;
-  background: color-mix(in srgb, var(--team) 16%, white);
+  background: color-mix(in srgb, var(--team) 16%, var(--mix-base));
   color: var(--team-deep); font-size: 20px; font-weight: 800;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
@@ -76,9 +76,10 @@
 }
 .st-lang:hover { border-color: color-mix(in srgb, var(--team) 40%, var(--border)); }
 .st-lang.on {
-  border-color: var(--team); background: color-mix(in srgb, var(--team) 8%, white);
+  border-color: var(--team); background: color-mix(in srgb, var(--team) 8%, var(--mix-base));
   color: var(--team-deep); font-weight: 700;
 }
+.st-hint { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin: 2px 0 2px; }
 
 /* Switch (notifications) */
 .st-switch {
@@ -102,7 +103,7 @@
   border-radius: 12px; font-size: 15px; font-weight: 700;
   cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
-.st-logout:hover { background: color-mix(in srgb, #E0202E 8%, white); }
+.st-logout:hover { background: color-mix(in srgb, #E0202E 8%, var(--mix-base)); }
 
 /* Toast */
 .st-toast {

@@ -3,7 +3,9 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { isAuthenticated } from './lib/auth.js'
 import { LanguageProvider } from './contexts/LanguageContext.jsx'
+import { ThemeProvider } from './contexts/ThemeContext.jsx'
 import './index.css'
+import './theme.css'
 import LoginPage from './LoginPage.jsx'
 import SignupPage from './SignupPage.jsx'
 import TeamSelectPage from './TeamSelectPage.jsx'
@@ -26,6 +28,7 @@ function RequireAuth({ children }) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    <ThemeProvider>
     <LanguageProvider>
     <BrowserRouter>
       <Routes>
@@ -47,5 +50,6 @@ createRoot(document.getElementById('root')).render(
       </Routes>
     </BrowserRouter>
     </LanguageProvider>
+    </ThemeProvider>
   </StrictMode>,
 )

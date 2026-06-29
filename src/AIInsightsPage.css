@@ -12,7 +12,7 @@
 .ai-badge {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 12px; font-weight: 700; color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 12%, white);
+  background: color-mix(in srgb, var(--team) 12%, var(--mix-base));
   padding: 5px 12px; border-radius: 100px; margin-bottom: 14px;
 }
 .ai-spark { color: var(--team-deep); }
@@ -63,17 +63,17 @@
 .ai-keywords { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
 .ai-kw {
   font-weight: 700; color: var(--team-deep);
-  background: color-mix(in srgb, var(--team) 9%, white);
-  border: 1px solid color-mix(in srgb, var(--team) 22%, white);
+  background: color-mix(in srgb, var(--team) 9%, var(--mix-base));
+  border: 1px solid color-mix(in srgb, var(--team) 22%, var(--mix-base));
   border-radius: 100px; padding: 6px 13px;
 }
 .ai-kw.w1 { font-size: 13px; opacity: 0.85; }
 .ai-kw.w2 { font-size: 15px; }
-.ai-kw.w3 { font-size: 17px; background: color-mix(in srgb, var(--team) 16%, white); }
+.ai-kw.w3 { font-size: 17px; background: color-mix(in srgb, var(--team) 16%, var(--mix-base)); }
 
 /* ── AI summary highlight ── */
 .ai-aisummary {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--team) 7%, white), var(--canvas));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--team) 7%, var(--mix-base)), var(--canvas));
   border-color: color-mix(in srgb, var(--team) 25%, var(--border));
 }
 .ai-aisummary-text { font-size: 15.5px; color: var(--ink); line-height: 1.8; }
@@ -117,7 +117,7 @@
 .ai-top li:first-child { padding-top: 0; border-top: none; }
 .ai-top-rank {
   width: 20px; height: 20px; flex-shrink: 0;
-  border-radius: 6px; background: color-mix(in srgb, var(--team) 12%, white);
+  border-radius: 6px; background: color-mix(in srgb, var(--team) 12%, var(--mix-base));
   color: var(--team-deep); font-size: 11.5px; font-weight: 800;
   display: flex; align-items: center; justify-content: center;
 }
