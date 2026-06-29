@@ -1,11 +1,10 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { logout } from './lib/auth.js'
+import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
 import './OpinionDetailPage.css'
 
-const NICKNAME = '민준'
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
 // Same pool as the opinions list (kept here so the list page stays untouched).
@@ -80,6 +79,7 @@ function Stars({ rating }) {
 }
 
 export default function OpinionDetailPage() {
+  const NICKNAME = getCurrentUser()?.nickname || '팬'
   const { teamId, opinionId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)

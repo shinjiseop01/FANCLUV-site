@@ -1,17 +1,17 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { logout } from './lib/auth.js'
+import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
 import './SurveyPage.css'
 
-const NICKNAME = '민준'
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
 const IMPROVE_OPTIONS = ['좌석 / 시야', '편의시설', '먹거리 / 매점', '접근성 / 교통', '응원 환경', '기타']
 const REVISIT_OPTIONS = ['매우 그렇다', '그렇다', '보통이다', '아니다']
 
 export default function SurveyPage() {
+  const NICKNAME = getCurrentUser()?.nickname || '팬'
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)

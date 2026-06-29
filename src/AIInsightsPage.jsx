@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { logout } from './lib/auth.js'
+import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
 import './AIInsightsPage.css'
 
-const NICKNAME = '민준'
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
 // ── Mock data ──
@@ -45,6 +44,7 @@ const STAFF_MEMO =
   '팬들은 경기 결과보다 경기장 경험과 MD 상품에 대한 개선을 가장 많이 요구하고 있습니다. 우선적으로 MD 상품 다양성과 경기장 편의시설 개선을 검토하는 것을 추천합니다.'
 
 export default function AIInsightsPage() {
+  const NICKNAME = getCurrentUser()?.nickname || '팬'
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)

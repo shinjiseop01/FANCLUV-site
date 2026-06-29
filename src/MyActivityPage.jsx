@@ -1,12 +1,11 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { logout } from './lib/auth.js'
+import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import { getCreatedOpinions } from './opinionStore.js'
 import './ClubHomePage.css'
 import './MyActivityPage.css'
 
-const NICKNAME = '민준'
 const JOINED = '2025.03.14'
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
@@ -44,6 +43,7 @@ const LEVELS = [
 ]
 
 export default function MyActivityPage() {
+  const NICKNAME = getCurrentUser()?.nickname || '팬'
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
