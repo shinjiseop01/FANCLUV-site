@@ -14,6 +14,7 @@ import MyActivityPage from './MyActivityPage.jsx'
 import MatchCenterPage from './MatchCenterPage.jsx'
 import TeamNewsPage from './TeamNewsPage.jsx'
 import AIInsightsPage from './AIInsightsPage.jsx'
+import FanRankingPage from './FanRankingPage.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -32,6 +33,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/news" element={<TeamNewsPage />} />
         <Route path="/club/:teamId/news/:newsId" element={<TeamNewsPage />} />
         <Route path="/club/:teamId/insights" element={<AIInsightsPage />} />
+        <Route path="/club/:teamId/ranking" element={<FanRankingPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,
