@@ -13,6 +13,7 @@ import CreateOpinionPage from './CreateOpinionPage.jsx'
 import MyActivityPage from './MyActivityPage.jsx'
 import MatchCenterPage from './MatchCenterPage.jsx'
 import TeamNewsPage from './TeamNewsPage.jsx'
+import AIInsightsPage from './AIInsightsPage.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -30,6 +31,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/matches" element={<MatchCenterPage />} />
         <Route path="/club/:teamId/news" element={<TeamNewsPage />} />
         <Route path="/club/:teamId/news/:newsId" element={<TeamNewsPage />} />
+        <Route path="/club/:teamId/insights" element={<AIInsightsPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

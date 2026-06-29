@@ -1,0 +1,146 @@
+/* AI Insights dashboard — relies on ClubHomePage.css for header + theme tokens
+   (--team, --team-deep, --ink, --body, --muted, --canvas, --page-bg,
+   --border, --border-soft) defined on .ch-root. */
+
+.ai-main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 36px 24px 80px;
+}
+
+.ai-pagehead { margin-bottom: 28px; }
+.ai-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: var(--team-deep);
+  background: color-mix(in srgb, var(--team) 12%, white);
+  padding: 5px 12px; border-radius: 100px; margin-bottom: 14px;
+}
+.ai-spark { color: var(--team-deep); }
+.ai-pagehead h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.6px; color: var(--ink); margin-bottom: 8px; }
+.ai-pagehead p { font-size: 15px; color: var(--muted); }
+
+/* Layout */
+.ai-grid { display: grid; grid-template-columns: minmax(0, 7fr) 3fr; gap: 24px; align-items: start; }
+.ai-col-main, .ai-col-side { display: flex; flex-direction: column; gap: 20px; }
+
+/* Panels */
+.ai-panel { background: var(--canvas); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; }
+.ai-panel-title {
+  font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 18px;
+  display: flex; align-items: center; gap: 7px;
+}
+
+/* ── Summary card ── */
+.ai-summary {
+  background: var(--team-deep);
+  border-radius: 18px;
+  padding: 24px 28px;
+  color: #fff;
+}
+.ai-summary-label { font-size: 13px; font-weight: 600; opacity: 0.85; }
+.ai-summary-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px;
+}
+.ai-sum { display: flex; flex-direction: column; gap: 4px; }
+.ai-sum-value { font-size: 30px; font-weight: 800; letter-spacing: -0.6px; line-height: 1; }
+.ai-sum-value em { font-style: normal; font-size: 16px; font-weight: 600; margin-left: 3px; opacity: 0.9; }
+.ai-sum-label { font-size: 13px; opacity: 0.8; }
+
+/* ── Sentiment ── */
+.ai-sentiment { display: flex; align-items: center; gap: 28px; }
+.ai-donut { width: 140px; height: 140px; flex-shrink: 0; }
+.ai-donut-num { font-size: 22px; font-weight: 800; fill: var(--ink); }
+.ai-donut-label { font-size: 11px; font-weight: 600; fill: var(--muted); }
+.ai-sent-legend { list-style: none; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+.ai-sent-legend li { display: flex; align-items: center; gap: 10px; }
+.ai-sent-emoji { font-size: 17px; }
+.ai-sent-name { font-size: 13.5px; font-weight: 600; color: var(--ink); width: 36px; }
+.ai-sent-bar { flex: 1; height: 8px; background: var(--border-soft); border-radius: 100px; overflow: hidden; }
+.ai-sent-bar span { display: block; height: 100%; border-radius: 100px; }
+.ai-sent-pct { font-size: 13px; font-weight: 700; width: 38px; text-align: right; }
+
+/* ── Keywords ── */
+.ai-keywords { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+.ai-kw {
+  font-weight: 700; color: var(--team-deep);
+  background: color-mix(in srgb, var(--team) 9%, white);
+  border: 1px solid color-mix(in srgb, var(--team) 22%, white);
+  border-radius: 100px; padding: 6px 13px;
+}
+.ai-kw.w1 { font-size: 13px; opacity: 0.85; }
+.ai-kw.w2 { font-size: 15px; }
+.ai-kw.w3 { font-size: 17px; background: color-mix(in srgb, var(--team) 16%, white); }
+
+/* ── AI summary highlight ── */
+.ai-aisummary {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--team) 7%, white), var(--canvas));
+  border-color: color-mix(in srgb, var(--team) 25%, var(--border));
+}
+.ai-aisummary-text { font-size: 15.5px; color: var(--ink); line-height: 1.8; }
+
+/* ── Recommendations ── */
+.ai-recs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ai-rec {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: var(--page-bg); border: 1px solid var(--border-soft);
+  border-radius: 12px; padding: 16px;
+}
+.ai-rec-rank {
+  width: 26px; height: 26px; flex-shrink: 0;
+  border-radius: 8px; background: var(--team-deep); color: #fff;
+  font-size: 13px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+.ai-rec-title { font-size: 14.5px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.ai-rec-desc { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+
+/* ── Trend line ── */
+.ai-line { width: 100%; height: auto; }
+.ai-line-val { font-size: 11px; font-weight: 700; fill: var(--ink); }
+.ai-line-label { font-size: 10.5px; fill: var(--muted); }
+.ai-trend-up { margin-left: auto; font-size: 12.5px; font-weight: 700; color: #0E9F6E; }
+
+/* ── Category satisfaction ── */
+.ai-catsat { list-style: none; display: flex; flex-direction: column; gap: 13px; }
+.ai-catsat li { display: flex; align-items: center; justify-content: space-between; }
+.ai-catsat-name { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.ai-stars { display: inline-flex; gap: 2px; }
+.ai-stars svg { width: 15px; height: 15px; fill: #E2E5EA; }
+.ai-stars svg.on { fill: #F5B400; }
+
+/* ── Top opinions ── */
+.ai-top { list-style: none; display: flex; flex-direction: column; }
+.ai-top li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 0; border-top: 1px solid var(--border-soft);
+}
+.ai-top li:first-child { padding-top: 0; border-top: none; }
+.ai-top-rank {
+  width: 20px; height: 20px; flex-shrink: 0;
+  border-radius: 6px; background: color-mix(in srgb, var(--team) 12%, white);
+  color: var(--team-deep); font-size: 11.5px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+.ai-top-title { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.ai-top-count { margin-left: auto; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+
+/* ── Staff memo ── */
+.ai-memo {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.ai-memo .ai-panel-title { color: #fff; }
+.ai-memo-text { font-size: 14px; color: rgba(255,255,255,0.82); line-height: 1.8; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .ai-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 680px) {
+  .ai-main { padding: 24px 16px 64px; }
+  .ai-pagehead h1 { font-size: 23px; }
+  .ai-summary-stats { grid-template-columns: 1fr; gap: 14px; }
+  .ai-sentiment { flex-direction: column; gap: 18px; }
+  .ai-sent-legend { width: 100%; }
+  .ai-recs { grid-template-columns: 1fr; }
+}

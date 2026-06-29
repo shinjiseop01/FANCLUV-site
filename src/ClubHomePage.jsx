@@ -106,6 +106,7 @@ export default function ClubHomePage() {
                 else if (item === '내 활동') navigate(`/club/${team.id}/activity`)
                 else if (item === '경기센터') navigate(`/club/${team.id}/matches`)
                 else if (item === '팀 뉴스') navigate(`/club/${team.id}/news`)
+                else if (item === 'AI 인사이트') navigate(`/club/${team.id}/insights`)
               }}>
               {item}
             </a>
