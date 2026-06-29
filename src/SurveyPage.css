@@ -195,10 +195,119 @@
 }
 .sv-btn-ghost:hover { background: var(--page-bg); }
 
+/* ── Survey list (cards) ── */
+.sv-main.is-list { max-width: 1080px; }
+
+.sv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 18px;
+}
+
+.sv-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px 22px 20px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+}
+.sv-card:hover,
+.sv-card:focus-visible {
+  border-color: var(--team);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--team) 12%, transparent);
+  transform: translateY(-2px);
+  outline: none;
+}
+.sv-card.is-closed {
+  cursor: default;
+  opacity: 0.72;
+}
+.sv-card.is-closed:hover {
+  border-color: var(--border);
+  box-shadow: none;
+  transform: none;
+}
+
+.sv-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.sv-card-status {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--team-deep);
+  background: color-mix(in srgb, var(--team) 12%, white);
+  padding: 4px 11px;
+  border-radius: 100px;
+}
+.sv-card-status.closed {
+  color: var(--muted);
+  background: var(--page-bg);
+}
+.sv-card-dday {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.sv-card-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: var(--ink);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.sv-card-desc {
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 18px;
+  flex: 1;
+}
+
+.sv-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--body);
+  margin-bottom: 16px;
+}
+.sv-card-meta svg { width: 17px; height: 17px; color: var(--muted); }
+
+.sv-card-cta {
+  height: 42px;
+  background: var(--team-deep);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.sv-card-cta:hover { filter: brightness(1.08); }
+.sv-card-cta:disabled {
+  background: var(--page-bg);
+  color: var(--muted);
+  cursor: default;
+  filter: none;
+}
+
 /* Responsive */
 @media (max-width: 680px) {
   .sv-main { padding: 22px 16px 64px; }
   .sv-q { padding: 20px 18px; }
   .sv-title { font-size: 22px; }
   .sv-star svg { width: 28px; height: 28px; }
+  .sv-grid { grid-template-columns: 1fr; gap: 14px; }
 }
