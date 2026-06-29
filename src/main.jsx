@@ -12,6 +12,7 @@ import SurveyPage from './SurveyPage.jsx'
 import CreateOpinionPage from './CreateOpinionPage.jsx'
 import MyActivityPage from './MyActivityPage.jsx'
 import MatchCenterPage from './MatchCenterPage.jsx'
+import TeamNewsPage from './TeamNewsPage.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -27,6 +28,8 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/write" element={<CreateOpinionPage />} />
         <Route path="/club/:teamId/activity" element={<MyActivityPage />} />
         <Route path="/club/:teamId/matches" element={<MatchCenterPage />} />
+        <Route path="/club/:teamId/news" element={<TeamNewsPage />} />
+        <Route path="/club/:teamId/news/:newsId" element={<TeamNewsPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

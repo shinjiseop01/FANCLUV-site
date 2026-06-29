@@ -129,7 +129,7 @@ export default function OpinionsPage() {
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={e => { e.preventDefault(); if (isHome) navigate(`/club/${team.id}`); else if (item === '내 활동') navigate(`/club/${team.id}/activity`); else if (item === '경기센터') navigate(`/club/${team.id}/matches`) }}>
+                onClick={e => { e.preventDefault(); if (isHome) navigate(`/club/${team.id}`); else if (item === '내 활동') navigate(`/club/${team.id}/activity`); else if (item === '경기센터') navigate(`/club/${team.id}/matches`); else if (item === '팀 뉴스') navigate(`/club/${team.id}/news`) }}>
                 {item}
               </a>
             )
