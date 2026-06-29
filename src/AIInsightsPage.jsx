@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getTeam, TeamEmblem } from './teams.jsx'
+import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
 import './AIInsightsPage.css'
 
@@ -89,15 +89,7 @@ export default function AIInsightsPage() {
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={e => {
-                  e.preventDefault()
-                  if (item === '홈') navigate(`/club/${team.id}`)
-                  else if (item === '팬 의견') navigate(`/club/${team.id}/opinions`)
-                  else if (item === '내 활동') navigate(`/club/${team.id}/activity`)
-                  else if (item === '경기센터') navigate(`/club/${team.id}/matches`)
-                  else if (item === '팀 뉴스') navigate(`/club/${team.id}/news`)
-                  else if (item === 'AI 인사이트') navigate(`/club/${team.id}/insights`)
-                }}>
+                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
                 {item}
               </a>
             )

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getTeam, TeamEmblem } from './teams.jsx'
+import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
 import './SurveyPage.css'
 
@@ -68,11 +68,7 @@ export default function SurveyPage() {
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={e => {
-                  e.preventDefault()
-                  if (item === '홈') navigate(`/club/${team.id}`)
-                  else if (item === '팬 의견') navigate(`/club/${team.id}/opinions`)
-                }}>
+                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
                 {item}
               </a>
             )

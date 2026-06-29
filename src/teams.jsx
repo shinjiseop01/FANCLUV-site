@@ -17,6 +17,24 @@ export const TEAMS = [
   { id: 'bucheon',  name: '부천 FC 1995',     short: '부천', color: '#D6242B', colorDeep: '#B41C22' },
 ]
 
+// Main menu items + their routes, shared by every page's top nav so that
+// every menu entry navigates consistently from any page.
+export const MENU_ITEMS = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
+
+export function menuPath(item, teamId) {
+  switch (item) {
+    case '홈': return `/club/${teamId}`
+    case '설문': return `/club/${teamId}/survey`
+    case '팬 의견': return `/club/${teamId}/opinions`
+    case '팀 뉴스': return `/club/${teamId}/news`
+    case '경기센터': return `/club/${teamId}/matches`
+    case 'AI 인사이트': return `/club/${teamId}/insights`
+    case '팬 랭킹': return `/club/${teamId}/ranking`
+    case '내 활동': return `/club/${teamId}/activity`
+    default: return `/club/${teamId}`
+  }
+}
+
 export function getTeam(id) {
   return TEAMS.find(t => t.id === id) || null
 }

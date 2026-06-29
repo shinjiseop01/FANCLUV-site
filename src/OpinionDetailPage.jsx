@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getTeam, TeamEmblem } from './teams.jsx'
+import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
 import './OpinionDetailPage.css'
 
@@ -171,11 +171,7 @@ export default function OpinionDetailPage() {
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={e => {
-                  e.preventDefault()
-                  if (isHome) navigate(`/club/${team.id}`)
-                  else if (active) navigate(`/club/${team.id}/opinions`)
-                }}>
+                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
                 {item}
               </a>
             )

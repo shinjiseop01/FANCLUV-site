@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getTeam, TeamEmblem } from './teams.jsx'
+import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
 
 const NICKNAME = '민준'
@@ -100,15 +100,7 @@ export default function ClubHomePage() {
           {MENU.map((item, i) => (
             <a key={item} href="#" className={`ch-nav-item${i === 0 ? ' on' : ''}`}
               aria-current={i === 0 ? 'page' : undefined}
-              onClick={e => {
-                e.preventDefault()
-                if (item === '팬 의견') navigate(`/club/${team.id}/opinions`)
-                else if (item === '내 활동') navigate(`/club/${team.id}/activity`)
-                else if (item === '경기센터') navigate(`/club/${team.id}/matches`)
-                else if (item === '팀 뉴스') navigate(`/club/${team.id}/news`)
-                else if (item === 'AI 인사이트') navigate(`/club/${team.id}/insights`)
-                else if (item === '팬 랭킹') navigate(`/club/${team.id}/ranking`)
-              }}>
+              onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
               {item}
             </a>
           ))}
