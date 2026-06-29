@@ -1,0 +1,173 @@
+import { useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
+import { logout, getCurrentUser } from './lib/auth.js'
+import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import './ClubHomePage.css'
+import './SettingsPage.css'
+
+const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
+const APP_VERSION = '1.0.0 (MVP)'
+
+export default function SettingsPage() {
+  const { teamId } = useParams()
+  const navigate = useNavigate()
+  const team = getTeam(teamId)
+  const { lang, setLang, t } = useLang()
+  const user = getCurrentUser()
+  const nickname = user?.nickname || '팬'
+  const email = user?.email || '-'
+
+  // notifications (mock — ON/OFF only)
+  const [noti, setNoti] = useState({ survey: true, news: true, comment: true, empathy: false })
+  const [toast, setToast] = useState('')
+
+  if (!team) {
+    return (
+      <div className="ch-fallback">
+        <p>{t('common.notFoundTeam')}</p>
+        <button onClick={() => navigate('/team-select')}>{t('common.reselectTeam')}</button>
+      </div>
+    )
+  }
+
+  const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
+  const toggle = key => setNoti(p => ({ ...p, [key]: !p[key] }))
+  function flash(msg) { setToast(msg); setTimeout(() => setToast(''), 1800) }
+  function handleLogout() { logout(); navigate('/') }
+
+  return (
+    <div className="ch-root" style={themeStyle}>
+
+      {/* ── Header (shared style) ── */}
+      <header className="ch-header">
+        <div className="ch-topbar">
+          <div className="ch-logo" onClick={() => navigate('/team-select')}>FANCLUV</div>
+          <div className="ch-club">
+            <TeamEmblem color={team.color} size={30} className="ch-club-emblem" />
+            <span className="ch-club-name">{team.name}</span>
+          </div>
+          <div className="ch-actions">
+            <div className="ch-lang" role="group" aria-label="언어 선택">
+              <button className={lang === 'ko' ? 'on' : ''} onClick={() => setLang('ko')}>한국어</button>
+              <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
+            </div>
+            <span className="ch-user">{nickname}{t('common.honorific')}</span>
+            <button className="ch-icon-btn" title={t('common.settings')} aria-label={t('common.settings')} onClick={() => navigate(`/club/${team.id}/settings`)}>
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="1.4"/></svg>
+            </button>
+            <button className="ch-logout" onClick={handleLogout}>{t('common.logout')}</button>
+          </div>
+        </div>
+        <nav className="ch-nav" aria-label="메인 메뉴">
+          {MENU.map(item => (
+            <a key={item} href="#" className="ch-nav-item"
+              onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>{t(NAV_KEYS[item])}</a>
+          ))}
+        </nav>
+      </header>
+
+      {/* ── Main ── */}
+      <main className="st-main">
+        <section className="st-pagehead">
+          <h1>{t('set.title')}</h1>
+          <p>{t('set.subtitle')}</p>
+        </section>
+
+        {/* Account */}
+        <section className="st-card">
+          <h2 className="st-card-title">{t('set.account')}</h2>
+          <div className="st-profile">
+            <span className="st-avatar" aria-hidden="true">{nickname[0]}</span>
+            <div className="st-profile-info">
+              <span className="st-profile-name">{nickname}</span>
+              <span className="st-profile-email">{email}</span>
+            </div>
+          </div>
+          <div className="st-row" role="button" tabIndex={0}
+            onClick={() => flash(t('set.comingSoon'))}>
+            <span>{t('set.editProfile')}</span>
+            <span className="st-chevron" aria-hidden="true">›</span>
+          </div>
+          <div className="st-row" role="button" tabIndex={0}
+            onClick={() => flash(t('set.comingSoon'))}>
+            <span>{t('set.changePw')}</span>
+            <span className="st-chevron" aria-hidden="true">›</span>
+          </div>
+        </section>
+
+        {/* Team */}
+        <section className="st-card">
+          <h2 className="st-card-title">{t('set.team')}</h2>
+          <div className="st-row st-row-static">
+            <span className="st-team">
+              <TeamEmblem color={team.color} size={26} className="st-team-emblem" />
+              {team.name}
+            </span>
+            <button className="st-btn" onClick={() => navigate('/team-select')}>{t('set.changeTeam')}</button>
+          </div>
+        </section>
+
+        {/* Language */}
+        <section className="st-card">
+          <h2 className="st-card-title">{t('set.language')}</h2>
+          <div className="st-lang-toggle" role="group" aria-label={t('set.language')}>
+            <button className={`st-lang${lang === 'ko' ? ' on' : ''}`} onClick={() => setLang('ko')}>
+              {t('set.langKo')}
+            </button>
+            <button className={`st-lang${lang === 'en' ? ' on' : ''}`} onClick={() => setLang('en')}>
+              {t('set.langEn')}
+            </button>
+          </div>
+        </section>
+
+        {/* Notifications */}
+        <section className="st-card">
+          <h2 className="st-card-title">{t('set.notifications')}</h2>
+          {[
+            ['survey', 'set.notiSurvey'],
+            ['news', 'set.notiNews'],
+            ['comment', 'set.notiComment'],
+            ['empathy', 'set.notiEmpathy'],
+          ].map(([key, label]) => (
+            <div key={key} className="st-row st-row-static">
+              <span>{t(label)}</span>
+              <button
+                className={`st-switch${noti[key] ? ' on' : ''}`}
+                role="switch" aria-checked={noti[key]} aria-label={t(label)}
+                onClick={() => toggle(key)}>
+                <span className="st-switch-knob" />
+              </button>
+            </div>
+          ))}
+        </section>
+
+        {/* App info */}
+        <section className="st-card">
+          <h2 className="st-card-title">{t('set.appInfo')}</h2>
+          <div className="st-row st-row-static">
+            <span>{t('set.appVersion')}</span>
+            <span className="st-muted">{APP_VERSION}</span>
+          </div>
+          <div className="st-row" role="button" tabIndex={0} onClick={() => flash(t('set.comingSoon'))}>
+            <span>{t('set.about')}</span>
+            <span className="st-chevron" aria-hidden="true">›</span>
+          </div>
+          <div className="st-row" role="button" tabIndex={0} onClick={() => flash(t('set.comingSoon'))}>
+            <span>{t('set.privacy')}</span>
+            <span className="st-chevron" aria-hidden="true">›</span>
+          </div>
+          <div className="st-row" role="button" tabIndex={0} onClick={() => flash(t('set.comingSoon'))}>
+            <span>{t('set.terms')}</span>
+            <span className="st-chevron" aria-hidden="true">›</span>
+          </div>
+        </section>
+
+        {/* Logout */}
+        <button className="st-logout" onClick={handleLogout}>{t('set.logout')}</button>
+      </main>
+
+      {toast && <div className="st-toast" role="status">{toast}</div>}
+    </div>
+  )
+}

@@ -17,6 +17,7 @@ import MatchCenterPage from './MatchCenterPage.jsx'
 import TeamNewsPage from './TeamNewsPage.jsx'
 import AIInsightsPage from './AIInsightsPage.jsx'
 import FanRankingPage from './FanRankingPage.jsx'
+import SettingsPage from './SettingsPage.jsx'
 
 // 보호 라우트: 로그인하지 않은 사용자가 접근하면 로그인 페이지로 이동
 function RequireAuth({ children }) {
@@ -42,6 +43,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/news/:newsId" element={<RequireAuth><TeamNewsPage /></RequireAuth>} />
         <Route path="/club/:teamId/insights" element={<RequireAuth><AIInsightsPage /></RequireAuth>} />
         <Route path="/club/:teamId/ranking" element={<RequireAuth><FanRankingPage /></RequireAuth>} />
+        <Route path="/club/:teamId/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
       </Routes>
     </BrowserRouter>
     </LanguageProvider>

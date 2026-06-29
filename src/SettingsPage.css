@@ -1,0 +1,120 @@
+/* Settings — relies on ClubHomePage.css for header + theme tokens
+   (--team, --team-deep, --ink, --body, --muted, --canvas, --page-bg,
+   --border, --border-soft) defined on .ch-root. */
+
+.st-main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 36px 24px 80px;
+}
+
+.st-pagehead { margin-bottom: 24px; }
+.st-pagehead h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.6px; color: var(--ink); margin-bottom: 8px; }
+.st-pagehead p { font-size: 15px; color: var(--muted); }
+
+/* Card */
+.st-card {
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 8px 20px;
+  margin-bottom: 18px;
+}
+.st-card-title {
+  font-size: 13px; font-weight: 700; color: var(--muted);
+  letter-spacing: 0.3px;
+  padding: 14px 0 10px;
+}
+
+/* Profile block */
+.st-profile {
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 0 16px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.st-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: color-mix(in srgb, var(--team) 16%, white);
+  color: var(--team-deep); font-size: 20px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.st-profile-info { display: flex; flex-direction: column; gap: 3px; }
+.st-profile-name { font-size: 16px; font-weight: 700; color: var(--ink); }
+.st-profile-email { font-size: 13.5px; color: var(--muted); }
+
+/* Row */
+.st-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 15px 0;
+  border-top: 1px solid var(--border-soft);
+  font-size: 14.5px; color: var(--ink); font-weight: 500;
+}
+.st-card .st-profile + .st-row,
+.st-card-title + .st-row,
+.st-card-title + .st-profile { border-top: none; }
+.st-row[role="button"] { cursor: pointer; transition: color 0.15s; }
+.st-row[role="button"]:hover { color: var(--team-deep); }
+.st-chevron { color: var(--muted); font-size: 20px; line-height: 1; }
+.st-muted { color: var(--muted); font-size: 13.5px; font-weight: 500; }
+
+.st-team { display: inline-flex; align-items: center; gap: 9px; font-weight: 600; color: var(--ink); }
+.st-team-emblem { display: block; flex-shrink: 0; }
+
+.st-btn {
+  background: var(--team-deep); color: #fff; border: none; border-radius: 9px;
+  font-size: 13px; font-weight: 700; padding: 8px 14px; cursor: pointer; font-family: inherit;
+  transition: filter 0.15s;
+}
+.st-btn:hover { filter: brightness(1.08); }
+
+/* Language toggle */
+.st-lang-toggle { display: flex; gap: 8px; padding: 6px 0 14px; }
+.st-lang {
+  flex: 1; border: 1px solid var(--border); background: var(--canvas);
+  color: var(--body); font-size: 14px; font-weight: 600; padding: 12px; border-radius: 10px;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.st-lang:hover { border-color: color-mix(in srgb, var(--team) 40%, var(--border)); }
+.st-lang.on {
+  border-color: var(--team); background: color-mix(in srgb, var(--team) 8%, white);
+  color: var(--team-deep); font-weight: 700;
+}
+
+/* Switch (notifications) */
+.st-switch {
+  width: 46px; height: 28px; border-radius: 100px; border: none;
+  background: var(--border); cursor: pointer; padding: 0; position: relative;
+  transition: background 0.18s; flex-shrink: 0;
+}
+.st-switch.on { background: var(--team-deep); }
+.st-switch-knob {
+  position: absolute; top: 3px; left: 3px;
+  width: 22px; height: 22px; border-radius: 50%; background: #fff;
+  transition: transform 0.18s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.st-switch.on .st-switch-knob { transform: translateX(18px); }
+
+/* Logout */
+.st-logout {
+  width: 100%; height: 52px; margin-top: 8px;
+  background: var(--canvas); color: #E0202E;
+  border: 1px solid color-mix(in srgb, #E0202E 35%, var(--border));
+  border-radius: 12px; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: background 0.15s;
+}
+.st-logout:hover { background: color-mix(in srgb, #E0202E 8%, white); }
+
+/* Toast */
+.st-toast {
+  position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%);
+  background: var(--ink); color: #fff; font-size: 13.5px; font-weight: 600;
+  padding: 12px 20px; border-radius: 100px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 80;
+}
+
+/* Responsive */
+@media (max-width: 680px) {
+  .st-main { padding: 24px 16px 64px; }
+  .st-pagehead h1 { font-size: 23px; }
+  .st-card { padding: 6px 16px; }
+  .st-row { padding: 16px 0; }
+}
