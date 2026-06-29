@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
@@ -15,7 +16,7 @@ export default function SurveyPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const [lang, setLang] = useState('ko')
+  const { lang, setLang, t } = useLang()
 
   const [satisfaction, setSatisfaction] = useState(0)
   const [improve, setImprove] = useState('')
@@ -56,11 +57,11 @@ export default function SurveyPage() {
               <button className={lang === 'ko' ? 'on' : ''} onClick={() => setLang('ko')}>한국어</button>
               <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
             </div>
-            <span className="ch-user">{NICKNAME}님</span>
-            <button className="ch-icon-btn" title="설정" aria-label="설정">
+            <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
+            <button className="ch-icon-btn" title={t('common.settings')} aria-label={t('common.settings')}>
               <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="1.4"/></svg>
             </button>
-            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>로그아웃</button>
+            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
           </div>
         </div>
         <nav className="ch-nav" aria-label="메인 메뉴">
@@ -69,9 +70,7 @@ export default function SurveyPage() {
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
-                {item}
-              </a>
+                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>{t(NAV_KEYS[item])}</a>
             )
           })}
         </nav>
@@ -79,25 +78,25 @@ export default function SurveyPage() {
 
       {/* ── Main ── */}
       <main className="sv-main">
-        <button className="sv-back" onClick={() => navigate(`/club/${team.id}`)}>← 뒤로가기</button>
+        <button className="sv-back" onClick={() => navigate(`/club/${team.id}`)}>{t('common.back')}</button>
 
         {submitted ? (
           <div className="sv-done">
             <div className="sv-done-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
-            <h1>설문에 참여해 주셔서 감사합니다</h1>
+            <h1>{t('survey.doneTitle')}</h1>
             <p>여러분의 소중한 의견은 분석을 거쳐 {team.name} 구단에 전달됩니다.</p>
             <div className="sv-done-actions">
-              <button className="sv-btn-primary" onClick={() => navigate(`/club/${team.id}`)}>홈으로 돌아가기</button>
-              <button className="sv-btn-ghost" onClick={() => navigate(`/club/${team.id}/opinions`)}>팬 의견 보러 가기</button>
+              <button className="sv-btn-primary" onClick={() => navigate(`/club/${team.id}`)}>{t('survey.backHome')}</button>
+              <button className="sv-btn-ghost" onClick={() => navigate(`/club/${team.id}/opinions`)}>{t('survey.goOpinions')}</button>
             </div>
           </div>
         ) : (
           <>
             <header className="sv-head">
-              <span className="sv-tag">참여 가능 · D-5</span>
-              <h1 className="sv-title">2026 시즌 홈 경기장 시설 만족도 조사</h1>
+              <span className="sv-tag">{t('survey.tag')}</span>
+              <h1 className="sv-title">{t('survey.title')}</h1>
               <p className="sv-desc">
                 {team.name}의 홈 경기 관람 환경에 대한 의견을 들려주세요.
                 설문 결과는 분석을 거쳐 구단에 전달됩니다. 약 1분 소요됩니다.
@@ -162,7 +161,7 @@ export default function SurveyPage() {
                 />
               </fieldset>
 
-              <button type="submit" className="sv-submit">설문 제출하기</button>
+              <button type="submit" className="sv-submit">{t('survey.submit')}</button>
             </form>
           </>
         )}

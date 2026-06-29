@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { isAuthenticated } from './lib/auth.js'
+import { LanguageProvider } from './contexts/LanguageContext.jsx'
 import './index.css'
 import LoginPage from './LoginPage.jsx'
 import SignupPage from './SignupPage.jsx'
@@ -24,6 +25,7 @@ function RequireAuth({ children }) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    <LanguageProvider>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LoginPage />} />
@@ -42,5 +44,6 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/ranking" element={<RequireAuth><FanRankingPage /></RequireAuth>} />
       </Routes>
     </BrowserRouter>
+    </LanguageProvider>
   </StrictMode>,
 )

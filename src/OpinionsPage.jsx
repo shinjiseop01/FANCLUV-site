@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import { getCreatedOpinions } from './opinionStore.js'
@@ -55,7 +56,7 @@ export default function OpinionsPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const [lang, setLang] = useState('ko')
+  const { lang, setLang, t } = useLang()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('전체')
   const [sort, setSort] = useState('최신순')
@@ -116,11 +117,11 @@ export default function OpinionsPage() {
               <button className={lang === 'ko' ? 'on' : ''} onClick={() => setLang('ko')}>한국어</button>
               <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
             </div>
-            <span className="ch-user">{NICKNAME}님</span>
-            <button className="ch-icon-btn" title="설정" aria-label="설정">
+            <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
+            <button className="ch-icon-btn" title={t('common.settings')} aria-label={t('common.settings')}>
               <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="1.4"/></svg>
             </button>
-            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>로그아웃</button>
+            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
           </div>
         </div>
         <nav className="ch-nav" aria-label="메인 메뉴">
@@ -130,9 +131,7 @@ export default function OpinionsPage() {
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
-                {item}
-              </a>
+                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>{t(NAV_KEYS[item])}</a>
             )
           })}
         </nav>
@@ -141,8 +140,8 @@ export default function OpinionsPage() {
       {/* ── Main ── */}
       <main className="op-main">
         <section className="op-title">
-          <h1>팬 의견</h1>
-          <p>팬들의 다양한 의견을 확인하고 함께 더 나은 구단을 만들어 보세요.</p>
+          <h1>{t('op.title')}</h1>
+          <p>{t('op.subtitle')}</p>
         </section>
 
         {/* Search + category filter */}
@@ -151,7 +150,7 @@ export default function OpinionsPage() {
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M21 21l-4.3-4.3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
             <input
               type="search"
-              placeholder="의견을 검색해 보세요."
+              placeholder={t('op.searchPh')}
               value={query}
               onChange={e => setQuery(e.target.value)}
             />
@@ -171,13 +170,13 @@ export default function OpinionsPage() {
           {/* Left: list */}
           <div className="op-list-col">
             <div className="op-list-head">
-              <span className="op-count">총 <strong>{visible.length}</strong>개의 의견</span>
+              <span className="op-count">{t('op.count', { n: visible.length })}</span>
               <div className="op-sorts" role="group" aria-label="정렬">
                 {SORTS.map(s => (
                   <button key={s}
                     className={`op-sort${sort === s ? ' on' : ''}`}
                     onClick={() => setSort(s)}>
-                    {s}
+                    {s === '최신순' ? t('op.sortLatest') : s === '공감순' ? t('op.sortAgreed') : t('op.sortCommented')}
                   </button>
                 ))}
               </div>
@@ -210,16 +209,16 @@ export default function OpinionsPage() {
 
                       {(popular || isNew) && (
                         <div className="op-badges">
-                          {popular && <span className="op-badge op-badge-hot">🔥 인기 의견</span>}
-                          {isNew && <span className="op-badge op-badge-new">🆕 NEW</span>}
+                          {popular && <span className="op-badge op-badge-hot">{t('op.badgePopular')}</span>}
+                          {isNew && <span className="op-badge op-badge-new">{t('op.badgeNew')}</span>}
                         </div>
                       )}
 
                       <h3 className="op-item-title">{o.title}</h3>
                       <p className="op-item-body">{o.body}</p>
                       <div className="op-item-foot">
-                        <span className="op-foot-stat">♥ 공감 {o.likes}</span>
-                        <span className="op-foot-stat">💬 댓글 {o.comments}</span>
+                        <span className="op-foot-stat">♥ {t('op.agree')} {o.likes}</span>
+                        <span className="op-foot-stat">💬 {t('op.comment')} {o.comments}</span>
                       </div>
                     </article>
                   )
@@ -231,17 +230,17 @@ export default function OpinionsPage() {
           {/* Right: sidebar */}
           <aside className="op-side">
             <section className="op-panel">
-              <h2 className="op-panel-title">진행 중인 설문</h2>
+              <h2 className="op-panel-title">{t('op.sideOngoing')}</h2>
               <div className="op-survey">
-                <span className="op-survey-tag">참여 가능 · D-5</span>
-                <p className="op-survey-name">2026 시즌 홈 경기장 시설 만족도 조사</p>
-                <p className="op-survey-desc">여러분의 의견이 구단에 그대로 전달됩니다.</p>
-                <button className="op-survey-btn" onClick={() => navigate(`/club/${team.id}/survey`)}>설문 참여하기</button>
+                <span className="op-survey-tag">{t('survey.tag')}</span>
+                <p className="op-survey-name">{t('op.surveyName')}</p>
+                <p className="op-survey-desc">{t('op.surveyDesc')}</p>
+                <button className="op-survey-btn" onClick={() => navigate(`/club/${team.id}/survey`)}>{t('op.joinSurvey')}</button>
               </div>
             </section>
 
             <section className="op-panel">
-              <h2 className="op-panel-title">인기 카테고리</h2>
+              <h2 className="op-panel-title">{t('op.sidePopularCat')}</h2>
               <ul className="op-side-cats">
                 <li><span className="op-dot" />경기장<em>320</em></li>
                 <li><span className="op-dot" />응원문화<em>254</em></li>
@@ -252,7 +251,7 @@ export default function OpinionsPage() {
             </section>
 
             <section className="op-panel">
-              <h2 className="op-panel-title">많이 언급되는 키워드</h2>
+              <h2 className="op-panel-title">{t('op.sideKeywords')}</h2>
               <div className="op-tags">
                 {['#티켓', '#응원가', '#MD', '#경기장', '#유니폼', '#선수', '#원정', '#시즌권'].map(t => (
                   <span key={t} className="op-tag">{t}</span>
@@ -264,9 +263,9 @@ export default function OpinionsPage() {
       </main>
 
       {/* Floating write button */}
-      <button className="ch-fab" aria-label="의견 작성하기" onClick={() => navigate(`/club/${team.id}/write`)}>
+      <button className="ch-fab" aria-label={t('op.fab')} onClick={() => navigate(`/club/${team.id}/write`)}>
         <span className="op-fab-emoji" aria-hidden="true">✏️</span>
-        <span>의견 작성하기</span>
+        <span>{t('op.fab')}</span>
       </button>
     </div>
   )

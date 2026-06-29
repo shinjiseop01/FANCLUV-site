@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
@@ -57,7 +58,7 @@ export default function ClubHomePage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const [lang, setLang] = useState('ko')
+  const { lang, setLang, t } = useLang()
 
   if (!team) {
     return (
@@ -89,11 +90,11 @@ export default function ClubHomePage() {
               <button className={lang === 'ko' ? 'on' : ''} onClick={() => setLang('ko')}>한국어</button>
               <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
             </div>
-            <span className="ch-user">{NICKNAME}님</span>
-            <button className="ch-icon-btn" title="설정" aria-label="설정">
+            <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
+            <button className="ch-icon-btn" title={t('common.settings')} aria-label={t('common.settings')}>
               <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="1.4"/></svg>
             </button>
-            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>로그아웃</button>
+            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
           </div>
         </div>
 
@@ -101,9 +102,7 @@ export default function ClubHomePage() {
           {MENU.map((item, i) => (
             <a key={item} href="#" className={`ch-nav-item${i === 0 ? ' on' : ''}`}
               aria-current={i === 0 ? 'page' : undefined}
-              onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
-              {item}
-            </a>
+              onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>{t(NAV_KEYS[item])}</a>
           ))}
         </nav>
       </header>
@@ -112,16 +111,16 @@ export default function ClubHomePage() {
       <main className="ch-main">
 
         <section className="ch-welcome">
-          <h1>안녕하세요, {NICKNAME}님!</h1>
-          <p>{team.name}의 최신 소식과 팬 활동을 확인해보세요.</p>
+          <h1>{t('home.welcome', { name: NICKNAME })}</h1>
+          <p>{t('home.welcomeSub', { team: team.name })}</p>
         </section>
 
         {/* Stat cards */}
         <section className="ch-stats">
-          <StatCard label="활동 중인 팬" value={stats.fans.toLocaleString()} icon="users" />
-          <StatCard label="총 의견 수" value={stats.opinions.toLocaleString()} icon="message" />
-          <StatCard label="총 댓글 수" value={stats.comments.toLocaleString()} icon="comment" />
-          <StatCard label="팬 만족도" value={`${stats.satisfaction}%`} icon="heart" />
+          <StatCard label={t('home.statFans')} value={stats.fans.toLocaleString()} icon="users" />
+          <StatCard label={t('home.statOpinions')} value={stats.opinions.toLocaleString()} icon="message" />
+          <StatCard label={t('home.statComments')} value={stats.comments.toLocaleString()} icon="comment" />
+          <StatCard label={t('home.statSatisfaction')} value={`${stats.satisfaction}%`} icon="heart" />
         </section>
 
         {/* Content grid */}
@@ -130,7 +129,7 @@ export default function ClubHomePage() {
           {/* Left 2/3 */}
           <div className="ch-col-main">
 
-            <Panel title="최신 설문" action="전체 보기">
+            <Panel title={t('home.latestSurvey')} action={t('home.viewAll')}>
               <div className="ch-survey-feature">
                 <span className="ch-tag">진행 중 · D-5</span>
                 <h3>2026 시즌 홈 경기장 시설 만족도 조사</h3>
@@ -139,11 +138,11 @@ export default function ClubHomePage() {
                   <div className="ch-progress"><span style={{ width: '64%' }} /></div>
                   <span className="ch-survey-count">1,842명 참여</span>
                 </div>
-                <button className="ch-btn-primary" onClick={() => navigate(`/club/${team.id}/survey`)}>설문 참여하기</button>
+                <button className="ch-btn-primary" onClick={() => navigate(`/club/${team.id}/survey`)}>{t('home.joinSurvey')}</button>
               </div>
             </Panel>
 
-            <Panel title="인기 의견" action="더 보기">
+            <Panel title={t('home.popularOpinions')} action={t('home.viewMore')}>
               <ul className="ch-opinions">
                 {POPULAR_OPINIONS.map((o, i) => (
                   <li key={i} className="ch-opinion">
@@ -167,7 +166,7 @@ export default function ClubHomePage() {
           {/* Right 1/3 */}
           <aside className="ch-col-side">
 
-            <Panel title="진행 중인 설문">
+            <Panel title={t('home.ongoingSurvey')}>
               <ul className="ch-side-list">
                 {ONGOING_SURVEYS.map((s, i) => (
                   <li key={i} className="ch-side-survey">
@@ -181,7 +180,7 @@ export default function ClubHomePage() {
               </ul>
             </Panel>
 
-            <Panel title="인기 카테고리">
+            <Panel title={t('home.popularCategories')}>
               <div className="ch-cats">
                 {CATEGORIES.map(c => (
                   <span key={c.name} className="ch-cat-chip">
@@ -192,7 +191,7 @@ export default function ClubHomePage() {
               </div>
             </Panel>
 
-            <Panel title="최근 많이 언급되는 주제">
+            <Panel title={t('home.trendingTopics')}>
               <ul className="ch-topics">
                 {TOPICS.map((t, i) => (
                   <li key={t.tag}>
@@ -208,9 +207,9 @@ export default function ClubHomePage() {
       </main>
 
       {/* Floating write button */}
-      <button className="ch-fab" aria-label="의견 작성" onClick={() => navigate(`/club/${team.id}/write`)}>
+      <button className="ch-fab" aria-label={t('home.writeOpinion')} onClick={() => navigate(`/club/${team.id}/write`)}>
         <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>
-        <span>의견 작성</span>
+        <span>{t('home.writeOpinion')}</span>
       </button>
     </div>
   )

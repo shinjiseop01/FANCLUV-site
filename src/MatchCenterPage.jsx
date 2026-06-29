@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TEAMS, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
@@ -27,7 +28,7 @@ export default function MatchCenterPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const [lang, setLang] = useState('ko')
+  const { lang, setLang, t } = useLang()
 
   const data = useMemo(() => {
     if (!team) return null
@@ -97,11 +98,11 @@ export default function MatchCenterPage() {
               <button className={lang === 'ko' ? 'on' : ''} onClick={() => setLang('ko')}>한국어</button>
               <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
             </div>
-            <span className="ch-user">{NICKNAME}님</span>
-            <button className="ch-icon-btn" title="설정" aria-label="설정">
+            <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
+            <button className="ch-icon-btn" title={t('common.settings')} aria-label={t('common.settings')}>
               <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="1.4"/></svg>
             </button>
-            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>로그아웃</button>
+            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
           </div>
         </div>
         <nav className="ch-nav" aria-label="메인 메뉴">
@@ -110,9 +111,7 @@ export default function MatchCenterPage() {
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
-                {item}
-              </a>
+                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>{t(NAV_KEYS[item])}</a>
             )
           })}
         </nav>
@@ -121,8 +120,8 @@ export default function MatchCenterPage() {
       {/* ── Main ── */}
       <main className="mc-main">
         <section className="mc-pagehead">
-          <h1>경기센터</h1>
-          <p>다가오는 경기와 지난 경기 결과를 확인하고 팬들의 의견을 남겨보세요.</p>
+          <h1>{t('match.title')}</h1>
+          <p>{t('match.subtitle')}</p>
         </section>
 
         <div className="mc-grid">
@@ -132,7 +131,7 @@ export default function MatchCenterPage() {
             {/* Next match (hero) */}
             <section className="mc-next">
               <div className="mc-next-top">
-                <span className="mc-next-label">다음 경기</span>
+                <span className="mc-next-label">{t('match.next')}</span>
                 <span className="mc-dday">{next.dday}</span>
               </div>
               <div className="mc-matchup">
@@ -157,17 +156,17 @@ export default function MatchCenterPage() {
               {/* CTA */}
               <div className="mc-cta">
                 <button className="mc-cta-btn primary" onClick={goWrite}>
-                  <span aria-hidden="true">📝</span> 경기 의견 작성하기
+                  {t('match.ctaWrite')}
                 </button>
                 <button className="mc-cta-btn secondary" onClick={goSurvey}>
-                  <span aria-hidden="true">📊</span> 경기 설문 참여하기
+                  {t('match.ctaSurvey')}
                 </button>
               </div>
             </section>
 
             {/* Schedule */}
             <section className="mc-panel">
-              <h2 className="mc-panel-title">경기 일정</h2>
+              <h2 className="mc-panel-title">{t('match.schedule')}</h2>
               <ul className="mc-list">
                 {upcoming.map(m => (
                   <li key={m.id} className="mc-match">
@@ -187,7 +186,7 @@ export default function MatchCenterPage() {
                     </div>
                     <div className="mc-match-info">
                       <span className="mc-stadium">📍 {m.stadium}</span>
-                      <span className="mc-status upcoming">예정</span>
+                      <span className="mc-status upcoming">{t('match.upcoming')}</span>
                     </div>
                   </li>
                 ))}
@@ -196,7 +195,7 @@ export default function MatchCenterPage() {
 
             {/* Recent results */}
             <section className="mc-panel">
-              <h2 className="mc-panel-title">최근 경기</h2>
+              <h2 className="mc-panel-title">{t('match.recent')}</h2>
               <ul className="mc-list">
                 {recent.map(m => {
                   const o = outcome(m)
@@ -213,7 +212,7 @@ export default function MatchCenterPage() {
                       </div>
                       <div className="mc-match-info">
                         <span className="mc-stadium">📍 {m.stadium}</span>
-                        <button className="mc-op-btn" onClick={goOpinions}>📝 이 경기 의견 보기</button>
+                        <button className="mc-op-btn" onClick={goOpinions}>{t('match.viewOpinion')}</button>
                       </div>
                     </li>
                   )
@@ -247,7 +246,7 @@ export default function MatchCenterPage() {
 
             {/* Standings */}
             <section className="mc-panel">
-              <h2 className="mc-panel-title">K리그1 순위</h2>
+              <h2 className="mc-panel-title">{t('match.standings')}</h2>
               <table className="mc-table">
                 <thead>
                   <tr><th>순위</th><th>팀</th><th>승점</th></tr>
@@ -266,7 +265,7 @@ export default function MatchCenterPage() {
 
             {/* Quick links */}
             <section className="mc-panel">
-              <h2 className="mc-panel-title">빠른 이동</h2>
+              <h2 className="mc-panel-title">{t('match.quick')}</h2>
               <div className="mc-quick">
                 <button onClick={goWrite}>📝 경기 의견 작성</button>
                 <button onClick={goSurvey}>📊 경기 설문 참여</button>

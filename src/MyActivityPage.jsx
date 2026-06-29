@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import { getCreatedOpinions } from './opinionStore.js'
@@ -47,7 +48,7 @@ export default function MyActivityPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const [lang, setLang] = useState('ko')
+  const { lang, setLang, t } = useLang()
 
   const myOpinions = useMemo(() => {
     if (!team) return []
@@ -102,11 +103,11 @@ export default function MyActivityPage() {
               <button className={lang === 'ko' ? 'on' : ''} onClick={() => setLang('ko')}>한국어</button>
               <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
             </div>
-            <span className="ch-user">{NICKNAME}님</span>
-            <button className="ch-icon-btn" title="설정" aria-label="설정">
+            <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
+            <button className="ch-icon-btn" title={t('common.settings')} aria-label={t('common.settings')}>
               <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="1.4"/></svg>
             </button>
-            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>로그아웃</button>
+            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
           </div>
         </div>
         <nav className="ch-nav" aria-label="메인 메뉴">
@@ -115,9 +116,7 @@ export default function MyActivityPage() {
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
-                {item}
-              </a>
+                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>{t(NAV_KEYS[item])}</a>
             )
           })}
         </nav>
@@ -126,8 +125,8 @@ export default function MyActivityPage() {
       {/* ── Main ── */}
       <main className="ma-main">
         <section className="ma-pagehead">
-          <h1>내 활동</h1>
-          <p>나의 활동 내역과 참여 현황을 확인해 보세요.</p>
+          <h1>{t('act.title')}</h1>
+          <p>{t('act.subtitle')}</p>
         </section>
 
         <div className="ma-grid">
@@ -143,21 +142,21 @@ export default function MyActivityPage() {
                   <TeamEmblem color={team.color} size={22} className="ma-team-emblem" />
                   <span>{team.name}</span>
                 </div>
-                <p className="ma-joined">가입일 · {JOINED}</p>
+                <p className="ma-joined">{t('act.joined')} · {JOINED}</p>
               </div>
             </div>
 
             {/* Stats */}
             <div className="ma-stats">
-              <StatCard label="작성한 의견" value={opinionCount} icon="message" />
-              <StatCard label="작성한 댓글" value={commentCount} icon="comment" />
-              <StatCard label="참여한 설문" value={surveyCount} icon="poll" />
-              <StatCard label="받은 공감" value={empathyCount.toLocaleString()} icon="heart" />
+              <StatCard label={t('act.statOpinions')} value={opinionCount} icon="message" />
+              <StatCard label={t('act.statComments')} value={commentCount} icon="comment" />
+              <StatCard label={t('act.statSurveys')} value={surveyCount} icon="poll" />
+              <StatCard label={t('act.statEmpathy')} value={empathyCount.toLocaleString()} icon="heart" />
             </div>
 
             {/* My opinions */}
             <section className="ma-panel">
-              <h2 className="ma-panel-title">내가 작성한 의견</h2>
+              <h2 className="ma-panel-title">{t('act.myOpinions')}</h2>
               <ul className="ma-op-list">
                 {myOpinions.map(o => (
                   <li key={o.id}>
@@ -179,7 +178,7 @@ export default function MyActivityPage() {
 
             {/* Participated surveys */}
             <section className="ma-panel">
-              <h2 className="ma-panel-title">참여한 설문</h2>
+              <h2 className="ma-panel-title">{t('act.mySurveys')}</h2>
               <ul className="ma-survey-list">
                 {MOCK_SURVEYS.map((s, i) => (
                   <li key={i} className="ma-survey">
@@ -189,7 +188,7 @@ export default function MyActivityPage() {
                     </div>
                     <span className="ma-done-badge">
                       <svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      참여 완료
+                      {t('act.surveyDone')}
                     </span>
                   </li>
                 ))}
@@ -202,7 +201,7 @@ export default function MyActivityPage() {
 
             {/* Activity level */}
             <section className="ma-panel ma-level">
-              <h2 className="ma-panel-title">FANCLUV 활동 레벨</h2>
+              <h2 className="ma-panel-title">{t('act.level')}</h2>
               <div className="ma-level-badge">
                 <span className="ma-level-emoji" aria-hidden="true">{level.emoji}</span>
                 <span className="ma-level-name">{level.name}</span>
@@ -215,7 +214,7 @@ export default function MyActivityPage() {
 
             {/* Recent activity */}
             <section className="ma-panel">
-              <h2 className="ma-panel-title">최근 활동</h2>
+              <h2 className="ma-panel-title">{t('act.recent')}</h2>
               <ul className="ma-timeline">
                 {MOCK_TIMELINE.map((t, i) => {
                   const meta = TYPE_META[t.type]
@@ -235,7 +234,7 @@ export default function MyActivityPage() {
 
             {/* Team info */}
             <section className="ma-panel ma-team-card">
-              <h2 className="ma-panel-title">응원팀 정보</h2>
+              <h2 className="ma-panel-title">{t('act.teamInfo')}</h2>
               <div className="ma-team-row">
                 <TeamEmblem color={team.color} size={44} />
                 <div>
@@ -243,7 +242,7 @@ export default function MyActivityPage() {
                   <p className="ma-team-sub">K리그1 · 2026 시즌</p>
                 </div>
               </div>
-              <button className="ma-team-btn" onClick={() => navigate(`/club/${team.id}`)}>구단 홈으로 이동</button>
+              <button className="ma-team-btn" onClick={() => navigate(`/club/${team.id}`)}>{t('act.goClub')}</button>
             </section>
           </aside>
         </div>

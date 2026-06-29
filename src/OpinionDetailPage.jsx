@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
@@ -86,7 +87,7 @@ export default function OpinionDetailPage() {
   const idx = Number(opinionId) - 1
   const base = team && Number.isInteger(idx) && BASE_OPINIONS[idx] ? BASE_OPINIONS[idx] : null
 
-  const [lang, setLang] = useState('ko')
+  const { lang, setLang, t } = useLang()
   const [comments, setComments] = useState(INITIAL_COMMENTS)
   const [draft, setDraft] = useState('')
   const [liked, setLiked] = useState(false)
@@ -158,11 +159,11 @@ export default function OpinionDetailPage() {
               <button className={lang === 'ko' ? 'on' : ''} onClick={() => setLang('ko')}>한국어</button>
               <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
             </div>
-            <span className="ch-user">{NICKNAME}님</span>
-            <button className="ch-icon-btn" title="설정" aria-label="설정">
+            <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
+            <button className="ch-icon-btn" title={t('common.settings')} aria-label={t('common.settings')}>
               <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="1.4"/></svg>
             </button>
-            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>로그아웃</button>
+            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
           </div>
         </div>
         <nav className="ch-nav" aria-label="메인 메뉴">
@@ -172,9 +173,7 @@ export default function OpinionDetailPage() {
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
-                {item}
-              </a>
+                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>{t(NAV_KEYS[item])}</a>
             )
           })}
         </nav>
@@ -183,7 +182,7 @@ export default function OpinionDetailPage() {
       {/* ── Main ── */}
       <main className="od-main">
         <button className="od-back" onClick={() => navigate(`/club/${team.id}/opinions`)}>
-          ← 뒤로가기
+          {t('common.back')}
         </button>
 
         <div className="od-layout">
@@ -219,23 +218,23 @@ export default function OpinionDetailPage() {
               {/* Interaction bar */}
               <div className="od-actions">
                 <button className={`od-act od-empathy${liked ? ' on' : ''}`} onClick={() => setLiked(v => !v)}>
-                  <span aria-hidden="true">❤️</span> 공감해요 <strong>{likeCount}</strong>
+                  <span aria-hidden="true">❤️</span> {t('detail.agree')} <strong>{likeCount}</strong>
                 </button>
                 <button className="od-act" onClick={() => commentBoxRef.current?.focus()}>
-                  <span aria-hidden="true">💬</span> 댓글 <strong>{comments.length}</strong>
+                  <span aria-hidden="true">💬</span> {t('detail.comment')} <strong>{comments.length}</strong>
                 </button>
                 <button className="od-act" onClick={handleShare}>
-                  <span aria-hidden="true">🔗</span> 공유하기
+                  <span aria-hidden="true">🔗</span> {t('detail.share')}
                 </button>
-                <button className="od-act od-report" onClick={() => flash('신고가 접수되었습니다. 검토 후 조치하겠습니다.')}>
-                  <span aria-hidden="true">🚩</span> 신고하기
+                <button className="od-act od-report" onClick={() => flash(t('detail.reported'))}>
+                  <span aria-hidden="true">🚩</span> {t('detail.report')}
                 </button>
               </div>
             </article>
 
             {/* Comments */}
             <section className="od-comments">
-              <h2 className="od-comments-title">댓글 <span>{comments.length}</span></h2>
+              <h2 className="od-comments-title">{t('detail.commentTitle')} <span>{comments.length}</span></h2>
 
               <ul className="od-comment-list">
                 {comments.map((c, i) => (
@@ -256,12 +255,12 @@ export default function OpinionDetailPage() {
                 <textarea
                   ref={commentBoxRef}
                   className="od-comment-input"
-                  placeholder="이 의견에 대한 생각을 남겨 보세요."
+                  placeholder={t('detail.commentPh')}
                   value={draft}
                   onChange={e => setDraft(e.target.value)}
                   rows={2}
                 />
-                <button type="submit" className="od-comment-submit" disabled={!draft.trim()}>댓글 작성</button>
+                <button type="submit" className="od-comment-submit" disabled={!draft.trim()}>{t('detail.commentSubmit')}</button>
               </form>
             </section>
           </div>
@@ -269,7 +268,7 @@ export default function OpinionDetailPage() {
           {/* Right: sidebar */}
           <aside className="od-side">
             <section className="od-panel">
-              <h2 className="od-panel-title">같은 카테고리의 다른 의견</h2>
+              <h2 className="od-panel-title">{t('detail.related')}</h2>
               <ul className="od-related">
                 {related.map(r => (
                   <li key={r.id}>
@@ -283,11 +282,11 @@ export default function OpinionDetailPage() {
             </section>
 
             <section className="od-panel">
-              <h2 className="od-panel-title">진행 중인 설문</h2>
+              <h2 className="od-panel-title">{t('detail.ongoing')}</h2>
               <span className="od-survey-tag">참여 가능 · D-5</span>
               <p className="od-survey-name">2026 시즌 홈 경기장 시설 만족도 조사</p>
               <p className="od-survey-desc">여러분의 의견이 구단에 그대로 전달됩니다.</p>
-              <button className="od-survey-btn" onClick={() => navigate(`/club/${team.id}/survey`)}>설문 참여하기</button>
+              <button className="od-survey-btn" onClick={() => navigate(`/club/${team.id}/survey`)}>{t('op.joinSurvey')}</button>
             </section>
           </aside>
         </div>

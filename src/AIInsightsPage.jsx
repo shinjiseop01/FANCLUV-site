@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
@@ -48,7 +49,7 @@ export default function AIInsightsPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const [lang, setLang] = useState('ko')
+  const { lang, setLang, t } = useLang()
 
   if (!team) {
     return (
@@ -77,11 +78,11 @@ export default function AIInsightsPage() {
               <button className={lang === 'ko' ? 'on' : ''} onClick={() => setLang('ko')}>한국어</button>
               <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
             </div>
-            <span className="ch-user">{NICKNAME}님</span>
-            <button className="ch-icon-btn" title="설정" aria-label="설정">
+            <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
+            <button className="ch-icon-btn" title={t('common.settings')} aria-label={t('common.settings')}>
               <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="1.4"/></svg>
             </button>
-            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>로그아웃</button>
+            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
           </div>
         </div>
         <nav className="ch-nav" aria-label="메인 메뉴">
@@ -90,9 +91,7 @@ export default function AIInsightsPage() {
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
-                {item}
-              </a>
+                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>{t(NAV_KEYS[item])}</a>
             )
           })}
         </nav>
@@ -102,8 +101,8 @@ export default function AIInsightsPage() {
       <main className="ai-main">
         <section className="ai-pagehead">
           <div className="ai-badge"><span className="ai-spark" aria-hidden="true">✦</span> AI 분석</div>
-          <h1>AI 인사이트</h1>
-          <p>AI가 팬들의 의견과 설문 데이터를 분석하여 핵심 인사이트를 제공합니다.</p>
+          <h1>{t('ai.title')}</h1>
+          <p>{t('ai.subtitle')}</p>
         </section>
 
         <div className="ai-grid">
@@ -112,7 +111,7 @@ export default function AIInsightsPage() {
 
             {/* Summary */}
             <section className="ai-summary">
-              <span className="ai-summary-label">이번 주 분석 결과</span>
+              <span className="ai-summary-label">{t('ai.summaryLabel')}</span>
               <div className="ai-summary-stats">
                 <div className="ai-sum">
                   <span className="ai-sum-value">{SUMMARY.opinions.toLocaleString()}<em>건</em></span>
@@ -131,7 +130,7 @@ export default function AIInsightsPage() {
 
             {/* Sentiment */}
             <section className="ai-panel">
-              <h2 className="ai-panel-title">감정 분석</h2>
+              <h2 className="ai-panel-title">{t('ai.sentiment')}</h2>
               <div className="ai-sentiment">
                 <DonutChart data={SENTIMENT} />
                 <ul className="ai-sent-legend">
@@ -149,7 +148,7 @@ export default function AIInsightsPage() {
 
             {/* Keywords */}
             <section className="ai-panel">
-              <h2 className="ai-panel-title">가장 많이 언급된 키워드</h2>
+              <h2 className="ai-panel-title">{t('ai.keywords')}</h2>
               <div className="ai-keywords">
                 {KEYWORDS.map(k => (
                   <span key={k.tag} className={`ai-kw w${k.weight}`}>{k.tag}</span>
@@ -165,7 +164,7 @@ export default function AIInsightsPage() {
 
             {/* Recommendations */}
             <section className="ai-panel">
-              <h2 className="ai-panel-title">AI 추천 · 구단 개선 제안</h2>
+              <h2 className="ai-panel-title">{t('ai.recommend')}</h2>
               <div className="ai-recs">
                 {RECOMMENDATIONS.map(r => (
                   <div key={r.rank} className="ai-rec">
@@ -191,7 +190,7 @@ export default function AIInsightsPage() {
 
             {/* Category satisfaction */}
             <section className="ai-panel">
-              <h2 className="ai-panel-title">카테고리별 만족도</h2>
+              <h2 className="ai-panel-title">{t('ai.catSat')}</h2>
               <ul className="ai-catsat">
                 {CATEGORY_SAT.map(c => (
                   <li key={c.name}>
@@ -210,7 +209,7 @@ export default function AIInsightsPage() {
 
             {/* Top opinions */}
             <section className="ai-panel">
-              <h2 className="ai-panel-title">많이 언급된 의견 Top 5</h2>
+              <h2 className="ai-panel-title">{t('ai.top5')}</h2>
               <ul className="ai-top">
                 {TOP_OPINIONS.map((o, i) => (
                   <li key={o.title}>
@@ -224,7 +223,7 @@ export default function AIInsightsPage() {
 
             {/* Staff memo */}
             <section className="ai-panel ai-memo">
-              <h2 className="ai-panel-title">이번 주 핵심 인사이트</h2>
+              <h2 className="ai-panel-title">{t('ai.memo')}</h2>
               <p className="ai-memo-text">{STAFF_MEMO}</p>
             </section>
           </aside>

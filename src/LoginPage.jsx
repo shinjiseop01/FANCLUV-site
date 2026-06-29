@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { login } from './lib/auth.js'
+import { useLang } from './contexts/LanguageContext.jsx'
 import './LoginPage.css'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const { t } = useLang()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -14,8 +16,8 @@ export default function LoginPage() {
   function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (!email.trim()) { setError('이메일을 입력해주세요.'); return }
-    if (!password.trim()) { setError('비밀번호를 입력해주세요.'); return }
+    if (!email.trim()) { setError(t('login.errEmail')); return }
+    if (!password.trim()) { setError(t('login.errPw')); return }
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
@@ -44,13 +46,10 @@ export default function LoginPage() {
           {/* Main copy */}
           <div className="hero-copy">
             <h1 className="hero-title">
-              <span className="title-line1">K리그 팬들의</span>
-              <span className="title-line2">목소리를 모으다</span>
+              <span className="title-line1">{t('login.tagline1')}</span>
+              <span className="title-line2">{t('login.tagline2')}</span>
             </h1>
-            <p className="hero-desc">
-              경기장 경험, 구단 운영, 팬 서비스에 대한<br />
-              의견을 남겨주세요.
-            </p>
+            <p className="hero-desc">{t('login.heroDesc')}</p>
           </div>
 
           {/* Features */}
@@ -60,8 +59,8 @@ export default function LoginPage() {
                 <svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
               <div className="feature-text">
-                <strong>팬 의견 수집</strong>
-                <span>팬들의 다양한 의견을 모아 구단에 전달합니다.</span>
+                <strong>{t('login.feat1')}</strong>
+                <span>{t('login.feat1desc')}</span>
               </div>
             </li>
             <li className="feature-item">
@@ -69,8 +68,8 @@ export default function LoginPage() {
                 <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.8"/><path d="M3 9h18M9 21V9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
               </div>
               <div className="feature-text">
-                <strong>경기장 경험 평가</strong>
-                <span>경기장 시설, 운영, 서비스에 대한 평가를 남겨주세요.</span>
+                <strong>{t('login.feat2')}</strong>
+                <span>{t('login.feat2desc')}</span>
               </div>
             </li>
             <li className="feature-item">
@@ -78,8 +77,8 @@ export default function LoginPage() {
                 <svg viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" strokeWidth="1.8"/><path d="M9 12h6M9 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
               </div>
               <div className="feature-text">
-                <strong>구단 서비스 설문</strong>
-                <span>구단 서비스와 이벤트에 대한 설문에 참여하세요.</span>
+                <strong>{t('login.feat3')}</strong>
+                <span>{t('login.feat3desc')}</span>
               </div>
             </li>
           </ul>
@@ -92,18 +91,16 @@ export default function LoginPage() {
 
           <div className="form-header">
             <h2 className="form-title">FANCLUV</h2>
-            <p className="form-subtitle">
-              응원하는 구단에 대한 의견을 남기고 설문에 참여하세요.
-            </p>
+            <p className="form-subtitle">{t('login.formSubtitle')}</p>
           </div>
 
           <form onSubmit={handleSubmit} noValidate>
             <div className="field-group">
-              <label className="field-label">이메일</label>
+              <label className="field-label">{t('login.email')}</label>
               <input
                 type="email"
                 className="field-input"
-                placeholder="이메일을 입력해주세요"
+                placeholder={t('login.emailPh')}
                 value={email}
                 onChange={e => { setEmail(e.target.value); setError('') }}
                 autoComplete="email"
@@ -111,12 +108,12 @@ export default function LoginPage() {
             </div>
 
             <div className="field-group">
-              <label className="field-label">비밀번호</label>
+              <label className="field-label">{t('login.password')}</label>
               <div className="pw-wrap">
                 <input
                   type={showPw ? 'text' : 'password'}
                   className="field-input pw-input"
-                  placeholder="비밀번호를 입력해주세요"
+                  placeholder={t('login.passwordPh')}
                   value={password}
                   onChange={e => { setPassword(e.target.value); setError('') }}
                   autoComplete="current-password"
@@ -137,10 +134,10 @@ export default function LoginPage() {
 
             <button type="submit" className="login-btn" disabled={loading}>
               {loading ? (
-                <span className="btn-loading"><span className="spinner" />로그인 중...</span>
+                <span className="btn-loading"><span className="spinner" />{t('login.loading')}</span>
               ) : (
                 <>
-                  <span>로그인하고 시작하기</span>
+                  <span>{t('login.submitCta')}</span>
                   <svg className="btn-arrow" viewBox="0 0 20 20" fill="none">
                     <path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -150,11 +147,11 @@ export default function LoginPage() {
           </form>
 
           <div className="form-footer">
-            <a href="#" className="form-link">아이디 찾기</a>
+            <a href="#" className="form-link">{t('login.findId')}</a>
             <span className="footer-sep">|</span>
-            <a href="#" className="form-link">비밀번호 찾기</a>
+            <a href="#" className="form-link">{t('login.findPw')}</a>
             <span className="footer-sep">|</span>
-            <Link to="/signup" className="form-link">회원가입</Link>
+            <Link to="/signup" className="form-link">{t('login.signup')}</Link>
           </div>
         </div>
       </div>

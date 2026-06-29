@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import { addOpinion } from './opinionStore.js'
@@ -14,7 +15,7 @@ export default function CreateOpinionPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const [lang, setLang] = useState('ko')
+  const { lang, setLang, t } = useLang()
 
   const [category, setCategory] = useState('')
   const [rating, setRating] = useState(0)
@@ -38,10 +39,10 @@ export default function CreateOpinionPage() {
   function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (!category) { setError('카테고리를 선택해 주세요.'); return }
-    if (rating < 1) { setError('만족도를 선택해 주세요.'); return }
-    if (!title.trim()) { setError('제목을 입력해 주세요.'); return }
-    if (!body.trim()) { setError('의견 내용을 입력해 주세요.'); return }
+    if (!category) { setError(t('create.errCategory')); return }
+    if (rating < 1) { setError(t('create.errRating')); return }
+    if (!title.trim()) { setError(t('create.errTitle')); return }
+    if (!body.trim()) { setError(t('create.errBody')); return }
 
     addOpinion(team.id, {
       id: `u${Date.now()}`,
@@ -76,11 +77,11 @@ export default function CreateOpinionPage() {
               <button className={lang === 'ko' ? 'on' : ''} onClick={() => setLang('ko')}>한국어</button>
               <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
             </div>
-            <span className="ch-user">{NICKNAME}님</span>
-            <button className="ch-icon-btn" title="설정" aria-label="설정">
+            <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
+            <button className="ch-icon-btn" title={t('common.settings')} aria-label={t('common.settings')}>
               <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="1.4"/></svg>
             </button>
-            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>로그아웃</button>
+            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
           </div>
         </div>
         <nav className="ch-nav" aria-label="메인 메뉴">
@@ -89,9 +90,7 @@ export default function CreateOpinionPage() {
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
-                {item}
-              </a>
+                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>{t(NAV_KEYS[item])}</a>
             )
           })}
         </nav>
@@ -99,27 +98,27 @@ export default function CreateOpinionPage() {
 
       {/* ── Main ── */}
       <main className="cw-main">
-        <button className="cw-back" onClick={() => navigate(-1)}>← 뒤로가기</button>
+        <button className="cw-back" onClick={() => navigate(-1)}>{t('common.back')}</button>
 
         {submitted ? (
           <div className="cw-done">
             <div className="cw-done-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
-            <h1>의견이 등록되었습니다</h1>
-            <p>소중한 의견 감사합니다. 팬 의견 목록으로 이동합니다…</p>
+            <h1>{t('create.doneTitle')}</h1>
+            <p>{t('create.doneDesc')}</p>
           </div>
         ) : (
           <div className="cw-card">
             <header className="cw-head">
-              <h1 className="cw-title">의견 작성하기</h1>
+              <h1 className="cw-title">{t('create.title')}</h1>
               <p className="cw-desc">여러분의 의견은 구단 운영 개선을 위한 소중한 데이터가 됩니다.</p>
             </header>
 
             <form className="cw-form" onSubmit={handleSubmit} noValidate>
               {/* 1. Category */}
               <div className="cw-field">
-                <label className="cw-label">카테고리</label>
+                <label className="cw-label">{t('create.category')}</label>
                 <div className="cw-cats">
                   {CATEGORIES.map(c => (
                     <button type="button" key={c}
@@ -133,7 +132,7 @@ export default function CreateOpinionPage() {
 
               {/* 2. Rating */}
               <div className="cw-field">
-                <label className="cw-label">만족도</label>
+                <label className="cw-label">{t('create.rating')}</label>
                 <div className="cw-stars" role="radiogroup" aria-label="만족도 별점">
                   {[1, 2, 3, 4, 5].map(n => (
                     <button type="button" key={n}
@@ -143,42 +142,42 @@ export default function CreateOpinionPage() {
                       <svg viewBox="0 0 24 24"><path d="M12 2l3 6.3 6.9 1-5 4.9 1.2 6.9L12 17.8 5.9 21l1.2-6.9-5-4.9 6.9-1z"/></svg>
                     </button>
                   ))}
-                  <span className="cw-stars-label">{rating ? `${rating}점` : '선택해 주세요'}</span>
+                  <span className="cw-stars-label">{rating ? `${rating}점` : t('create.ratingPh')}</span>
                 </div>
               </div>
 
               {/* 3. Title */}
               <div className="cw-field">
-                <label className="cw-label" htmlFor="cw-title">제목</label>
+                <label className="cw-label" htmlFor="cw-title">{t('create.titleLabel')}</label>
                 <input id="cw-title" type="text" className="cw-input"
-                  placeholder="예: MD 상품 종류가 더 많아졌으면 좋겠습니다."
+                  placeholder={t('create.titlePh')}
                   value={title} onChange={e => { setTitle(e.target.value); setError('') }} maxLength={60} />
               </div>
 
               {/* 4. Body */}
               <div className="cw-field">
-                <label className="cw-label" htmlFor="cw-body">의견 작성</label>
+                <label className="cw-label" htmlFor="cw-body">{t('create.body')}</label>
                 <textarea id="cw-body" className="cw-textarea"
-                  placeholder="구단이 더 발전하기 위해 필요한 의견을 자유롭게 작성해 주세요."
+                  placeholder={t('create.bodyPh')}
                   value={body} onChange={e => { setBody(e.target.value); setError('') }} rows={6} />
               </div>
 
               {/* 5. Photo (optional) */}
               <div className="cw-field">
-                <label className="cw-label">사진 첨부 <span className="cw-optional">(선택)</span></label>
+                <label className="cw-label">{t('create.photo')} <span className="cw-optional">{t('create.optional')}</span></label>
                 <label className="cw-photo">
                   <input type="file" accept="image/*" hidden
                     onChange={e => setPhotoName(e.target.files?.[0]?.name || '')} />
                   <span className="cw-photo-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.6"/><circle cx="8.5" cy="10" r="1.6" stroke="currentColor" strokeWidth="1.4"/><path d="M21 16l-5-5-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </span>
-                  <span className="cw-photo-text">{photoName || '사진을 첨부해 주세요 (선택)'}</span>
+                  <span className="cw-photo-text">{photoName || t('create.photoPh')}</span>
                 </label>
               </div>
 
               {error && <div className="cw-error" role="alert">⚠ {error}</div>}
 
-              <button type="submit" className="cw-submit">의견 등록하기</button>
+              <button type="submit" className="cw-submit">{t('create.submit')}</button>
             </form>
           </div>
         )}

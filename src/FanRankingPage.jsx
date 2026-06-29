@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TEAMS, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
@@ -49,6 +50,8 @@ function fanMetrics(key) {
   }
 }
 
+const CRIT_KEY = { score: 'rank.critScore', opinions: 'rank.critOpinions', comments: 'rank.critComments', surveys: 'rank.critSurveys', empathy: 'rank.critEmpathy' }
+
 const MEDALS = ['🥇', '🥈', '🥉']
 
 // my rank (mock) per scope
@@ -93,7 +96,7 @@ export default function FanRankingPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const [lang, setLang] = useState('ko')
+  const { lang, setLang, t } = useLang()
   const [scope, setScope] = useState('league') // 'league' | 'club'
   const [criteria, setCriteria] = useState('score')
 
@@ -127,7 +130,8 @@ export default function FanRankingPage() {
   const fmt = v => v.toLocaleString()
   const mine = MY[scope]
   const myValue = mine[criteria]
-  const scopeLabel = scope === 'league' ? '전체 랭킹' : '우리 팀 랭킹'
+  const scopeLabel = scope === 'league' ? t('rank.tabLeague') : t('rank.tabClub')
+  const critLabel = t(CRIT_KEY[criteria])
 
   // my level (from activity score)
   let myLevelIdx = 0
@@ -160,11 +164,11 @@ export default function FanRankingPage() {
               <button className={lang === 'ko' ? 'on' : ''} onClick={() => setLang('ko')}>한국어</button>
               <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
             </div>
-            <span className="ch-user">{NICKNAME}님</span>
-            <button className="ch-icon-btn" title="설정" aria-label="설정">
+            <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
+            <button className="ch-icon-btn" title={t('common.settings')} aria-label={t('common.settings')}>
               <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="1.4"/></svg>
             </button>
-            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>로그아웃</button>
+            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
           </div>
         </div>
         <nav className="ch-nav" aria-label="메인 메뉴">
@@ -173,9 +177,7 @@ export default function FanRankingPage() {
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
-                {item}
-              </a>
+                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>{t(NAV_KEYS[item])}</a>
             )
           })}
         </nav>
@@ -184,19 +186,19 @@ export default function FanRankingPage() {
       {/* ── Main ── */}
       <main className="fr-main">
         <section className="fr-pagehead">
-          <h1>팬 랭킹</h1>
-          <p>팬들의 활동을 확인하고 함께 FANCLUV를 만들어 가세요.</p>
+          <h1>{t('rank.title')}</h1>
+          <p>{t('rank.subtitle')}</p>
         </section>
 
         {/* Scope tabs */}
         <div className="fr-tabs" role="tablist" aria-label="랭킹 범위">
           <button role="tab" aria-selected={scope === 'league'}
             className={`fr-tab${scope === 'league' ? ' on' : ''}`} onClick={() => setScope('league')}>
-            전체 랭킹
+            {t('rank.tabLeague')}
           </button>
           <button role="tab" aria-selected={scope === 'club'}
             className={`fr-tab${scope === 'club' ? ' on' : ''}`} onClick={() => setScope('club')}>
-            우리 팀 랭킹
+            {t('rank.tabClub')}
           </button>
         </div>
 
@@ -204,7 +206,7 @@ export default function FanRankingPage() {
         <div className="fr-criteria" role="group" aria-label="랭킹 기준">
           {CRITERIA.map(c => (
             <button key={c.key} className={`fr-crit${criteria === c.key ? ' on' : ''}`}
-              onClick={() => setCriteria(c.key)}>{c.label}</button>
+              onClick={() => setCriteria(c.key)}>{t(CRIT_KEY[c.key])}</button>
           ))}
         </div>
 
@@ -237,7 +239,7 @@ export default function FanRankingPage() {
               <div className="fr-myrank-head">
                 <span className="fr-myrank-avatar">{NICKNAME[0]}</span>
                 <div>
-                  <span className="fr-myrank-name">{NICKNAME}님의 순위</span>
+                  <span className="fr-myrank-name">{t('rank.myRank', { name: NICKNAME })}</span>
                   <span className="fr-myrank-level">{myLevel.emoji} {myLevel.name}</span>
                 </div>
                 <span className="fr-myrank-scope">{scopeLabel}</span>
@@ -249,7 +251,7 @@ export default function FanRankingPage() {
                 </div>
                 <div className="fr-myrank-stat">
                   <span className="fr-myrank-value">{fmt(myValue)}<em>{crit.unit}</em></span>
-                  <span className="fr-myrank-label">{crit.label}</span>
+                  <span className="fr-myrank-label">{critLabel}</span>
                 </div>
                 <div className="fr-myrank-stat">
                   <span className="fr-myrank-value fr-myrank-chg"><Change value={mine.change} /></span>
@@ -265,8 +267,8 @@ export default function FanRankingPage() {
             {/* Full ranking */}
             <section className="fr-panel">
               <div className="fr-panel-head">
-                <h2 className="fr-panel-title">{scopeLabel} TOP 50</h2>
-                <span className="fr-week">{crit.label} 기준</span>
+                <h2 className="fr-panel-title">{scopeLabel} {t('rank.top50')}</h2>
+                <span className="fr-week">{t('rank.criteriaBasis', { c: critLabel })}</span>
               </div>
               <ul className={`fr-list ${scope}`}>
                 {rest.map(p => (
@@ -290,7 +292,7 @@ export default function FanRankingPage() {
 
             {/* Week stats */}
             <section className="fr-panel">
-              <h2 className="fr-panel-title">이번 주 활동</h2>
+              <h2 className="fr-panel-title">{t('rank.weekActivity')}</h2>
               <div className="fr-weekstats">
                 {WEEK_STATS.map(s => (
                   <div key={s.key} className="fr-weekstat">
@@ -306,7 +308,7 @@ export default function FanRankingPage() {
 
             {/* Fan level + score rules */}
             <section className="fr-panel">
-              <h2 className="fr-panel-title">팬 레벨</h2>
+              <h2 className="fr-panel-title">{t('rank.fanLevel')}</h2>
               <div className="fr-levels">
                 {LEVELS.map((lv, i) => (
                   <div key={lv.name} className={`fr-level${i === myLevelIdx ? ' on' : ''}`}>
@@ -331,7 +333,7 @@ export default function FanRankingPage() {
 
             {/* Badges */}
             <section className="fr-panel">
-              <h2 className="fr-panel-title">이번 주 획득 가능한 배지</h2>
+              <h2 className="fr-panel-title">{t('rank.badges')}</h2>
               <div className="fr-badges">
                 {BADGES.map(b => (
                   <div key={b.label} className={`fr-badge${b.done ? ' done' : ''}`}>
@@ -348,9 +350,9 @@ export default function FanRankingPage() {
 
             {/* CTA */}
             <section className="fr-cta">
-              <p className="fr-cta-text">랭킹을 올리려면 지금 의견을 남겨보세요.</p>
-              <button className="fr-cta-btn primary" onClick={goWrite}>📝 의견 작성하기</button>
-              <button className="fr-cta-btn secondary" onClick={goSurvey}>📊 설문 참여하기</button>
+              <p className="fr-cta-text">{t('rank.ctaText')}</p>
+              <button className="fr-cta-btn primary" onClick={goWrite}>{t('rank.ctaWrite')}</button>
+              <button className="fr-cta-btn secondary" onClick={goSurvey}>{t('rank.ctaSurvey')}</button>
             </section>
           </aside>
         </div>

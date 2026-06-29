@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TEAMS, TeamEmblem } from './teams.jsx'
 import { setSelectedTeam } from './lib/auth.js'
+import { useLang } from './contexts/LanguageContext.jsx'
 import './TeamSelectPage.css'
 
 export default function TeamSelectPage() {
   const navigate = useNavigate()
+  const { t } = useLang()
   const [selected, setSelected] = useState(null)
 
   function handleStart() {
@@ -25,11 +27,8 @@ export default function TeamSelectPage() {
 
         <header className="ts-header">
           <div className="ts-brand">FANCLUV</div>
-          <h1 className="ts-title">응원하는 구단을 선택해 주세요</h1>
-          <p className="ts-subtitle">
-            선택한 구단을 중심으로 의견 작성과 설문 참여가 진행됩니다.
-            나중에 마이페이지에서 변경할 수 있습니다.
-          </p>
+          <h1 className="ts-title">{t('team.title')}</h1>
+          <p className="ts-subtitle">{t('team.subtitle')}</p>
         </header>
 
         <div className="ts-grid" role="radiogroup" aria-label="응원 구단 선택">
@@ -64,14 +63,14 @@ export default function TeamSelectPage() {
             disabled={!selected}
             onClick={handleStart}
           >
-            <span>선택 완료하고 시작하기</span>
+            <span>{t('team.cta')}</span>
             <svg className="ts-cta-arrow" viewBox="0 0 20 20" fill="none">
               <path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" strokeWidth="2"
                 strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
 
-          <button type="button" className="ts-back" onClick={handleBack}>← 이전으로</button>
+          <button type="button" className="ts-back" onClick={handleBack}>{t('team.back')}</button>
         </div>
 
       </div>

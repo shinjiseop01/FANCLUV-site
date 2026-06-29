@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
@@ -63,7 +64,7 @@ export default function TeamNewsPage() {
   const { teamId, newsId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const [lang, setLang] = useState('ko')
+  const { lang, setLang, t } = useLang()
   const [category, setCategory] = useState('전체')
 
   const list = useMemo(
@@ -104,11 +105,11 @@ export default function TeamNewsPage() {
               <button className={lang === 'ko' ? 'on' : ''} onClick={() => setLang('ko')}>한국어</button>
               <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
             </div>
-            <span className="ch-user">{NICKNAME}님</span>
-            <button className="ch-icon-btn" title="설정" aria-label="설정">
+            <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
+            <button className="ch-icon-btn" title={t('common.settings')} aria-label={t('common.settings')}>
               <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="1.4"/></svg>
             </button>
-            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>로그아웃</button>
+            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
           </div>
         </div>
         <nav className="ch-nav" aria-label="메인 메뉴">
@@ -117,9 +118,7 @@ export default function TeamNewsPage() {
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>
-                {item}
-              </a>
+                onClick={e => { e.preventDefault(); navigate(menuPath(item, team.id)) }}>{t(NAV_KEYS[item])}</a>
             )
           })}
         </nav>
@@ -133,8 +132,8 @@ export default function TeamNewsPage() {
         ) : (
           <>
             <section className="tn-pagehead">
-              <h1>팀 뉴스</h1>
-              <p>응원하는 구단의 최신 소식을 확인하고 여러분의 의견을 남겨보세요.</p>
+              <h1>{t('news.title')}</h1>
+              <p>{t('news.subtitle')}</p>
             </section>
 
             <div className="tn-cats" role="group" aria-label="뉴스 카테고리">
@@ -162,8 +161,8 @@ export default function TeamNewsPage() {
                         <span>📊 설문 참여 {hero.survey}명</span>
                       </div>
                       <div className="tn-cta" onClick={e => e.stopPropagation()}>
-                        <button className="tn-cta-btn primary" onClick={goWrite}>📝 이 뉴스에 의견 남기기</button>
-                        <button className="tn-cta-btn secondary" onClick={goSurvey}>📊 관련 설문 참여하기</button>
+                        <button className="tn-cta-btn primary" onClick={goWrite}>{t('news.ctaWrite')}</button>
+                        <button className="tn-cta-btn secondary" onClick={goSurvey}>{t('news.ctaSurvey')}</button>
                       </div>
                     </div>
                   </article>
@@ -185,8 +184,8 @@ export default function TeamNewsPage() {
                           <span>📊 설문 참여 {n.survey}명</span>
                         </div>
                         <div className="tn-cta" onClick={e => e.stopPropagation()}>
-                          <button className="tn-cta-btn primary" onClick={goWrite}>📝 의견 남기기</button>
-                          <button className="tn-cta-btn secondary" onClick={goSurvey}>📊 설문 참여하기</button>
+                          <button className="tn-cta-btn primary" onClick={goWrite}>{t('news.ctaWriteShort')}</button>
+                          <button className="tn-cta-btn secondary" onClick={goSurvey}>{t('news.ctaSurveyShort')}</button>
                         </div>
                       </div>
                     </article>
@@ -198,7 +197,7 @@ export default function TeamNewsPage() {
               {/* Right */}
               <aside className="tn-side">
                 <section className="tn-panel">
-                  <h2 className="tn-panel-title">인기 뉴스</h2>
+                  <h2 className="tn-panel-title">{t('news.popular')}</h2>
                   <ul className="tn-popular">
                     {POPULAR.map((n, i) => (
                       <li key={n.id}>
@@ -215,14 +214,14 @@ export default function TeamNewsPage() {
                 </section>
 
                 <section className="tn-panel">
-                  <h2 className="tn-panel-title">많이 언급되는 키워드</h2>
+                  <h2 className="tn-panel-title">{t('news.keywords')}</h2>
                   <div className="tn-tags">
                     {KEYWORDS.map(k => <span key={k} className="tn-tag">{k}</span>)}
                   </div>
                 </section>
 
                 <section className="tn-panel">
-                  <h2 className="tn-panel-title">구단 바로가기</h2>
+                  <h2 className="tn-panel-title">{t('news.shortcuts')}</h2>
                   <div className="tn-shortcuts">
                     {SHORTCUTS.map(s => (
                       <a key={s.key} href={s.url} target="_blank" rel="noopener noreferrer" className="tn-shortcut">
@@ -235,10 +234,10 @@ export default function TeamNewsPage() {
                 </section>
 
                 <section className="tn-panel tn-survey-card">
-                  <h2 className="tn-panel-title">진행 중인 설문</h2>
+                  <h2 className="tn-panel-title">{t('news.ongoing')}</h2>
                   <span className="tn-survey-tag">참여 가능 · D-5</span>
                   <p className="tn-survey-name">2026 시즌 홈 경기장 시설 만족도 조사</p>
-                  <button className="tn-survey-btn" onClick={goSurvey}>설문 참여하기</button>
+                  <button className="tn-survey-btn" onClick={goSurvey}>{t('news.ctaSurveyShort')}</button>
                 </section>
               </aside>
             </div>
@@ -261,7 +260,7 @@ function Thumb({ team, category, hero }) {
 function NewsDetail({ news, team, onBack, onWrite, onSurvey }) {
   return (
     <article className="tn-detail">
-      <button className="tn-back" onClick={onBack}>← 뉴스 목록으로</button>
+      <button className="tn-back" onClick={onBack}>{t('news.backToList')}</button>
       <div className="tn-meta">
         <span className="tn-cat-pill">{news.category}</span>
         <span className="tn-date">{news.date}</span>
@@ -278,8 +277,8 @@ function NewsDetail({ news, team, onBack, onWrite, onSurvey }) {
         {news.body.map((p, i) => <p key={i}>{p}</p>)}
       </div>
       <div className="tn-cta tn-detail-cta">
-        <button className="tn-cta-btn primary" onClick={onWrite}>📝 이 뉴스에 의견 남기기</button>
-        <button className="tn-cta-btn secondary" onClick={onSurvey}>📊 관련 설문 참여하기</button>
+        <button className="tn-cta-btn primary" onClick={onWrite}>{t('news.ctaWrite')}</button>
+        <button className="tn-cta-btn secondary" onClick={onSurvey}>{t('news.ctaSurvey')}</button>
       </div>
     </article>
   )
