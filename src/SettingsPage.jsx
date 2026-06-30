@@ -96,6 +96,40 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* Verification status */}
+        <section className="st-card">
+          <h2 className="st-card-title">{t('set.verifyTitle')}</h2>
+          <div className="st-row st-row-static">
+            <span>{t('set.verifyEmail')}</span>
+            <span className={`st-vbadge ${user?.isEmailVerified ? 'ok' : 'no'}`}>
+              {user?.isEmailVerified ? t('set.verifyDone') : t('set.verifyNot')}
+            </span>
+          </div>
+          <div className="st-row st-row-static">
+            <span>{t('set.verifyPhone')}</span>
+            <span className="st-vbadge soon">{t('set.verifySoon')}</span>
+          </div>
+          <div className="st-row st-row-static">
+            <span>{t('set.verifyMethod')}</span>
+            <span className="st-muted">
+              {user?.verificationMethod === 'email'
+                ? t('set.verifyMethodEmail')
+                : user?.verificationMethod === 'phone'
+                  ? t('set.verifyMethodPhone')
+                  : t('set.verifyMethodNone')}
+            </span>
+          </div>
+          {!user?.isEmailVerified && (
+            <div className="st-row" role="button" tabIndex={0}
+              onClick={() => navigate('/verify-email', { state: { reason: 'login' } })}>
+              <span>{t('set.verifyGo')}</span>
+              <span className="st-chevron" aria-hidden="true">›</span>
+            </div>
+          )}
+          <button className="st-phone-btn" disabled>{t('set.verifyPhoneBtn')}</button>
+          <p className="st-phone-note">{t('set.verifyPhoneNote')}</p>
+        </section>
+
         {/* Team */}
         <section className="st-card">
           <h2 className="st-card-title">{t('set.team')}</h2>

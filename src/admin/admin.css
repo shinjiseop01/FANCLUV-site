@@ -73,8 +73,16 @@
 .adm-quick-btn:hover { border-color: var(--team); color: var(--team-deep); }
 
 /* Toolbar / search */
-.adm-toolbar { margin-bottom: 18px; }
-.adm-search { display: flex; align-items: center; gap: 8px; background: var(--canvas); border: 1px solid var(--border); border-radius: 10px; padding: 0 14px; max-width: 360px; }
+.adm-toolbar { margin-bottom: 18px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; }
+.adm-search { display: flex; align-items: center; gap: 8px; background: var(--canvas); border: 1px solid var(--border); border-radius: 10px; padding: 0 14px; max-width: 360px; flex: 1; min-width: 220px; }
+.adm-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.adm-filter {
+  border: 1px solid var(--border); background: var(--canvas); color: var(--body);
+  font-size: 13px; font-weight: 700; padding: 8px 13px; border-radius: 100px;
+  cursor: pointer; font-family: inherit; transition: all 0.14s; white-space: nowrap;
+}
+.adm-filter:hover { border-color: var(--team); color: var(--team-deep); }
+.adm-filter.on { background: var(--team-deep); border-color: var(--team-deep); color: #fff; }
 .adm-search svg { width: 18px; height: 18px; color: var(--muted); }
 .adm-search input { border: none; outline: none; background: none; height: 42px; flex: 1; font-size: 14px; color: var(--ink); font-family: inherit; }
 
@@ -104,6 +112,9 @@
 .adm-badge.reason { color: #DC2626; background: rgba(220, 38, 38, 0.12); }
 .adm-badge.type { color: var(--team-deep); background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); margin-right: 8px; }
 .adm-badge.soon { color: var(--muted); background: var(--page-bg); }
+.adm-badge.vemail { color: #0E9F6E; background: rgba(16, 159, 110, 0.14); }
+.adm-badge.vphone { color: var(--team-deep); background: color-mix(in srgb, var(--team) 14%, var(--mix-base)); }
+.adm-badge.vnone { color: #C2410C; background: rgba(234, 88, 12, 0.14); }
 
 /* Buttons */
 .adm-btn-sm { font-size: 12.5px; font-weight: 700; padding: 6px 11px; border-radius: 8px; border: 1px solid var(--border); background: var(--canvas); color: var(--body); cursor: pointer; font-family: inherit; transition: border-color 0.14s, color 0.14s; }

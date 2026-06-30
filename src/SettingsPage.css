@@ -57,6 +57,19 @@
 .st-chevron { color: var(--muted); font-size: 20px; line-height: 1; }
 .st-muted { color: var(--muted); font-size: 13.5px; font-weight: 500; }
 
+/* Verification status */
+.st-vbadge { font-size: 12.5px; font-weight: 700; padding: 4px 11px; border-radius: 100px; }
+.st-vbadge.ok { color: #0E9F6E; background: rgba(16, 159, 110, 0.14); }
+.st-vbadge.no { color: #C2410C; background: rgba(234, 88, 12, 0.14); }
+.st-vbadge.soon { color: var(--muted); background: var(--page-bg); }
+.st-phone-btn {
+  width: 100%; margin-top: 14px; padding: 12px; border-radius: 10px;
+  border: 1px dashed var(--border); background: var(--page-bg);
+  color: var(--muted); font-size: 14px; font-weight: 700; font-family: inherit;
+  cursor: not-allowed;
+}
+.st-phone-note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-top: 8px; }
+
 .st-team { display: inline-flex; align-items: center; gap: 9px; font-weight: 600; color: var(--ink); }
 .st-team-emblem { display: block; flex-shrink: 0; }
 

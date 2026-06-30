@@ -74,3 +74,21 @@
 }
 .rec-links .signup-login-link { margin-left: 0; }
 .rec-sep { color: var(--border); }
+
+/* Email verification page */
+.ve-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; margin-bottom: 14px;
+  border-radius: 50%;
+  background: rgba(201, 168, 76, 0.14);
+  color: var(--gold);
+  font-size: 24px;
+}
+.ve-note {
+  font-size: 13px; color: var(--text-sub);
+  line-height: 1.6; text-align: center;
+  background: var(--dark-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px; margin-bottom: 18px;
+}

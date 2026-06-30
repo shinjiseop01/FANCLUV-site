@@ -22,6 +22,40 @@ export const ROLES = {
 }
 export const ADMIN_ROLES = [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.STAFF, ROLES.CLUB_ADMIN]
 
+// 본인인증(Verification) 체계 — MVP는 이메일 Mock 인증만 동작한다.
+// 데이터 구조는 향후 Supabase Auth + 휴대폰 본인인증(PASS/NICE/KCB)을 그대로
+// 얹을 수 있도록 미리 준비한다. 인증 흐름은 verificationStatus 한 곳으로 표현하고,
+// 세부 플래그(isEmailVerified / isPhoneVerified + *At 타임스탬프)를 함께 보관한다.
+export const VERIFICATION = {
+  UNVERIFIED: 'unverified',
+  EMAIL_VERIFIED: 'email_verified',
+  PHONE_VERIFIED: 'phone_verified',
+}
+
+// 신규 사용자의 기본 인증 필드.
+function defaultVerification() {
+  return {
+    isEmailVerified: false,
+    emailVerifiedAt: null,
+    isPhoneVerified: false,
+    phoneVerifiedAt: null,
+    verificationMethod: 'none',         // 'none' | 'email' | 'phone'
+    verificationStatus: VERIFICATION.UNVERIFIED,
+  }
+}
+
+// 데모 시드 계정용 — 이미 이메일 인증을 마친 상태.
+function seededEmailVerified(at) {
+  return {
+    isEmailVerified: true,
+    emailVerifiedAt: at,
+    isPhoneVerified: false,
+    phoneVerifiedAt: null,
+    verificationMethod: 'email',
+    verificationStatus: VERIFICATION.EMAIL_VERIFIED,
+  }
+}
+
 function readUsers() {
   try {
     return JSON.parse(localStorage.getItem(USERS_KEY)) || []
@@ -50,29 +84,42 @@ function setSession(email) {
 function ensureSeed() {
   const users = readUsers()
   let changed = false
-  if (!users.some(u => u.email === 'fan@fancluv.kr')) {
-    users.push({
+
+  let fan = users.find(u => u.email === 'fan@fancluv.kr')
+  if (!fan) {
+    fan = {
       nickname: '민준',
       email: 'fan@fancluv.kr',
       password: '1234', // 평문 — 실서비스에서는 Supabase Auth로 교체 필요
       joinedAt: '2025-03-14T00:00:00.000Z',
       selectedTeam: null,
       role: ROLES.FAN,
-    })
+    }
+    users.push(fan)
     changed = true
   }
   // FANCLUV 운영자(Admin) 데모 계정
-  if (!users.some(u => u.email === 'admin@fancluv.kr')) {
-    users.push({
+  let admin = users.find(u => u.email === 'admin@fancluv.kr')
+  if (!admin) {
+    admin = {
       nickname: 'FANCLUV 운영자',
       email: 'admin@fancluv.kr',
       password: 'admin123', // 평문 — 데모용. 실서비스에서는 Supabase Auth + 권한 관리로 교체
       joinedAt: '2025-01-01T00:00:00.000Z',
       selectedTeam: null,
       role: ROLES.ADMIN,
-    })
+    }
+    users.push(admin)
     changed = true
   }
+  // 데모 계정은 이메일 인증을 마친 상태로 유지(기존 흐름이 끊기지 않도록 backfill).
+  for (const u of [fan, admin]) {
+    if (u.verificationStatus == null) {
+      Object.assign(u, seededEmailVerified(u.joinedAt))
+      changed = true
+    }
+  }
+
   if (changed) writeUsers(users)
 }
 ensureSeed()
@@ -90,10 +137,11 @@ export function signup({ nickname, email, password }) {
     joinedAt: new Date().toISOString(),
     selectedTeam: null,
     role: ROLES.FAN,
+    ...defaultVerification(), // 가입 직후엔 미인증 상태
   }
   users.push(user)
   writeUsers(users)
-  setSession(email) // 가입 직후 자동 로그인
+  setSession(email) // 가입 직후 자동 로그인 (단, 이메일 인증 전)
   return { ok: true, user: publicUser(user) }
 }
 
@@ -133,6 +181,45 @@ export function getRole() {
 // 관리자 콘솔 접근 권한 여부 (ADMIN_ROLES 기준)
 export function isAdmin() {
   return ADMIN_ROLES.includes(getRole())
+}
+
+// ── 본인인증 (Mock) ──
+// 관리자(ADMIN_ROLES)는 인증 없이 통과시킨다. 일반 사용자는 이메일 인증 필요.
+export function requiresEmailVerification(user) {
+  if (!user) return false
+  if (ADMIN_ROLES.includes(user.role)) return false
+  return !user.isEmailVerified
+}
+
+function patchUser(email, patch) {
+  const users = readUsers()
+  const idx = users.findIndex(u => u.email.toLowerCase() === (email || '').toLowerCase())
+  if (idx === -1) return { ok: false }
+  users[idx] = { ...users[idx], ...patch }
+  writeUsers(users)
+  return { ok: true, user: publicUser(users[idx]) }
+}
+
+// 이메일 인증 완료 처리 (Mock — 실제 메일 발송/검증 없음).
+// 실서비스: Supabase 이메일 인증 콜백에서 이 상태를 갱신.
+export function verifyEmail(email) {
+  return patchUser(email, {
+    isEmailVerified: true,
+    emailVerifiedAt: new Date().toISOString(),
+    verificationMethod: 'email',
+    verificationStatus: VERIFICATION.EMAIL_VERIFIED,
+  })
+}
+
+// 휴대폰 본인인증 완료 처리 — 구조만 준비(현재 UI 미연결, 정식 서비스 예정).
+// 실서비스: PASS/NICE/KCB 콜백에서 이 상태를 갱신.
+export function verifyPhone(email) {
+  return patchUser(email, {
+    isPhoneVerified: true,
+    phoneVerifiedAt: new Date().toISOString(),
+    verificationMethod: 'phone',
+    verificationStatus: VERIFICATION.PHONE_VERIFIED,
+  })
 }
 
 // ── 응원팀 저장 (팀 선택 시) ──

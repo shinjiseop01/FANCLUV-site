@@ -23,15 +23,15 @@ export function visibleMenu(role) {
 
 // ── Members ──
 export const MOCK_MEMBERS = [
-  { id: 'm1', nickname: '민준',       email: 'fan@fancluv.kr',      joinedAt: '2025-03-14', team: 'seoul',    status: 'active', role: ROLES.FAN },
-  { id: 'm2', nickname: '블루윙',     email: 'bluewing@example.com', joinedAt: '2026-06-30', team: 'ulsan',    status: 'active', role: ROLES.FAN },
-  { id: 'm3', nickname: '직관러',     email: 'gozip@example.com',    joinedAt: '2026-06-30', team: 'jeonbuk',  status: 'active', role: ROLES.FAN },
-  { id: 'm4', nickname: '시즌권홀더', email: 'season@example.com',   joinedAt: '2026-06-12', team: 'pohang',   status: 'active', role: ROLES.FAN },
-  { id: 'm5', nickname: '굿즈수집가', email: 'goods@example.com',    joinedAt: '2026-05-28', team: 'daejeon',  status: 'inactive', role: ROLES.FAN },
-  { id: 'm6', nickname: '응원단장',   email: 'leader@example.com',   joinedAt: '2026-05-19', team: 'gwangju',  status: 'active', role: ROLES.FAN },
-  { id: 'm7', nickname: '풋볼러버',   email: 'footlover@example.com', joinedAt: '2026-04-30', team: 'gangwon',  status: 'active', role: ROLES.FAN },
-  { id: 'm8', nickname: '평일직관',   email: 'weekday@example.com',  joinedAt: '2026-04-11', team: 'jeju',     status: 'active', role: ROLES.FAN },
-  { id: 'm9', nickname: '레전드7',    email: 'legend7@example.com',  joinedAt: '2026-03-22', team: 'incheon',  status: 'active', role: ROLES.FAN },
+  { id: 'm1', nickname: '민준',       email: 'fan@fancluv.kr',      joinedAt: '2025-03-14', team: 'seoul',    status: 'active', role: ROLES.FAN, verificationStatus: 'email_verified' },
+  { id: 'm2', nickname: '블루윙',     email: 'bluewing@example.com', joinedAt: '2026-06-30', team: 'ulsan',    status: 'active', role: ROLES.FAN, verificationStatus: 'phone_verified' },
+  { id: 'm3', nickname: '직관러',     email: 'gozip@example.com',    joinedAt: '2026-06-30', team: 'jeonbuk',  status: 'active', role: ROLES.FAN, verificationStatus: 'email_verified' },
+  { id: 'm4', nickname: '시즌권홀더', email: 'season@example.com',   joinedAt: '2026-06-12', team: 'pohang',   status: 'active', role: ROLES.FAN, verificationStatus: 'unverified' },
+  { id: 'm5', nickname: '굿즈수집가', email: 'goods@example.com',    joinedAt: '2026-05-28', team: 'daejeon',  status: 'inactive', role: ROLES.FAN, verificationStatus: 'unverified' },
+  { id: 'm6', nickname: '응원단장',   email: 'leader@example.com',   joinedAt: '2026-05-19', team: 'gwangju',  status: 'active', role: ROLES.FAN, verificationStatus: 'email_verified' },
+  { id: 'm7', nickname: '풋볼러버',   email: 'footlover@example.com', joinedAt: '2026-04-30', team: 'gangwon',  status: 'active', role: ROLES.FAN, verificationStatus: 'phone_verified' },
+  { id: 'm8', nickname: '평일직관',   email: 'weekday@example.com',  joinedAt: '2026-04-11', team: 'jeju',     status: 'active', role: ROLES.FAN, verificationStatus: 'email_verified' },
+  { id: 'm9', nickname: '레전드7',    email: 'legend7@example.com',  joinedAt: '2026-03-22', team: 'incheon',  status: 'active', role: ROLES.FAN, verificationStatus: 'unverified' },
 ]
 
 // ── Fan opinions ──

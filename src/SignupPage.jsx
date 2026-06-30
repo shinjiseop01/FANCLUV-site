@@ -32,8 +32,8 @@ export default function SignupPage() {
       setLoading(false)
       const result = signup({ nickname: nickname.trim(), email: email.trim(), password })
       if (result.ok) {
-        // 가입 직후 자동 로그인 → 응원팀 선택으로 이동
-        navigate('/team-select')
+        // 가입 직후 자동 로그인(미인증) → 이메일 인증 안내 화면으로 이동
+        navigate('/verify-email', { state: { reason: 'signup' } })
       } else {
         setError(result.error)
       }
