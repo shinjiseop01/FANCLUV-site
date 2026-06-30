@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { login } from './lib/auth.js'
+import { login, ADMIN_ROLES } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import { useToast } from './contexts/ToastContext.jsx'
 import './LoginPage.css'
@@ -26,8 +26,10 @@ export default function LoginPage() {
       const result = login({ email: email.trim(), password })
       if (result.ok) {
         toast(t('toast.login'))
-        // 응원팀을 이미 선택했다면 해당 구단 홈으로, 아니면 응원팀 선택으로 이동
-        if (result.user.selectedTeam) {
+        // 운영자(Admin)는 관리자 콘솔로, 일반 사용자는 기존 흐름(구단 홈/팀 선택)으로
+        if (ADMIN_ROLES.includes(result.user.role)) {
+          navigate('/admin')
+        } else if (result.user.selectedTeam) {
           navigate(`/club/${result.user.selectedTeam}`)
         } else {
           navigate('/team-select')

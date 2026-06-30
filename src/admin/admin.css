@@ -1,0 +1,163 @@
+/* FANCLUV Admin Console — business dashboard.
+   Built on the shared token system (var(--ink)/--canvas/--page-bg/--border/
+   --muted/--body/--mix-base) so light & dark both work. The admin shell also
+   carries the ch-root class, so dark-mode token overrides apply automatically.
+   A fixed indigo accent (--team/--team-deep) distinguishes the admin area. */
+
+.admin-shell {
+  --team: #4F46E5;
+  --team-deep: #4338CA;
+  display: flex;
+  min-height: 100vh;
+  padding-bottom: 0;
+}
+
+/* ── Sidebar ── */
+.adm-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--canvas);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.adm-brand { font-size: 18px; font-weight: 800; letter-spacing: 0.4px; padding: 22px; color: var(--ink); cursor: pointer; }
+.adm-brand span { color: var(--team-deep); }
+.adm-nav { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; flex: 1; }
+.adm-nav-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 11px 14px; border-radius: 10px;
+  color: var(--body); font-size: 14px; font-weight: 600;
+  text-decoration: none; transition: background 0.14s, color 0.14s;
+}
+.adm-nav-item svg { width: 19px; height: 19px; flex-shrink: 0; }
+.adm-nav-item:hover { background: var(--page-bg); color: var(--ink); }
+.adm-nav-item.on { background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); color: var(--team-deep); }
+.adm-sidebar-foot { padding: 16px; border-top: 1px solid var(--border); }
+.adm-role-badge { font-size: 11.5px; font-weight: 700; color: var(--team-deep); background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); padding: 5px 10px; border-radius: 100px; }
+
+/* ── Main ── */
+.adm-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.adm-topbar {
+  position: sticky; top: 0; z-index: 20; height: 60px;
+  background: var(--canvas); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+}
+.adm-topbar-title { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: 0.3px; }
+.adm-topbar-actions { display: flex; align-items: center; gap: 14px; }
+.adm-user { font-size: 14px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.adm-content { padding: 28px; flex: 1; }
+
+/* ── Page ── */
+.adm-page { max-width: 1100px; }
+.adm-page-head { margin-bottom: 24px; }
+.adm-head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.adm-h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; color: var(--ink); margin-bottom: 6px; }
+.adm-h2 { font-size: 16px; font-weight: 800; color: var(--ink); margin-bottom: 14px; }
+.adm-sub { font-size: 14px; color: var(--muted); }
+
+/* Stat cards */
+.adm-stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.adm-stat { background: var(--canvas); border: 1px solid var(--border); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 6px; }
+.adm-stat.accent { border-color: color-mix(in srgb, var(--team) 45%, var(--border)); }
+.adm-stat-icon { font-size: 22px; }
+.adm-stat-value { font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -1px; }
+.adm-stat-label { font-size: 13px; color: var(--muted); font-weight: 600; }
+
+/* Quick links */
+.adm-quick-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+.adm-quick-btn { background: var(--canvas); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: 14px; font-weight: 700; color: var(--body); cursor: pointer; font-family: inherit; transition: border-color 0.14s, color 0.14s; }
+.adm-quick-btn:hover { border-color: var(--team); color: var(--team-deep); }
+
+/* Toolbar / search */
+.adm-toolbar { margin-bottom: 18px; }
+.adm-search { display: flex; align-items: center; gap: 8px; background: var(--canvas); border: 1px solid var(--border); border-radius: 10px; padding: 0 14px; max-width: 360px; }
+.adm-search svg { width: 18px; height: 18px; color: var(--muted); }
+.adm-search input { border: none; outline: none; background: none; height: 42px; flex: 1; font-size: 14px; color: var(--ink); font-family: inherit; }
+
+/* Table */
+.adm-table-wrap { background: var(--canvas); border: 1px solid var(--border); border-radius: 14px; overflow-x: auto; }
+.adm-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 720px; }
+.adm-table th { text-align: left; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; padding: 14px 16px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.adm-table td { padding: 13px 16px; border-bottom: 1px solid var(--border-soft); color: var(--body); vertical-align: middle; }
+.adm-table tr:last-child td { border-bottom: none; }
+.adm-table tr.is-hidden { opacity: 0.55; }
+.adm-cell-strong { font-weight: 700; color: var(--ink); }
+.adm-cell-muted { color: var(--muted); }
+.adm-cell-content { max-width: 380px; }
+.adm-user-cell { display: flex; align-items: center; gap: 10px; }
+.adm-col-actions { text-align: right; white-space: nowrap; }
+.adm-col-actions .adm-btn-sm { margin-left: 6px; }
+
+/* Badges */
+.adm-badge { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 100px; }
+.adm-badge.active { color: #0E9F6E; background: rgba(16, 159, 110, 0.14); }
+.adm-badge.inactive { color: var(--muted); background: var(--page-bg); }
+.adm-badge.hidden { color: #B4540A; background: rgba(224, 130, 40, 0.16); margin-left: 8px; }
+.adm-badge.pending { color: #C2410C; background: rgba(234, 88, 12, 0.15); }
+.adm-badge.reason { color: #DC2626; background: rgba(220, 38, 38, 0.12); }
+.adm-badge.type { color: var(--team-deep); background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); margin-right: 8px; }
+.adm-badge.soon { color: var(--muted); background: var(--page-bg); }
+
+/* Buttons */
+.adm-btn-sm { font-size: 12.5px; font-weight: 700; padding: 6px 11px; border-radius: 8px; border: 1px solid var(--border); background: var(--canvas); color: var(--body); cursor: pointer; font-family: inherit; transition: border-color 0.14s, color 0.14s; }
+.adm-btn-sm:hover { border-color: var(--team); color: var(--team-deep); }
+.adm-btn-sm.danger:hover { border-color: #DC2626; color: #DC2626; }
+.adm-btn-sm:disabled { opacity: 0.45; cursor: default; }
+.adm-btn-primary { background: var(--team-deep); color: #fff; border: none; border-radius: 10px; padding: 11px 18px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: filter 0.15s; }
+.adm-btn-primary:hover { filter: brightness(1.08); }
+.adm-btn-ghost { background: var(--canvas); border: 1px solid var(--border); border-radius: 10px; padding: 11px 18px; font-size: 14px; font-weight: 700; color: var(--body); cursor: pointer; font-family: inherit; }
+
+/* Form */
+.adm-form { background: var(--canvas); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin-bottom: 22px; }
+.adm-field { margin-bottom: 14px; }
+.adm-field label { display: block; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.adm-field-row { display: flex; gap: 14px; }
+.adm-field-row .adm-field { flex: 1; }
+.adm-input { width: 100%; border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; font-size: 14px; font-family: inherit; color: var(--ink); background: var(--canvas); outline: none; transition: border-color 0.15s; }
+.adm-input:focus { border-color: var(--team); }
+.adm-form-actions { display: flex; gap: 10px; margin-top: 6px; }
+.adm-error { background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.3); color: #DC2626; border-radius: 8px; padding: 10px 13px; font-size: 13px; margin-bottom: 14px; }
+
+/* News thumbnail */
+.adm-thumb { width: 56px; height: 34px; border-radius: 6px; background-size: cover; background-position: center; background-color: var(--page-bg); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+/* Card / settings */
+.adm-card { background: var(--canvas); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin-bottom: 18px; }
+.adm-card-note { font-size: 13px; color: var(--muted); margin-bottom: 14px; line-height: 1.6; }
+.adm-deflist > div { display: flex; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--border-soft); }
+.adm-deflist > div:last-child { border-bottom: none; }
+.adm-deflist dt { width: 120px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.adm-deflist dd { font-size: 14px; color: var(--ink); font-weight: 600; }
+.adm-role-list li { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border-soft); }
+.adm-role-list li:last-child { border-bottom: none; }
+
+/* Access denied */
+.adm-denied { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px; background: var(--page-bg, #F6F7F9); font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; }
+.adm-denied-inner { text-align: center; max-width: 440px; }
+.adm-denied-icon { width: 64px; height: 64px; margin: 0 auto 20px; border-radius: 50%; background: rgba(220, 38, 38, 0.12); color: #DC2626; display: flex; align-items: center; justify-content: center; }
+.adm-denied-icon svg { width: 34px; height: 34px; }
+.adm-denied-title { font-size: 22px; font-weight: 800; color: var(--ink, #1A1D24); margin-bottom: 12px; }
+.adm-denied-msg { font-size: 15px; color: var(--muted, #8A909C); line-height: 1.7; margin-bottom: 26px; white-space: pre-line; }
+.adm-denied-btn { background: var(--ink, #1A1D24); color: var(--canvas, #fff); border: none; border-radius: 11px; padding: 13px 26px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: filter 0.15s; }
+.adm-denied-btn:hover { filter: brightness(1.1); }
+
+/* ── Responsive (tablet / mobile) ── */
+@media (max-width: 900px) {
+  .admin-shell { flex-direction: column; }
+  .adm-sidebar {
+    width: 100%; height: auto; position: sticky; top: 0; z-index: 30;
+    flex-direction: row; align-items: center;
+    border-right: none; border-bottom: 1px solid var(--border); overflow-x: auto;
+  }
+  .adm-brand { padding: 14px 16px; white-space: nowrap; }
+  .adm-nav { flex-direction: row; padding: 8px; gap: 4px; }
+  .adm-nav-item span { display: none; }
+  .adm-nav-item { padding: 10px; }
+  .adm-sidebar-foot { display: none; }
+  .adm-content { padding: 18px 14px; }
+  .adm-h1 { font-size: 22px; }
+}

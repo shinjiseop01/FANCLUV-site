@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { isAuthenticated } from './lib/auth.js'
+import { isAuthenticated, isAdmin } from './lib/auth.js'
 import { LanguageProvider } from './contexts/LanguageContext.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
 import { ToastProvider } from './contexts/ToastContext.jsx'
@@ -25,10 +25,26 @@ import AIInsightsPage from './AIInsightsPage.jsx'
 import FanRankingPage from './FanRankingPage.jsx'
 import SettingsPage from './SettingsPage.jsx'
 import NotFoundPage from './NotFoundPage.jsx'
+import AdminLayout from './admin/AdminLayout.jsx'
+import AdminDashboard from './admin/AdminDashboard.jsx'
+import AdminMembers from './admin/AdminMembers.jsx'
+import AdminOpinions from './admin/AdminOpinions.jsx'
+import AdminSurveys from './admin/AdminSurveys.jsx'
+import AdminNews from './admin/AdminNews.jsx'
+import AdminReports from './admin/AdminReports.jsx'
+import AdminSettings from './admin/AdminSettings.jsx'
+import AccessDenied from './admin/AccessDenied.jsx'
 
 // 보호 라우트: 로그인하지 않은 사용자가 접근하면 로그인 페이지로 이동
 function RequireAuth({ children }) {
   return isAuthenticated() ? children : <Navigate to="/" replace />
+}
+
+// 운영자 전용 라우트: 비로그인 → 로그인, 로그인했지만 일반 사용자 → 접근 거부 안내
+function RequireAdmin({ children }) {
+  if (!isAuthenticated()) return <Navigate to="/" replace />
+  if (!isAdmin()) return <AccessDenied />
+  return children
 }
 
 createRoot(document.getElementById('root')).render(
@@ -55,6 +71,18 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/insights" element={<RequireAuth><AIInsightsPage /></RequireAuth>} />
         <Route path="/club/:teamId/ranking" element={<RequireAuth><FanRankingPage /></RequireAuth>} />
         <Route path="/club/:teamId/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
+
+        {/* ── Admin Console (운영자 전용) ── */}
+        <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="members" element={<AdminMembers />} />
+          <Route path="opinions" element={<AdminOpinions />} />
+          <Route path="surveys" element={<AdminSurveys />} />
+          <Route path="news" element={<AdminNews />} />
+          <Route path="reports" element={<AdminReports />} />
+          <Route path="settings" element={<AdminSettings />} />
+        </Route>
+
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>

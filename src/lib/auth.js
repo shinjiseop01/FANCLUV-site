@@ -10,6 +10,18 @@
 const USERS_KEY = 'fancluv_users'
 const SESSION_KEY = 'fancluv_session' // 현재 로그인한 사용자의 email 을 저장
 
+// 권한(Role) 체계 — 향후 Super Admin / FANCLUV 직원 / 구단 관리자 확장을 대비해
+// 역할을 사용자 객체의 `role` 필드로 관리한다. 관리자 콘솔 접근이 가능한 역할을
+// ADMIN_ROLES 한 곳에서 관리하므로, 역할 추가 시 이 배열만 확장하면 된다.
+export const ROLES = {
+  FAN: 'fan',
+  ADMIN: 'admin',
+  SUPER_ADMIN: 'superadmin', // 예정
+  STAFF: 'staff',            // 예정 (FANCLUV 직원)
+  CLUB_ADMIN: 'club_admin',  // 예정 (구단 관리자)
+}
+export const ADMIN_ROLES = [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.STAFF, ROLES.CLUB_ADMIN]
+
 function readUsers() {
   try {
     return JSON.parse(localStorage.getItem(USERS_KEY)) || []
@@ -37,6 +49,7 @@ function setSession(email) {
 // (실서비스 전환 시 제거)
 function ensureSeed() {
   const users = readUsers()
+  let changed = false
   if (!users.some(u => u.email === 'fan@fancluv.kr')) {
     users.push({
       nickname: '민준',
@@ -44,9 +57,23 @@ function ensureSeed() {
       password: '1234', // 평문 — 실서비스에서는 Supabase Auth로 교체 필요
       joinedAt: '2025-03-14T00:00:00.000Z',
       selectedTeam: null,
+      role: ROLES.FAN,
     })
-    writeUsers(users)
+    changed = true
   }
+  // FANCLUV 운영자(Admin) 데모 계정
+  if (!users.some(u => u.email === 'admin@fancluv.kr')) {
+    users.push({
+      nickname: 'FANCLUV 운영자',
+      email: 'admin@fancluv.kr',
+      password: 'admin123', // 평문 — 데모용. 실서비스에서는 Supabase Auth + 권한 관리로 교체
+      joinedAt: '2025-01-01T00:00:00.000Z',
+      selectedTeam: null,
+      role: ROLES.ADMIN,
+    })
+    changed = true
+  }
+  if (changed) writeUsers(users)
 }
 ensureSeed()
 
@@ -62,6 +89,7 @@ export function signup({ nickname, email, password }) {
     password, // 평문 저장 — 실서비스에서는 Supabase Auth로 교체 필요
     joinedAt: new Date().toISOString(),
     selectedTeam: null,
+    role: ROLES.FAN,
   }
   users.push(user)
   writeUsers(users)
@@ -95,6 +123,16 @@ export function getCurrentUser() {
 
 export function isAuthenticated() {
   return !!getCurrentUser()
+}
+
+// 현재 로그인 사용자의 역할 (없으면 fan 으로 간주)
+export function getRole() {
+  return getCurrentUser()?.role || ROLES.FAN
+}
+
+// 관리자 콘솔 접근 권한 여부 (ADMIN_ROLES 기준)
+export function isAdmin() {
+  return ADMIN_ROLES.includes(getRole())
 }
 
 // ── 응원팀 저장 (팀 선택 시) ──
