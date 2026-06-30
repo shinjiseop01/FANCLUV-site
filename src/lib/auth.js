@@ -107,3 +107,36 @@ export function setSelectedTeam(teamId) {
   users[idx].selectedTeam = teamId
   writeUsers(users)
 }
+
+// ── 계정 복구 (아이디 찾기 / 비밀번호 찾기) ──
+// 모두 Mock 단계이며, Supabase 도입 시 내부 구현만 교체하면 화면 코드는 유지됩니다.
+//   - findAccountByHint  → Supabase: 서버 측 조회 후 마스킹된 이메일 응답
+//   - requestPasswordReset → Supabase: supabase.auth.resetPasswordForEmail(email)
+
+// 이메일 마스킹: 로컬파트 앞 3글자만 노출. 예) fan@fancluv.kr → fan****@fancluv.kr
+export function maskEmail(email) {
+  if (!email || !email.includes('@')) return email || ''
+  const [local, domain] = email.split('@')
+  const visible = local.slice(0, Math.min(3, local.length))
+  return `${visible}****@${domain}`
+}
+
+// 닉네임(전체/부분) 또는 가입 이메일 일부로 계정을 찾아 마스킹된 이메일을 반환.
+export function findAccountByHint(hint) {
+  const q = (hint || '').trim().toLowerCase()
+  if (!q) return { ok: false }
+  const user = readUsers().find(u =>
+    u.nickname.toLowerCase().includes(q) ||
+    u.email.toLowerCase().includes(q),
+  )
+  if (!user) return { ok: false }
+  return { ok: true, maskedEmail: maskEmail(user.email) }
+}
+
+// 비밀번호 재설정 요청 (Mock — 실제 메일 발송 없음).
+export function requestPasswordReset(email) {
+  const q = (email || '').trim().toLowerCase()
+  if (!q) return { ok: false }
+  const exists = readUsers().some(u => u.email.toLowerCase() === q)
+  return { ok: exists }
+}

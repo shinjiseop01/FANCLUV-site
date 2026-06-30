@@ -150,9 +150,9 @@ export default function LoginPage() {
           </form>
 
           <div className="form-footer">
-            <a href="#" className="form-link">{t('login.findId')}</a>
+            <Link to="/find-id" className="form-link">{t('login.findId')}</Link>
             <span className="footer-sep">|</span>
-            <a href="#" className="form-link">{t('login.findPw')}</a>
+            <Link to="/find-password" className="form-link">{t('login.findPw')}</Link>
             <span className="footer-sep">|</span>
             <Link to="/signup" className="form-link">{t('login.signup')}</Link>
           </div>

@@ -1,0 +1,76 @@
+/* Account recovery (Find ID / Find Password) — shares the dark, gold-accented
+   tone of SignupPage.css (imported alongside). Only the result panel and the
+   footer link row are defined here. Tokens come from SignupPage.css :root. */
+
+.rec-result {
+  text-align: center;
+  background: var(--dark-input);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 24px 24px;
+}
+.rec-result-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  background: rgba(201, 168, 76, 0.14);
+  color: var(--gold);
+  font-size: 22px;
+  font-weight: 900;
+}
+.rec-result-label {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.rec-result-value {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: var(--text-white);
+  word-break: break-all;
+}
+.rec-result-note {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-top: 12px;
+}
+.rec-result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+}
+.rec-btn-link {
+  text-decoration: none;
+  margin-top: 0;
+}
+.rec-btn-ghost {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.15s;
+}
+.rec-btn-ghost:hover { color: var(--text-sub); }
+
+/* Footer link row */
+.rec-links {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 14px;
+}
+.rec-links .signup-login-link { margin-left: 0; }
+.rec-sep { color: var(--border); }
