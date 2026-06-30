@@ -1,0 +1,60 @@
+/* Profile edit + change password pages. Use ch-root tokens (light/dark aware)
+   and the shared st-card style from SettingsPage.css. */
+
+.ac-main { max-width: 560px; margin: 0 auto; padding: 24px 20px 80px; }
+
+.ac-back {
+  display: inline-flex; align-items: center;
+  background: none; border: none; color: var(--body);
+  font-size: 14px; font-weight: 600; font-family: inherit;
+  cursor: pointer; padding: 6px 2px; margin-bottom: 14px;
+}
+.ac-back:hover { color: var(--team-deep); }
+
+.ac-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: var(--ink); margin-bottom: 18px; }
+
+.ac-avatar-row { display: flex; align-items: center; gap: 18px; }
+.ac-avatar-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.ac-text-btn {
+  background: none; border: none; color: var(--muted);
+  font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; padding: 2px;
+}
+.ac-text-btn:hover { color: #DC2626; }
+
+.ac-field { margin-bottom: 14px; }
+.ac-field label { display: block; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 7px; }
+
+.ac-input {
+  width: 100%; height: 48px; padding: 0 14px;
+  background: var(--canvas); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--ink); font-size: 14.5px; font-family: inherit;
+  outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ac-input:focus { border-color: var(--team); box-shadow: 0 0 0 3px color-mix(in srgb, var(--team) 14%, transparent); }
+.ac-input:disabled { opacity: 0.6; cursor: default; }
+
+.ac-hint { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin: 10px 0 14px; }
+
+.ac-save-btn {
+  height: 48px; padding: 0 22px; min-width: 140px;
+  background: var(--team-deep); color: #fff; border: none; border-radius: 10px;
+  font-size: 14.5px; font-weight: 700; font-family: inherit; cursor: pointer;
+  transition: filter 0.15s, opacity 0.15s;
+}
+.ac-save-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.ac-save-btn:disabled { opacity: 0.45; cursor: default; }
+
+.ac-msg { margin-top: 16px; border-radius: 10px; padding: 12px 15px; font-size: 13.5px; font-weight: 600; }
+.ac-msg.error { background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.3); color: #DC2626; }
+.ac-msg.ok { background: rgba(16, 159, 110, 0.12); border: 1px solid rgba(16, 159, 110, 0.3); color: #0E9F6E; }
+
+/* Password change — done state */
+.ac-done { text-align: center; }
+.ac-done-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; margin: 4px auto 14px; border-radius: 50%;
+  background: color-mix(in srgb, var(--team) 16%, var(--mix-base));
+  color: var(--team-deep); font-size: 24px; font-weight: 900;
+}
+.ac-done h2 { font-size: 18px; font-weight: 800; color: var(--ink); margin-bottom: 8px; }
+.ac-done p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }

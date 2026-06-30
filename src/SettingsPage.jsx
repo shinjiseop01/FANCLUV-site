@@ -78,19 +78,21 @@ export default function SettingsPage() {
         <section className="st-card">
           <h2 className="st-card-title">{t('set.account')}</h2>
           <div className="st-profile">
-            <span className="st-avatar" aria-hidden="true">{nickname[0]}</span>
+            {user?.avatarUrl
+              ? <img className="st-avatar" src={user.avatarUrl} alt="" />
+              : <span className="st-avatar" aria-hidden="true">{nickname[0]}</span>}
             <div className="st-profile-info">
               <span className="st-profile-name">{nickname}</span>
               <span className="st-profile-email">{email}</span>
             </div>
           </div>
           <div className="st-row" role="button" tabIndex={0}
-            onClick={() => flash(t('set.comingSoon'))}>
+            onClick={() => navigate(`/club/${team.id}/profile`)}>
             <span>{t('set.editProfile')}</span>
             <span className="st-chevron" aria-hidden="true">›</span>
           </div>
           <div className="st-row" role="button" tabIndex={0}
-            onClick={() => flash(t('set.comingSoon'))}>
+            onClick={() => navigate(`/club/${team.id}/password`)}>
             <span>{t('set.changePw')}</span>
             <span className="st-chevron" aria-hidden="true">›</span>
           </div>

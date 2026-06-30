@@ -129,7 +129,7 @@ export default function MyActivityPage() {
 
             {/* Profile card */}
             <div className="ma-profile">
-              <Avatar name={NICKNAME} size={68} />
+              <Avatar name={NICKNAME} src={getCurrentUser()?.avatarUrl} size={68} />
               <div className="ma-profile-info">
                 <h2 className="ma-nickname">{NICKNAME}</h2>
                 <div className="ma-profile-team">

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { login, ADMIN_ROLES, requiresEmailVerification } from './lib/auth.js'
+import { login, ADMIN_ROLES } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import './LoginPage.css'
 
@@ -23,19 +23,11 @@ export default function LoginPage() {
       setLoading(false)
       const result = login({ email: email.trim(), password })
       if (result.ok) {
-        // 운영자(Admin)는 인증 없이 관리자 콘솔로 진입
+        // 운영자(Admin)는 관리자 콘솔로, 일반 사용자는 기존 흐름(구단 홈/팀 선택)으로.
+        // 이메일 미인증 계정은 login()에서 차단되어 여기 도달하지 않는다.
         if (ADMIN_ROLES.includes(result.user.role)) {
           navigate('/admin')
-          return
-        }
-        // 이메일 미인증 사용자는 인증 안내 화면으로
-        if (requiresEmailVerification(result.user)) {
-          setError(t('verify.loginNeeded'))
-          navigate('/verify-email', { state: { reason: 'login' } })
-          return
-        }
-        // 일반 사용자는 기존 흐름(구단 홈/팀 선택)으로
-        if (result.user.selectedTeam) {
+        } else if (result.user.selectedTeam) {
           navigate(`/club/${result.user.selectedTeam}`)
         } else {
           navigate('/team-select')

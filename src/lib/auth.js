@@ -112,12 +112,16 @@ function ensureSeed() {
     users.push(admin)
     changed = true
   }
-  // 데모 계정은 이메일 인증을 마친 상태로 유지(기존 흐름이 끊기지 않도록 backfill).
+  // 데모 계정 backfill — 이메일 인증 완료 상태 + 신규 프로필 필드 보강.
   for (const u of [fan, admin]) {
     if (u.verificationStatus == null) {
       Object.assign(u, seededEmailVerified(u.joinedAt))
       changed = true
     }
+    if (!('gender' in u)) { u.gender = null; changed = true }
+    if (!('ageGroup' in u)) { u.ageGroup = u === fan ? '20' : null; changed = true }
+    if (!('avatarUrl' in u)) { u.avatarUrl = null; changed = true }
+    if (!('lastNicknameChangeAt' in u)) { u.lastNicknameChangeAt = null; changed = true }
   }
 
   if (changed) writeUsers(users)
@@ -125,23 +129,29 @@ function ensureSeed() {
 ensureSeed()
 
 // ── 회원가입 ──
-export function signup({ nickname, email, password }) {
+// 이메일 인증번호 확인 후 호출되므로, 가입 시점에 이미 이메일 인증을 마친 것으로 본다.
+export function signup({ nickname, email, password, gender = null, ageGroup = null }) {
   const users = readUsers()
   const dup = users.find(u => u.email.toLowerCase() === email.toLowerCase())
   if (dup) return { ok: false, error: '이미 가입된 이메일입니다.' }
 
+  const now = new Date().toISOString()
   const user = {
     nickname,
     email,
     password, // 평문 저장 — 실서비스에서는 Supabase Auth로 교체 필요
-    joinedAt: new Date().toISOString(),
+    gender,            // 'male' | 'female' | 'na' | null
+    ageGroup,          // '10' | '20' | '30' | '40' | '50+'
+    avatarUrl: null,   // 프로필 이미지 (data URL)
+    lastNicknameChangeAt: null, // 닉네임 변경 제한(90일) 기준
+    joinedAt: now,
     selectedTeam: null,
     role: ROLES.FAN,
-    ...defaultVerification(), // 가입 직후엔 미인증 상태
+    ...seededEmailVerified(now), // 인증번호 확인을 거쳤으므로 이메일 인증 완료 상태
   }
   users.push(user)
   writeUsers(users)
-  setSession(email) // 가입 직후 자동 로그인 (단, 이메일 인증 전)
+  setSession(email) // 가입 직후 자동 로그인
   return { ok: true, user: publicUser(user) }
 }
 
@@ -152,6 +162,10 @@ export function login({ email, password }) {
     u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
   )
   if (!user) return { ok: false, error: '이메일 또는 비밀번호가 올바르지 않습니다.' }
+  // 이메일 미인증 계정은 로그인 차단(관리자는 예외).
+  if (!ADMIN_ROLES.includes(user.role) && !user.isEmailVerified) {
+    return { ok: false, error: '이메일 인증이 완료되지 않은 계정입니다.', code: 'unverified' }
+  }
   setSession(email)
   return { ok: true, user: publicUser(user) }
 }
@@ -220,6 +234,60 @@ export function verifyPhone(email) {
     verificationMethod: 'phone',
     verificationStatus: VERIFICATION.PHONE_VERIFIED,
   })
+}
+
+// 이메일 인증번호 발급 (Mock) — 실제 메일 발송 대신 6자리 코드를 만들어 반환한다.
+// 실서비스: 서버가 코드를 발송/검증하고 클라이언트에는 노출하지 않는다.
+export function issueEmailCode(email) {
+  const q = (email || '').trim()
+  if (!q) return { ok: false, error: '이메일을 입력해 주세요.' }
+  const dup = readUsers().some(u => u.email.toLowerCase() === q.toLowerCase())
+  if (dup) return { ok: false, error: '이미 가입된 이메일입니다.' }
+  const code = String(Math.floor(100000 + Math.random() * 900000))
+  return { ok: true, code }
+}
+
+// 세션 사용자에 부분 업데이트
+function patchSessionUser(patch) {
+  const email = localStorage.getItem(SESSION_KEY)
+  if (!email) return { ok: false, error: '로그인이 필요합니다.' }
+  return patchUser(email, patch)
+}
+
+// ── 프로필 수정 ──
+// 프로필 이미지 변경 (data URL 저장)
+export function updateAvatar(avatarUrl) {
+  return patchSessionUser({ avatarUrl })
+}
+
+// 닉네임 변경 제한: 90일에 1회
+export const NICKNAME_COOLDOWN_DAYS = 90
+export function nicknameChangeInfo() {
+  const u = getCurrentUser()
+  if (!u) return { canChange: false, nextChangeAt: null }
+  if (!u.lastNicknameChangeAt) return { canChange: true, nextChangeAt: null }
+  const next = new Date(u.lastNicknameChangeAt).getTime() + NICKNAME_COOLDOWN_DAYS * 86400000
+  return { canChange: Date.now() >= next, nextChangeAt: new Date(next).toISOString() }
+}
+export function changeNickname(nickname) {
+  const name = (nickname || '').trim()
+  if (!name) return { ok: false, error: '닉네임을 입력해 주세요.' }
+  const info = nicknameChangeInfo()
+  if (!info.canChange) return { ok: false, error: '닉네임은 90일에 한 번만 변경할 수 있습니다.', nextChangeAt: info.nextChangeAt }
+  return patchSessionUser({ nickname: name, lastNicknameChangeAt: new Date().toISOString() })
+}
+
+// ── 비밀번호 변경 ──
+export function changePassword(currentPassword, newPassword) {
+  const email = localStorage.getItem(SESSION_KEY)
+  if (!email) return { ok: false, error: '로그인이 필요합니다.' }
+  const users = readUsers()
+  const idx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase())
+  if (idx === -1) return { ok: false, error: '사용자를 찾을 수 없습니다.' }
+  if (users[idx].password !== currentPassword) return { ok: false, error: '현재 비밀번호가 일치하지 않습니다.' }
+  users[idx] = { ...users[idx], password: newPassword }
+  writeUsers(users)
+  return { ok: true }
 }
 
 // ── 응원팀 저장 (팀 선택 시) ──

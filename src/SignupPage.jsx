@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { signup } from './lib/auth.js'
+import { signup, issueEmailCode } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import './SignupPage.css'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const GENDERS = [['male', 'signup.genderMale'], ['female', 'signup.genderFemale'], ['na', 'signup.genderNA']]
+const AGE_GROUPS = [['10', 'signup.age10'], ['20', 'signup.age20'], ['30', 'signup.age30'], ['40', 'signup.age40'], ['50+', 'signup.age50']]
 
 export default function SignupPage() {
   const navigate = useNavigate()
@@ -13,8 +15,43 @@ export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
+  const [gender, setGender] = useState('')      // optional
+  const [ageGroup, setAgeGroup] = useState('')  // required
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // 이메일 인증번호 (Mock)
+  const [codeSent, setCodeSent] = useState(false)
+  const [sentCode, setSentCode] = useState('')
+  const [codeInput, setCodeInput] = useState('')
+  const [emailVerified, setEmailVerified] = useState(false)
+
+  function onEmailChange(v) {
+    setEmail(v)
+    setError('')
+    // 이메일이 바뀌면 인증 상태 초기화
+    setCodeSent(false)
+    setSentCode('')
+    setCodeInput('')
+    setEmailVerified(false)
+  }
+
+  function handleSendCode() {
+    setError('')
+    if (!EMAIL_RE.test(email.trim())) { setError(t('signup.errEmailFormat')); return }
+    const res = issueEmailCode(email.trim())
+    if (!res.ok) { setError(res.error); return }
+    setSentCode(res.code)
+    setCodeSent(true)
+    setEmailVerified(false)
+    setCodeInput('')
+  }
+
+  function handleConfirmCode() {
+    setError('')
+    if (codeInput.trim() !== sentCode) { setError(t('signup.errCode')); return }
+    setEmailVerified(true)
+  }
 
   function handleSubmit(e) {
     e.preventDefault()
@@ -23,6 +60,8 @@ export default function SignupPage() {
     if (!nickname.trim()) { setError(t('signup.errNickname')); return }
     if (!email.trim()) { setError(t('signup.errEmail')); return }
     if (!EMAIL_RE.test(email)) { setError(t('signup.errEmailFormat')); return }
+    if (!emailVerified) { setError(t('signup.errEmailVerify')); return }
+    if (!ageGroup) { setError(t('signup.errAge')); return }
     if (!password) { setError(t('signup.errPw')); return }
     if (password.length < 4) { setError(t('signup.errPwLen')); return }
     if (password !== passwordConfirm) { setError(t('signup.errPwMatch')); return }
@@ -30,10 +69,12 @@ export default function SignupPage() {
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
-      const result = signup({ nickname: nickname.trim(), email: email.trim(), password })
+      const result = signup({
+        nickname: nickname.trim(), email: email.trim(), password,
+        gender: gender || null, ageGroup,
+      })
       if (result.ok) {
-        // 가입 직후 자동 로그인(미인증) → 이메일 인증 안내 화면으로 이동
-        navigate('/verify-email', { state: { reason: 'signup' } })
+        navigate('/team-select')
       } else {
         setError(result.error)
       }
@@ -64,16 +105,75 @@ export default function SignupPage() {
             />
           </div>
 
+          {/* Email + 인증번호 */}
           <div className="su-field">
             <label className="su-label">{t('signup.email')}</label>
-            <input
-              type="email"
-              className="su-input"
-              placeholder={t('signup.emailPh')}
-              value={email}
-              onChange={e => { setEmail(e.target.value); setError('') }}
-              autoComplete="email"
-            />
+            <div className="su-inline">
+              <input
+                type="email"
+                className="su-input"
+                placeholder={t('signup.emailPh')}
+                value={email}
+                onChange={e => onEmailChange(e.target.value)}
+                autoComplete="email"
+                disabled={emailVerified}
+              />
+              <button type="button" className="su-side-btn" onClick={handleSendCode} disabled={emailVerified}>
+                {codeSent ? t('signup.resendCode') : t('signup.sendCode')}
+              </button>
+            </div>
+
+            {codeSent && !emailVerified && (
+              <>
+                <p className="su-code-hint">{t('signup.codeHint', { code: sentCode })}</p>
+                <div className="su-inline">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className="su-input"
+                    placeholder={t('signup.codePh')}
+                    value={codeInput}
+                    onChange={e => { setCodeInput(e.target.value); setError('') }}
+                    maxLength={6}
+                  />
+                  <button type="button" className="su-side-btn confirm" onClick={handleConfirmCode}>
+                    {t('signup.confirmCode')}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {emailVerified && (
+              <p className="su-verified">✓ {t('signup.emailVerified')}</p>
+            )}
+          </div>
+
+          {/* Gender (optional) */}
+          <div className="su-field">
+            <label className="su-label">{t('signup.gender')} <span className="su-optional">{t('signup.optional')}</span></label>
+            <div className="su-chips" role="group" aria-label={t('signup.gender')}>
+              {GENDERS.map(([val, key]) => (
+                <button type="button" key={val}
+                  className={`su-chip${gender === val ? ' on' : ''}`}
+                  onClick={() => setGender(g => (g === val ? '' : val))}>
+                  {t(key)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Age group (required) */}
+          <div className="su-field">
+            <label className="su-label">{t('signup.ageGroup')} <span className="su-required">{t('signup.requiredMark')}</span></label>
+            <div className="su-chips" role="group" aria-label={t('signup.ageGroup')}>
+              {AGE_GROUPS.map(([val, key]) => (
+                <button type="button" key={val}
+                  className={`su-chip${ageGroup === val ? ' on' : ''}`}
+                  onClick={() => { setAgeGroup(val); setError('') }}>
+                  {t(key)}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="su-field">

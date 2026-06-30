@@ -37,6 +37,7 @@
   background: color-mix(in srgb, var(--team) 16%, var(--mix-base));
   color: var(--team-deep); font-size: 20px; font-weight: 800;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  object-fit: cover;
 }
 .st-profile-info { display: flex; flex-direction: column; gap: 3px; }
 .st-profile-name { font-size: 16px; font-weight: 700; color: var(--ink); }

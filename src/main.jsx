@@ -12,6 +12,8 @@ import SignupPage from './SignupPage.jsx'
 import FindIdPage from './FindIdPage.jsx'
 import FindPasswordPage from './FindPasswordPage.jsx'
 import VerifyEmailPage from './VerifyEmailPage.jsx'
+import ProfileEditPage from './ProfileEditPage.jsx'
+import ChangePasswordPage from './ChangePasswordPage.jsx'
 import TeamSelectPage from './TeamSelectPage.jsx'
 import ClubHomePage from './ClubHomePage.jsx'
 import OpinionsPage from './OpinionsPage.jsx'
@@ -71,6 +73,8 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/insights" element={<RequireAuth><AIInsightsPage /></RequireAuth>} />
         <Route path="/club/:teamId/ranking" element={<RequireAuth><FanRankingPage /></RequireAuth>} />
         <Route path="/club/:teamId/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
+        <Route path="/club/:teamId/profile" element={<RequireAuth><ProfileEditPage /></RequireAuth>} />
+        <Route path="/club/:teamId/password" element={<RequireAuth><ChangePasswordPage /></RequireAuth>} />
 
         {/* ── Admin Console (운영자 전용) ── */}
         <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
