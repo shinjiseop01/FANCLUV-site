@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { useToast } from '../contexts/ToastContext.jsx'
 import { getTeam } from '../teams.jsx'
 import Avatar from '../components/Avatar.jsx'
 import EmptyState from '../components/EmptyState.jsx'
@@ -8,7 +7,6 @@ import { MOCK_MEMBERS } from './adminData.js'
 
 export default function AdminMembers() {
   const { t } = useLang()
-  const { toast } = useToast()
   const [members, setMembers] = useState(MOCK_MEMBERS)
   const [query, setQuery] = useState('')
 
@@ -24,13 +22,10 @@ export default function AdminMembers() {
     setMembers(list => list.map(m =>
       m.id === id ? { ...m, status: m.status === 'active' ? 'inactive' : 'active' } : m,
     ))
-    const m = members.find(x => x.id === id)
-    toast(m?.status === 'active' ? t('admin.mem.deactivated') : t('admin.mem.activated'))
   }
 
   function remove(id) {
     setMembers(list => list.filter(m => m.id !== id))
-    toast(t('admin.mem.deleted'))
   }
 
   return (

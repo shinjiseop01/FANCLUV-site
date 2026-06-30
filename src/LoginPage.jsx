@@ -2,13 +2,11 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { login, ADMIN_ROLES } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
-import { useToast } from './contexts/ToastContext.jsx'
 import './LoginPage.css'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const { t } = useLang()
-  const { toast } = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -25,7 +23,6 @@ export default function LoginPage() {
       setLoading(false)
       const result = login({ email: email.trim(), password })
       if (result.ok) {
-        toast(t('toast.login'))
         // 운영자(Admin)는 관리자 콘솔로, 일반 사용자는 기존 흐름(구단 홈/팀 선택)으로
         if (ADMIN_ROLES.includes(result.user.role)) {
           navigate('/admin')

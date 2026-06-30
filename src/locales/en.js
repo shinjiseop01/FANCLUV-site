@@ -45,7 +45,6 @@ export default {
   'findId.resultLabel': 'Registered email',
   'findId.notFound': 'No matching account found.',
   'findId.errInput': 'Please enter a nickname or email.',
-  'findId.toastFound': 'Account found.',
   'findId.goLogin': 'Go to login',
   'findId.again': 'Search again',
   'findPw.title': 'Reset your password',
@@ -59,7 +58,6 @@ export default {
   'findPw.notFound': 'This email is not registered.',
   'findPw.errEmail': 'Please enter your email.',
   'findPw.errFormat': 'Please enter a valid email address.',
-  'findPw.toastSent': 'Password reset instructions sent.',
   'findPw.again': 'Try another email',
   'login.loading': 'Logging in...',
   'login.errEmail': 'Please enter your email.',
@@ -318,13 +316,6 @@ export default {
 
   // ── Phase 1 UI/UX quality ──
   // Toast
-  'toast.langChanged': 'Language changed.',
-  'toast.login': 'Signed in.',
-  'toast.logout': 'Signed out.',
-  'toast.opinionCreated': 'Your opinion has been posted.',
-  'toast.surveyDone': 'Survey submitted. Thank you!',
-  'toast.liked': 'Liked.',
-  'toast.commented': 'Comment posted.',
   // Empty states
   'empty.opinionsTitle': 'No opinions yet',
   'empty.opinionsMsg': 'Be the first to share your thoughts.',
@@ -399,9 +390,6 @@ export default {
   'admin.mem.inactive': 'Inactive',
   'admin.mem.activate': 'Activate',
   'admin.mem.deactivate': 'Deactivate',
-  'admin.mem.activated': 'Member activated.',
-  'admin.mem.deactivated': 'Member deactivated.',
-  'admin.mem.deleted': 'Member deleted.',
   // Fan opinions
   'admin.op.sub': '{n} opinions total',
   'admin.op.colAuthor': 'Author',
@@ -411,9 +399,12 @@ export default {
   'admin.op.colLikes': 'Likes',
   'admin.op.colComments': 'Comments',
   'admin.op.hiddenTag': 'Hidden',
-  'admin.op.hidden': 'Opinion hidden.',
-  'admin.op.shown': 'Opinion is visible again.',
-  'admin.op.deleted': 'Opinion deleted.',
+  'admin.op.viewComments': '{n} comments',
+  // Comment management
+  'admin.cm.title': "Comments on {author}'s post",
+  'admin.cm.close': 'Close',
+  'admin.cm.emptyTitle': 'No comments',
+  'admin.cm.emptyMsg': 'This post has no comments yet.',
   // Surveys
   'admin.sv.sub': '{n} surveys total',
   'admin.sv.create': 'New survey',
@@ -435,10 +426,6 @@ export default {
   'admin.sv.closeBtn': 'Close',
   'admin.sv.errTitle': 'Please enter a title.',
   'admin.sv.errQuestion': 'Please enter a question.',
-  'admin.sv.created': 'Survey created.',
-  'admin.sv.updated': 'Survey updated.',
-  'admin.sv.closedToast': 'Survey closed.',
-  'admin.sv.deleted': 'Survey deleted.',
   // Team news
   'admin.nw.sub': '{n} news items total',
   'admin.nw.create': 'Add news',
@@ -456,9 +443,6 @@ export default {
   'admin.nw.colDate': 'Date',
   'admin.nw.errTitle': 'Please enter a title.',
   'admin.nw.errContent': 'Please enter the content.',
-  'admin.nw.created': 'News published.',
-  'admin.nw.updated': 'News updated.',
-  'admin.nw.deleted': 'News deleted.',
   // Reports
   'admin.rp.sub': '{n} pending reports',
   'admin.rp.colTarget': 'Reported content',
@@ -470,8 +454,6 @@ export default {
   'admin.rp.resolved': 'Resolved',
   'admin.rp.hidePost': 'Hide post',
   'admin.rp.deletePost': 'Delete post',
-  'admin.rp.hidden': 'Post hidden.',
-  'admin.rp.deleted': 'Reported post deleted.',
   'admin.rp.type.opinion': 'Opinion',
   'admin.rp.type.comment': 'Comment',
   'admin.rp.emptyTitle': 'No reports to handle',

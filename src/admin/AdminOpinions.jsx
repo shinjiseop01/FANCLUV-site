@@ -1,27 +1,42 @@
 import { useState } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { useToast } from '../contexts/ToastContext.jsx'
 import { getTeam } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
-import { MOCK_OPINIONS } from './adminData.js'
+import { MOCK_OPINIONS, MOCK_COMMENTS } from './adminData.js'
 
 export default function AdminOpinions() {
   const { t } = useLang()
-  const { toast } = useToast()
   const [opinions, setOpinions] = useState(MOCK_OPINIONS)
+  const [comments, setComments] = useState(MOCK_COMMENTS)
+  const [selectedId, setSelectedId] = useState(null) // 댓글을 펼쳐 볼 게시글 id
 
   function toggleHide(id) {
     setOpinions(list => list.map(o =>
       o.id === id ? { ...o, status: o.status === 'visible' ? 'hidden' : 'visible' } : o,
     ))
-    const o = opinions.find(x => x.id === id)
-    toast(o?.status === 'visible' ? t('admin.op.hidden') : t('admin.op.shown'))
   }
 
   function remove(id) {
     setOpinions(list => list.filter(o => o.id !== id))
-    toast(t('admin.op.deleted'))
+    if (selectedId === id) setSelectedId(null)
   }
+
+  function selectComments(id) {
+    setSelectedId(prev => (prev === id ? null : id))
+  }
+
+  function toggleHideComment(cid) {
+    setComments(list => list.map(c =>
+      c.id === cid ? { ...c, status: c.status === 'visible' ? 'hidden' : 'visible' } : c,
+    ))
+  }
+
+  function removeComment(cid) {
+    setComments(list => list.filter(c => c.id !== cid))
+  }
+
+  const selectedOpinion = opinions.find(o => o.id === selectedId) || null
+  const selectedComments = comments.filter(c => c.opinionId === selectedId)
 
   return (
     <div className="adm-page">
@@ -49,6 +64,8 @@ export default function AdminOpinions() {
             <tbody>
               {opinions.map(o => {
                 const team = getTeam(o.team)
+                const isOpen = selectedId === o.id
+                const count = comments.filter(c => c.opinionId === o.id).length
                 return (
                   <tr key={o.id} className={o.status === 'hidden' ? 'is-hidden' : ''}>
                     <td className="adm-cell-strong">{o.author}</td>
@@ -59,7 +76,11 @@ export default function AdminOpinions() {
                       {o.status === 'hidden' && <span className="adm-badge hidden">{t('admin.op.hiddenTag')}</span>}
                     </td>
                     <td>{o.likes.toLocaleString()}</td>
-                    <td>{o.comments}</td>
+                    <td>
+                      <button className={`adm-link-btn${isOpen ? ' on' : ''}`} onClick={() => selectComments(o.id)}>
+                        {t('admin.op.viewComments', { n: count })}
+                      </button>
+                    </td>
                     <td className="adm-col-actions">
                       <button className="adm-btn-sm" onClick={() => toggleHide(o.id)}>
                         {o.status === 'visible' ? t('admin.hide') : t('admin.show')}
@@ -72,6 +93,41 @@ export default function AdminOpinions() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* ── 선택한 게시글의 댓글 관리 ── */}
+      {selectedOpinion && (
+        <section className="adm-comments">
+          <div className="adm-comments-head">
+            <h2 className="adm-h2">{t('admin.cm.title', { author: selectedOpinion.author })}</h2>
+            <button className="adm-btn-ghost" onClick={() => setSelectedId(null)}>{t('admin.cm.close')}</button>
+          </div>
+
+          {selectedComments.length === 0 ? (
+            <EmptyState compact icon="💬" title={t('admin.cm.emptyTitle')} message={t('admin.cm.emptyMsg')} />
+          ) : (
+            <ul className="adm-comment-list">
+              {selectedComments.map(c => (
+                <li key={c.id} className={`adm-comment${c.status === 'hidden' ? ' is-hidden' : ''}`}>
+                  <div className="adm-comment-body">
+                    <div className="adm-comment-meta">
+                      <span className="adm-cell-strong">{c.author}</span>
+                      <span className="adm-cell-muted">{c.date}</span>
+                      {c.status === 'hidden' && <span className="adm-badge hidden">{t('admin.op.hiddenTag')}</span>}
+                    </div>
+                    <p className="adm-comment-text">{c.content}</p>
+                  </div>
+                  <div className="adm-col-actions">
+                    <button className="adm-btn-sm" onClick={() => toggleHideComment(c.id)}>
+                      {c.status === 'visible' ? t('admin.hide') : t('admin.show')}
+                    </button>
+                    <button className="adm-btn-sm danger" onClick={() => removeComment(c.id)}>{t('admin.delete')}</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
     </div>
   )

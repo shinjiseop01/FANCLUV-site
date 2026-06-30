@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { requestPasswordReset } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
-import { useToast } from './contexts/ToastContext.jsx'
 import './SignupPage.css'
 import './RecoveryPages.css'
 
@@ -10,7 +9,6 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function FindPasswordPage() {
   const { t } = useLang()
-  const { toast } = useToast()
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -27,7 +25,6 @@ export default function FindPasswordPage() {
       const res = requestPasswordReset(email)
       if (res.ok) {
         setSentTo(email.trim())
-        toast(t('findPw.toastSent'), { icon: '✉' })
       } else {
         setError(t('findPw.notFound'))
       }

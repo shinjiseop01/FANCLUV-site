@@ -66,7 +66,7 @@ npm run lint     # oxlint
 - **EmptyState** (`components/EmptyState.jsx`) — 아이콘+제목+메시지+선택적 CTA. 팬 의견/설문/뉴스/AI 인사이트/랭킹/내 활동/검색결과 빈 화면.
 - **Skeleton** (`components/Skeleton.jsx`) — `Skeleton`/`SkeletonCard`/`SkeletonList`. 로딩 중 표시. 로딩 시뮬레이션은 `lib/useFakeLoading.js`(기본 550ms, 실제 API 연동 시 교체 지점).
 - **Avatar** (`components/Avatar.jsx`) — 기본 이니셜 아바타, 향후 `src`(프로필 이미지) 지원 구조.
-- **Toast** (`contexts/ToastContext.jsx`) — `useToast()` → `toast(msg, {icon})`. 우상단(모바일 하단) 자동 소멸. 로그인/언어변경/의견작성/설문제출/공감/댓글에 연결. ⚠️ toast는 반드시 이벤트 핸들러에서 호출(렌더/상태 updater 내부 호출 금지 — cross-component setState 경고).
+- **Toast** — ❌ 제거됨(MVP). 전역 Toast Provider/Context는 삭제. 완료 피드백은 화면 전환·버튼 상태·목록 갱신으로 대체. (단, 의견 상세의 공유/신고용 로컬 `od-toast`는 별도 인라인 메시지로 유지)
 - **NotFoundPage** (`NotFoundPage.jsx`) — `path="*"` 404. 로그인+팀 선택 시 구단 홈으로, 아니면 로그인으로.
 - **상대 시간** (`lib/relativeTime.js`) — `relativeTime(hours, lang)` → 방금 전/N분 전/N시간 전/어제/N일 전. 의견 목록·상세·댓글에 사용.
 - **활동 배지** (`lib/activityBadge.js`) — 점수 기반 🌱Rookie→⚽Active→🔥Super→👑Legend. 내 활동 레벨 카드에 사용.

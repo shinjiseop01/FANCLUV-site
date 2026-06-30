@@ -1,4 +1,4 @@
-/* Shared UI primitives — Empty state, Skeleton, Avatar, Toast, 404.
+/* Shared UI primitives — Empty state, Skeleton, Avatar, 404.
    All colours come from the existing token system (var(--canvas)/--ink/
    --muted/--border/--team/--page-bg/--mix-base) so light & dark both work. */
 
@@ -100,58 +100,6 @@
 }
 .fc-avatar-img { width: 100%; height: 100%; object-fit: cover; }
 .fc-avatar-initial { transform: translateY(0.5px); }
-
-/* ───────────── Toast ───────────── */
-.fc-toast-wrap {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  pointer-events: none;
-}
-.fc-toast {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 220px;
-  max-width: 340px;
-  padding: 13px 16px;
-  background: var(--canvas, #fff);
-  color: var(--ink, #1A1D24);
-  border: 1px solid var(--border, #E8EAEE);
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  animation: fc-toast-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.2);
-}
-.fc-toast-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--team, #1aa179) 18%, var(--mix-base));
-  color: var(--team-deep, #0E9F6E);
-  font-size: 13px;
-  font-weight: 900;
-  flex-shrink: 0;
-}
-.fc-toast-msg { line-height: 1.4; }
-@keyframes fc-toast-in {
-  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@media (max-width: 560px) {
-  .fc-toast-wrap { top: auto; bottom: 18px; left: 16px; right: 16px; align-items: stretch; }
-  .fc-toast { min-width: 0; max-width: none; }
-}
 
 /* ───────────── 404 ───────────── */
 .fc-404 {

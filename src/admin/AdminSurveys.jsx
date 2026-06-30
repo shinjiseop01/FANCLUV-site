@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { useToast } from '../contexts/ToastContext.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { MOCK_SURVEYS } from './adminData.js'
 
@@ -8,7 +7,6 @@ const EMPTY = { title: '', desc: '', question: '', endDate: '' }
 
 export default function AdminSurveys() {
   const { t } = useLang()
-  const { toast } = useToast()
   const [surveys, setSurveys] = useState(MOCK_SURVEYS)
   const [form, setForm] = useState(null)   // null=closed, {id?, ...fields}=open
   const [error, setError] = useState('')
@@ -24,23 +22,19 @@ export default function AdminSurveys() {
     if (!form.question.trim()) { setError(t('admin.sv.errQuestion')); return }
     if (form.id) {
       setSurveys(list => list.map(s => (s.id === form.id ? { ...s, ...form } : s)))
-      toast(t('admin.sv.updated'))
     } else {
       const id = 's' + Date.now()
       setSurveys(list => [{ ...form, id, status: 'open', responses: 0 }, ...list])
-      toast(t('admin.sv.created'))
     }
     close()
   }
 
   function closeSurvey(id) {
     setSurveys(list => list.map(s => (s.id === id ? { ...s, status: 'closed' } : s)))
-    toast(t('admin.sv.closedToast'))
   }
 
   function remove(id) {
     setSurveys(list => list.filter(s => s.id !== id))
-    toast(t('admin.sv.deleted'))
   }
 
   return (

@@ -2,13 +2,11 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { findAccountByHint } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
-import { useToast } from './contexts/ToastContext.jsx'
 import './SignupPage.css'
 import './RecoveryPages.css'
 
 export default function FindIdPage() {
   const { t } = useLang()
-  const { toast } = useToast()
   const [hint, setHint] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,7 +22,6 @@ export default function FindIdPage() {
       const res = findAccountByHint(hint)
       if (res.ok) {
         setResult({ maskedEmail: res.maskedEmail })
-        toast(t('findId.toastFound'), { icon: '🔍' })
       } else {
         setError(t('findId.notFound'))
       }

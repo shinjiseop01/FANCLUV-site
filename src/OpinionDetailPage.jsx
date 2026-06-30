@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
-import { useToast } from './contexts/ToastContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import { relativeTime } from './lib/relativeTime.js'
@@ -89,7 +88,6 @@ export default function OpinionDetailPage() {
   const base = team && Number.isInteger(idx) && BASE_OPINIONS[idx] ? BASE_OPINIONS[idx] : null
 
   const { lang, setLang, t } = useLang()
-  const { toast: notify } = useToast()
   const [comments, setComments] = useState(INITIAL_COMMENTS)
   const [draft, setDraft] = useState('')
   const [liked, setLiked] = useState(false)
@@ -136,7 +134,6 @@ export default function OpinionDetailPage() {
   }
 
   function toggleLike() {
-    if (!liked) notify(t('toast.liked'), { icon: '❤' })
     setLiked(v => !v)
   }
 
@@ -146,7 +143,6 @@ export default function OpinionDetailPage() {
     if (!text) return
     setComments(prev => [...prev, { author: NICKNAME, hours: 0, text }])
     setDraft('')
-    notify(t('toast.commented'))
   }
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }

@@ -161,3 +161,39 @@
   .adm-content { padding: 18px 14px; }
   .adm-h1 { font-size: 22px; }
 }
+
+/* ── Comment management (팬 의견 관리 내) ── */
+.adm-link-btn {
+  background: none; border: none; padding: 4px 2px; cursor: pointer; font-family: inherit;
+  font-size: 13px; font-weight: 700; color: var(--team-deep); text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.adm-link-btn.on { color: var(--ink); }
+
+.adm-comments {
+  margin-top: 20px;
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 22px;
+}
+.adm-comments-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; gap: 12px;
+}
+.adm-comments-head .adm-h2 { margin-bottom: 0; }
+
+.adm-comment-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.adm-comment {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+  padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--page-bg);
+}
+.adm-comment.is-hidden { opacity: 0.6; }
+.adm-comment-body { flex: 1; min-width: 0; }
+.adm-comment-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+.adm-comment-text { font-size: 14px; color: var(--ink); line-height: 1.6; word-break: break-word; }
+
+@media (max-width: 640px) {
+  .adm-comment { flex-direction: column; }
+  .adm-comment .adm-col-actions { width: 100%; }
+}

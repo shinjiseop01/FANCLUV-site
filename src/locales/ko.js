@@ -45,7 +45,6 @@ export default {
   'findId.resultLabel': '가입된 이메일',
   'findId.notFound': '일치하는 계정을 찾을 수 없습니다.',
   'findId.errInput': '닉네임 또는 이메일을 입력해 주세요.',
-  'findId.toastFound': '계정을 찾았습니다.',
   'findId.goLogin': '로그인하러 가기',
   'findId.again': '다시 찾기',
   'findPw.title': '비밀번호 찾기',
@@ -59,7 +58,6 @@ export default {
   'findPw.notFound': '가입되지 않은 이메일입니다.',
   'findPw.errEmail': '이메일을 입력해 주세요.',
   'findPw.errFormat': '올바른 이메일 형식이 아닙니다.',
-  'findPw.toastSent': '비밀번호 재설정 안내를 보냈습니다.',
   'findPw.again': '다른 이메일로 시도',
   'login.loading': '로그인 중...',
   'login.errEmail': '이메일을 입력해주세요.',
@@ -318,13 +316,6 @@ export default {
 
   // ── Phase 1 UI/UX 품질 개선 ──
   // Toast
-  'toast.langChanged': '언어가 변경되었습니다.',
-  'toast.login': '로그인되었습니다.',
-  'toast.logout': '로그아웃되었습니다.',
-  'toast.opinionCreated': '의견이 등록되었습니다.',
-  'toast.surveyDone': '설문 참여가 완료되었습니다.',
-  'toast.liked': '공감했습니다.',
-  'toast.commented': '댓글이 등록되었습니다.',
   // Empty states
   'empty.opinionsTitle': '아직 작성된 의견이 없습니다',
   'empty.opinionsMsg': '가장 먼저 의견을 남겨보세요.',
@@ -399,9 +390,6 @@ export default {
   'admin.mem.inactive': '비활성',
   'admin.mem.activate': '활성화',
   'admin.mem.deactivate': '비활성화',
-  'admin.mem.activated': '회원을 활성화했습니다.',
-  'admin.mem.deactivated': '회원을 비활성화했습니다.',
-  'admin.mem.deleted': '회원을 삭제했습니다.',
   // 팬 의견 관리
   'admin.op.sub': '총 {n}건의 의견',
   'admin.op.colAuthor': '작성자',
@@ -411,9 +399,12 @@ export default {
   'admin.op.colLikes': '좋아요',
   'admin.op.colComments': '댓글',
   'admin.op.hiddenTag': '숨김',
-  'admin.op.hidden': '의견을 숨겼습니다.',
-  'admin.op.shown': '의견을 다시 표시했습니다.',
-  'admin.op.deleted': '의견을 삭제했습니다.',
+  'admin.op.viewComments': '댓글 {n}개',
+  // 댓글 관리
+  'admin.cm.title': "'{author}'님의 글 댓글 관리",
+  'admin.cm.close': '닫기',
+  'admin.cm.emptyTitle': '댓글이 없습니다',
+  'admin.cm.emptyMsg': '이 게시글에는 아직 댓글이 없습니다.',
   // 설문 관리
   'admin.sv.sub': '총 {n}개의 설문',
   'admin.sv.create': '새 설문 만들기',
@@ -435,10 +426,6 @@ export default {
   'admin.sv.closeBtn': '종료',
   'admin.sv.errTitle': '제목을 입력해 주세요.',
   'admin.sv.errQuestion': '질문을 입력해 주세요.',
-  'admin.sv.created': '설문을 생성했습니다.',
-  'admin.sv.updated': '설문을 수정했습니다.',
-  'admin.sv.closedToast': '설문을 종료했습니다.',
-  'admin.sv.deleted': '설문을 삭제했습니다.',
   // 팀 뉴스 관리
   'admin.nw.sub': '총 {n}개의 뉴스',
   'admin.nw.create': '뉴스 등록',
@@ -456,9 +443,6 @@ export default {
   'admin.nw.colDate': '등록일',
   'admin.nw.errTitle': '제목을 입력해 주세요.',
   'admin.nw.errContent': '내용을 입력해 주세요.',
-  'admin.nw.created': '뉴스를 등록했습니다.',
-  'admin.nw.updated': '뉴스를 수정했습니다.',
-  'admin.nw.deleted': '뉴스를 삭제했습니다.',
   // 신고 관리
   'admin.rp.sub': '미처리 신고 {n}건',
   'admin.rp.colTarget': '신고 대상',
@@ -470,8 +454,6 @@ export default {
   'admin.rp.resolved': '처리됨',
   'admin.rp.hidePost': '게시글 숨기기',
   'admin.rp.deletePost': '게시글 삭제',
-  'admin.rp.hidden': '게시글을 숨김 처리했습니다.',
-  'admin.rp.deleted': '신고 게시글을 삭제했습니다.',
   'admin.rp.type.opinion': '의견',
   'admin.rp.type.comment': '댓글',
   'admin.rp.emptyTitle': '처리할 신고가 없습니다',

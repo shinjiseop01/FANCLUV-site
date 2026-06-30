@@ -44,6 +44,21 @@ export const MOCK_OPINIONS = [
   { id: 'o6', author: '평일직관', team: 'jeju',    date: '2026-06-26', content: '경기장 먹거리 줄이 너무 깁니다.', likes: 73, comments: 8, status: 'visible' },
 ]
 
+// ── Comments (게시글별 댓글) — opinionId 로 연결 ──
+export const MOCK_COMMENTS = [
+  { id: 'c1', opinionId: 'o1', author: '풋볼맘',    date: '2026-06-30', content: '정말 공감합니다. 저도 같은 구역에서 불편했어요.', status: 'visible' },
+  { id: 'c2', opinionId: 'o1', author: '직관7년차', date: '2026-06-30', content: '예매 단계에서 시야 정보를 표시해주면 좋겠네요.', status: 'visible' },
+  { id: 'c3', opinionId: 'o1', author: '광고주',    date: '2026-06-29', content: '※ 불법 베팅 사이트 홍보 댓글', status: 'hidden' },
+  { id: 'c4', opinionId: 'o2', author: '서포터K',  date: '2026-06-30', content: '원정 응원 정말 멋졌습니다. 다음에도 함께해요!', status: 'visible' },
+  { id: 'c5', opinionId: 'o2', author: '레전드7',  date: '2026-06-29', content: '선수들에게 큰 힘이 됐을 거예요.', status: 'visible' },
+  { id: 'c6', opinionId: 'o3', author: '시즌권홀더', date: '2026-06-29', content: '대기열 시스템 꼭 도입됐으면 합니다.', status: 'visible' },
+  { id: 'c7', opinionId: 'o5', author: '풋볼러버', date: '2026-06-27', content: '유소년 육성은 장기적으로 꼭 필요합니다.', status: 'visible' },
+]
+
+export function getCommentsFor(opinionId) {
+  return MOCK_COMMENTS.filter(c => c.opinionId === opinionId)
+}
+
 // ── Surveys ──
 export const MOCK_SURVEYS = [
   { id: 's1', title: '2026 시즌 홈 경기장 시설 만족도 조사', desc: '홈경기 관람 환경 전반에 대한 의견을 수집합니다.', question: '홈 경기장 시설에 얼마나 만족하시나요?', endDate: '2026-07-15', status: 'open', responses: 1284 },

@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { isAuthenticated, isAdmin } from './lib/auth.js'
 import { LanguageProvider } from './contexts/LanguageContext.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
-import { ToastProvider } from './contexts/ToastContext.jsx'
 import './index.css'
 import './theme.css'
 import './components/components.css'
@@ -50,7 +49,6 @@ function RequireAdmin({ children }) {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider>
-    <ToastProvider>
     <LanguageProvider>
     <BrowserRouter>
       <Routes>
@@ -87,7 +85,6 @@ createRoot(document.getElementById('root')).render(
       </Routes>
     </BrowserRouter>
     </LanguageProvider>
-    </ToastProvider>
     </ThemeProvider>
   </StrictMode>,
 )

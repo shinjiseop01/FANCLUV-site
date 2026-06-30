@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
-import { useToast } from './contexts/ToastContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import EmptyState from './components/EmptyState.jsx'
@@ -32,7 +31,6 @@ export default function SurveyPage() {
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, setLang, t } = useLang()
-  const { toast } = useToast()
   const loading = useFakeLoading()
 
   const [selectedId, setSelectedId] = useState(null) // null → 설문 목록 화면
@@ -79,7 +77,6 @@ export default function SurveyPage() {
   function handleSubmit(e) {
     e.preventDefault()
     setSubmitted(true)
-    toast(t('toast.surveyDone'))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { useToast } from '../contexts/ToastContext.jsx'
 import { TEAMS, getTeam } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { MOCK_NEWS } from './adminData.js'
@@ -9,7 +8,6 @@ const EMPTY = { title: '', content: '', team: TEAMS[0].id, image: '' }
 
 export default function AdminNews() {
   const { t } = useLang()
-  const { toast } = useToast()
   const [news, setNews] = useState(MOCK_NEWS)
   const [form, setForm] = useState(null)
   const [error, setError] = useState('')
@@ -25,18 +23,15 @@ export default function AdminNews() {
     if (!form.content.trim()) { setError(t('admin.nw.errContent')); return }
     if (form.id) {
       setNews(list => list.map(n => (n.id === form.id ? { ...n, ...form } : n)))
-      toast(t('admin.nw.updated'))
     } else {
       const today = new Date().toISOString().slice(0, 10)
       setNews(list => [{ ...form, id: 'n' + Date.now(), date: today }, ...list])
-      toast(t('admin.nw.created'))
     }
     close()
   }
 
   function remove(id) {
     setNews(list => list.filter(n => n.id !== id))
-    toast(t('admin.nw.deleted'))
   }
 
   return (

@@ -1,22 +1,18 @@
 import { useState } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { useToast } from '../contexts/ToastContext.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { MOCK_REPORTS } from './adminData.js'
 
 export default function AdminReports() {
   const { t } = useLang()
-  const { toast } = useToast()
   const [reports, setReports] = useState(MOCK_REPORTS)
 
   function hide(id) {
     setReports(list => list.map(r => (r.id === id ? { ...r, status: 'resolved' } : r)))
-    toast(t('admin.rp.hidden'))
   }
 
   function remove(id) {
     setReports(list => list.filter(r => r.id !== id))
-    toast(t('admin.rp.deleted'))
   }
 
   return (
