@@ -10,6 +10,8 @@ export default {
   'common.searchResultEmpty': 'No results found.',
   'common.notFoundTeam': 'This club does not exist.',
   'common.reselectTeam': 'Choose a club again',
+  'common.notifications': 'Notifications',
+  'common.noNotifications': 'No notifications',
 
   // nav
   'nav.home': 'Home',

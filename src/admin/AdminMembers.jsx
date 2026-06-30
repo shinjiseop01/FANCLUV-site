@@ -77,10 +77,12 @@ export default function AdminMembers() {
                       </span>
                     </td>
                     <td className="adm-col-actions">
-                      <button className="adm-btn-sm" onClick={() => toggleActive(m.id)}>
-                        {m.status === 'active' ? t('admin.mem.deactivate') : t('admin.mem.activate')}
-                      </button>
-                      <button className="adm-btn-sm danger" onClick={() => remove(m.id)}>{t('admin.delete')}</button>
+                      <div className="adm-actions">
+                        <button className="adm-btn-sm" onClick={() => toggleActive(m.id)}>
+                          {m.status === 'active' ? t('admin.mem.deactivate') : t('admin.mem.activate')}
+                        </button>
+                        <button className="adm-btn-sm danger" onClick={() => remove(m.id)}>{t('admin.delete')}</button>
+                      </div>
                     </td>
                   </tr>
                 )

@@ -100,9 +100,11 @@ export default function AdminSurveys() {
                     </span>
                   </td>
                   <td className="adm-col-actions">
-                    <button className="adm-btn-sm" onClick={() => openEdit(s)}>{t('admin.edit')}</button>
-                    {s.status === 'open' && <button className="adm-btn-sm" onClick={() => closeSurvey(s.id)}>{t('admin.sv.closeBtn')}</button>}
-                    <button className="adm-btn-sm danger" onClick={() => remove(s.id)}>{t('admin.delete')}</button>
+                    <div className="adm-actions">
+                      <button className="adm-btn-sm" onClick={() => openEdit(s)}>{t('admin.edit')}</button>
+                      {s.status === 'open' && <button className="adm-btn-sm" onClick={() => closeSurvey(s.id)}>{t('admin.sv.closeBtn')}</button>}
+                      <button className="adm-btn-sm danger" onClick={() => remove(s.id)}>{t('admin.delete')}</button>
+                    </div>
                   </td>
                 </tr>
               ))}

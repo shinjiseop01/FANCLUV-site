@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { logout, getCurrentUser, getRole } from '../lib/auth.js'
+import NotificationBell from '../components/NotificationBell.jsx'
 import { visibleMenu } from './adminData.js'
 import './admin.css'
 
@@ -17,7 +18,7 @@ const ICONS = {
 
 export default function AdminLayout() {
   const navigate = useNavigate()
-  const { lang, setLang, t } = useLang()
+  const { t } = useLang()
   const user = getCurrentUser()
   const role = getRole()
   const menu = visibleMenu(role)
@@ -53,11 +54,8 @@ export default function AdminLayout() {
         <header className="adm-topbar">
           <span className="adm-topbar-title">{t('admin.console')}</span>
           <div className="adm-topbar-actions">
-            <div className="ch-lang" role="group" aria-label="언어 선택">
-              <button className={lang === 'ko' ? 'on' : ''} onClick={() => setLang('ko')}>한국어</button>
-              <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
-            </div>
             <span className="adm-user">{user?.nickname}</span>
+            <NotificationBell />
             <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
           </div>
         </header>

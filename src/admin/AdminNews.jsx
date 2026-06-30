@@ -103,8 +103,10 @@ export default function AdminNews() {
                     <td className="adm-cell-muted">{team ? team.name : '-'}</td>
                     <td className="adm-cell-muted">{n.date}</td>
                     <td className="adm-col-actions">
-                      <button className="adm-btn-sm" onClick={() => openEdit(n)}>{t('admin.edit')}</button>
-                      <button className="adm-btn-sm danger" onClick={() => remove(n.id)}>{t('admin.delete')}</button>
+                      <div className="adm-actions">
+                        <button className="adm-btn-sm" onClick={() => openEdit(n)}>{t('admin.edit')}</button>
+                        <button className="adm-btn-sm danger" onClick={() => remove(n.id)}>{t('admin.delete')}</button>
+                      </div>
                     </td>
                   </tr>
                 )

@@ -108,10 +108,13 @@
 .ts-card--selected:hover {
   border-color: var(--gold);
   border-width: 2px;
-  background: #FFFDF7;
+  /* Tint the (theme-aware) canvas instead of a fixed light cream, so the
+     team name keeps full contrast in both light and dark mode. */
+  background: color-mix(in srgb, var(--gold) 12%, var(--canvas));
   transform: translateY(-2px) scale(1.03);
   box-shadow: 0 8px 24px rgba(201, 168, 76, 0.22);
 }
+.ts-card--selected .ts-card-name { color: var(--ink); font-weight: 700; }
 
 .team-emblem {
   width: 62px;

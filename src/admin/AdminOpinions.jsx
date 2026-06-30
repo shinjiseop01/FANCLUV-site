@@ -82,10 +82,12 @@ export default function AdminOpinions() {
                       </button>
                     </td>
                     <td className="adm-col-actions">
-                      <button className="adm-btn-sm" onClick={() => toggleHide(o.id)}>
-                        {o.status === 'visible' ? t('admin.hide') : t('admin.show')}
-                      </button>
-                      <button className="adm-btn-sm danger" onClick={() => remove(o.id)}>{t('admin.delete')}</button>
+                      <div className="adm-actions">
+                        <button className="adm-btn-sm" onClick={() => toggleHide(o.id)}>
+                          {o.status === 'visible' ? t('admin.hide') : t('admin.show')}
+                        </button>
+                        <button className="adm-btn-sm danger" onClick={() => remove(o.id)}>{t('admin.delete')}</button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -117,7 +119,7 @@ export default function AdminOpinions() {
                     </div>
                     <p className="adm-comment-text">{c.content}</p>
                   </div>
-                  <div className="adm-col-actions">
+                  <div className="adm-actions">
                     <button className="adm-btn-sm" onClick={() => toggleHideComment(c.id)}>
                       {c.status === 'visible' ? t('admin.hide') : t('admin.show')}
                     </button>

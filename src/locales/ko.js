@@ -10,6 +10,8 @@ export default {
   'common.searchResultEmpty': '검색 결과가 없습니다.',
   'common.notFoundTeam': '존재하지 않는 구단입니다.',
   'common.reselectTeam': '구단 다시 선택하기',
+  'common.notifications': '알림',
+  'common.noNotifications': '알림이 없습니다',
 
   // 네비게이션
   'nav.home': '홈',

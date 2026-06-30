@@ -53,8 +53,10 @@ export default function AdminReports() {
                     </span>
                   </td>
                   <td className="adm-col-actions">
-                    <button className="adm-btn-sm" disabled={r.status !== 'pending'} onClick={() => hide(r.id)}>{t('admin.rp.hidePost')}</button>
-                    <button className="adm-btn-sm danger" onClick={() => remove(r.id)}>{t('admin.rp.deletePost')}</button>
+                    <div className="adm-actions">
+                      <button className="adm-btn-sm" disabled={r.status !== 'pending'} onClick={() => hide(r.id)}>{t('admin.rp.hidePost')}</button>
+                      <button className="adm-btn-sm danger" onClick={() => remove(r.id)}>{t('admin.rp.deletePost')}</button>
+                    </div>
                   </td>
                 </tr>
               ))}
