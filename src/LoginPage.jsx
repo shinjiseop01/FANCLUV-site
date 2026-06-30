@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { login } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
+import { useToast } from './contexts/ToastContext.jsx'
 import './LoginPage.css'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const { t } = useLang()
+  const { toast } = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -23,6 +25,7 @@ export default function LoginPage() {
       setLoading(false)
       const result = login({ email: email.trim(), password })
       if (result.ok) {
+        toast(t('toast.login'))
         // 응원팀을 이미 선택했다면 해당 구단 홈으로, 아니면 응원팀 선택으로 이동
         if (result.user.selectedTeam) {
           navigate(`/club/${result.user.selectedTeam}`)

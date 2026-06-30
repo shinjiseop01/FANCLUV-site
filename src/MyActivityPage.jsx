@@ -1,9 +1,14 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import { getCreatedOpinions } from './opinionStore.js'
+import Avatar from './components/Avatar.jsx'
+import EmptyState from './components/EmptyState.jsx'
+import { SkeletonList } from './components/Skeleton.jsx'
+import { useFakeLoading } from './lib/useFakeLoading.js'
+import { getActivityBadge } from './lib/activityBadge.js'
 import './ClubHomePage.css'
 import './MyActivityPage.css'
 
@@ -37,18 +42,13 @@ const TYPE_META = {
   공감: { label: '공감 누르기', color: '#E05252' },
 }
 
-const LEVELS = [
-  { key: 'rookie', emoji: '🌱', name: 'Rookie Fan', min: 0 },
-  { key: 'active', emoji: '⚽', name: 'Active Fan', min: 30 },
-  { key: 'super', emoji: '🏆', name: 'Super Fan', min: 80 },
-]
-
 export default function MyActivityPage() {
   const NICKNAME = getCurrentUser()?.nickname || '팬'
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, setLang, t } = useLang()
+  const loading = useFakeLoading()
 
   const myOpinions = useMemo(() => {
     if (!team) return []
@@ -73,17 +73,10 @@ export default function MyActivityPage() {
   const surveyCount = MOCK_SURVEYS.length
   const empathyCount = myOpinions.reduce((s, o) => s + (o.likes || 0), 0)
 
-  // activity score → level
+  // activity score → badge tier (🌱 Rookie → ⚽ Active → 🔥 Super → 👑 Legend)
   const score = opinionCount * 6 + commentCount + surveyCount * 5
-  let levelIdx = 0
-  for (let i = LEVELS.length - 1; i >= 0; i--) {
-    if (score >= LEVELS[i].min) { levelIdx = i; break }
-  }
-  const level = LEVELS[levelIdx]
-  const next = LEVELS[levelIdx + 1]
-  const progress = next
-    ? Math.min(100, Math.round(((score - level.min) / (next.min - level.min)) * 100))
-    : 100
+  const { badge, next, progress } = getActivityBadge(score)
+  const badgeName = b => (lang === 'en' ? b.en : b.ko)
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
 
@@ -129,13 +122,16 @@ export default function MyActivityPage() {
           <p>{t('act.subtitle')}</p>
         </section>
 
+        {loading ? (
+          <SkeletonList count={4} lines={3} />
+        ) : (
         <div className="ma-grid">
           {/* Left 70% */}
           <div className="ma-col-main">
 
             {/* Profile card */}
             <div className="ma-profile">
-              <span className="ma-avatar" aria-hidden="true">{NICKNAME[0]}</span>
+              <Avatar name={NICKNAME} size={68} />
               <div className="ma-profile-info">
                 <h2 className="ma-nickname">{NICKNAME}</h2>
                 <div className="ma-profile-team">
@@ -157,6 +153,16 @@ export default function MyActivityPage() {
             {/* My opinions */}
             <section className="ma-panel">
               <h2 className="ma-panel-title">{t('act.myOpinions')}</h2>
+              {myOpinions.length === 0 ? (
+                <EmptyState
+                  compact
+                  icon="📝"
+                  title={t('empty.activityTitle')}
+                  message={t('empty.activityMsg')}
+                  ctaLabel={t('empty.activityCta')}
+                  onCta={() => navigate(`/club/${team.id}/write`)}
+                />
+              ) : (
               <ul className="ma-op-list">
                 {myOpinions.map(o => (
                   <li key={o.id}>
@@ -174,6 +180,7 @@ export default function MyActivityPage() {
                   </li>
                 ))}
               </ul>
+              )}
             </section>
 
             {/* Participated surveys */}
@@ -203,12 +210,16 @@ export default function MyActivityPage() {
             <section className="ma-panel ma-level">
               <h2 className="ma-panel-title">{t('act.level')}</h2>
               <div className="ma-level-badge">
-                <span className="ma-level-emoji" aria-hidden="true">{level.emoji}</span>
-                <span className="ma-level-name">{level.name}</span>
+                <span className="ma-level-emoji" aria-hidden="true">{badge.emoji}</span>
+                <span className="ma-level-name">{badgeName(badge)}</span>
               </div>
               <div className="ma-level-bar"><span style={{ width: `${progress}%` }} /></div>
               <p className="ma-level-hint">
-                {next ? <>다음 레벨 <strong>{next.emoji} {next.name}</strong>까지 {progress}%</> : '최고 레벨에 도달했습니다!'}
+                {next
+                  ? (lang === 'en'
+                    ? <>{progress}% to <strong>{next.emoji} {badgeName(next)}</strong></>
+                    : <>다음 레벨 <strong>{next.emoji} {badgeName(next)}</strong>까지 {progress}%</>)
+                  : (lang === 'en' ? 'You\'ve reached the top level!' : '최고 레벨에 도달했습니다!')}
               </p>
             </section>
 
@@ -246,6 +257,7 @@ export default function MyActivityPage() {
             </section>
           </aside>
         </div>
+        )}
       </main>
     </div>
   )

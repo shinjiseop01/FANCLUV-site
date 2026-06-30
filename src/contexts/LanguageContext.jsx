@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useRef } from 'react'
 import ko from '../locales/ko.js'
 import en from '../locales/en.js'
+import { useToast } from './ToastContext.jsx'
 
 const DICTS = { ko, en }
 const STORAGE_KEY = 'fancluv_lang'
@@ -30,11 +31,18 @@ const LanguageContext = createContext({ lang: 'ko', setLang: () => {}, t: k => k
 
 export function LanguageProvider({ children }) {
   const [lang, setLangState] = useState(readInitialLang)
+  const langRef = useRef(lang)
+  const { toast } = useToast()
 
   const setLang = useCallback(next => {
     setLangState(next)
     try { localStorage.setItem(STORAGE_KEY, next) } catch { /* ignore */ }
-  }, [])
+    // Notify only on an actual change, with the message in the new language.
+    if (langRef.current !== next) {
+      langRef.current = next
+      toast(DICTS[next]?.['toast.langChanged'], { icon: '🌐' })
+    }
+  }, [toast])
 
   // t(key, vars?) — looks up in current dict, supports {token} interpolation,
   // falls back to Korean then to the raw key.

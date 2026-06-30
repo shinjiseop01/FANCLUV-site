@@ -4,8 +4,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { isAuthenticated } from './lib/auth.js'
 import { LanguageProvider } from './contexts/LanguageContext.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
+import { ToastProvider } from './contexts/ToastContext.jsx'
 import './index.css'
 import './theme.css'
+import './components/components.css'
 import LoginPage from './LoginPage.jsx'
 import SignupPage from './SignupPage.jsx'
 import TeamSelectPage from './TeamSelectPage.jsx'
@@ -20,6 +22,7 @@ import TeamNewsPage from './TeamNewsPage.jsx'
 import AIInsightsPage from './AIInsightsPage.jsx'
 import FanRankingPage from './FanRankingPage.jsx'
 import SettingsPage from './SettingsPage.jsx'
+import NotFoundPage from './NotFoundPage.jsx'
 
 // 보호 라우트: 로그인하지 않은 사용자가 접근하면 로그인 페이지로 이동
 function RequireAuth({ children }) {
@@ -29,6 +32,7 @@ function RequireAuth({ children }) {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider>
+    <ToastProvider>
     <LanguageProvider>
     <BrowserRouter>
       <Routes>
@@ -47,9 +51,11 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/insights" element={<RequireAuth><AIInsightsPage /></RequireAuth>} />
         <Route path="/club/:teamId/ranking" element={<RequireAuth><FanRankingPage /></RequireAuth>} />
         <Route path="/club/:teamId/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
     </LanguageProvider>
+    </ToastProvider>
     </ThemeProvider>
   </StrictMode>,
 )

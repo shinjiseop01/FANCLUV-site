@@ -3,8 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import EmptyState from './components/EmptyState.jsx'
+import { SkeletonList } from './components/Skeleton.jsx'
+import { useFakeLoading } from './lib/useFakeLoading.js'
 import './ClubHomePage.css'
 import './AIInsightsPage.css'
+
+// Mock data is always present; flip to false to preview the empty state.
+const HAS_INSIGHTS = true
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
@@ -50,6 +56,7 @@ export default function AIInsightsPage() {
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, setLang, t } = useLang()
+  const loading = useFakeLoading()
 
   if (!team) {
     return (
@@ -99,6 +106,12 @@ export default function AIInsightsPage() {
 
       {/* ── Main ── */}
       <main className="ai-main">
+        {loading ? (
+          <SkeletonList count={3} lines={4} />
+        ) : !HAS_INSIGHTS ? (
+          <EmptyState icon="🤖" title={t('empty.insightsTitle')} message={t('empty.insightsMsg')} />
+        ) : (
+        <>
         <section className="ai-pagehead">
           <div className="ai-badge"><span className="ai-spark" aria-hidden="true">✦</span> AI 분석</div>
           <h1>{t('ai.title')}</h1>
@@ -228,6 +241,8 @@ export default function AIInsightsPage() {
             </section>
           </aside>
         </div>
+        </>
+        )}
       </main>
     </div>
   )

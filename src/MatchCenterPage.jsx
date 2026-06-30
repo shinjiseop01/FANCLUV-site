@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TEAMS, TeamEmblem, menuPath } from './teams.jsx'
+import { SkeletonList } from './components/Skeleton.jsx'
+import { useFakeLoading } from './lib/useFakeLoading.js'
 import './ClubHomePage.css'
 import './MatchCenterPage.css'
 
@@ -29,6 +31,7 @@ export default function MatchCenterPage() {
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, setLang, t } = useLang()
+  const loading = useFakeLoading()
 
   const data = useMemo(() => {
     if (!team) return null
@@ -119,6 +122,7 @@ export default function MatchCenterPage() {
 
       {/* ── Main ── */}
       <main className="mc-main">
+        {loading ? <SkeletonList count={4} lines={2} /> : <>
         <section className="mc-pagehead">
           <h1>{t('match.title')}</h1>
           <p>{t('match.subtitle')}</p>
@@ -274,6 +278,7 @@ export default function MatchCenterPage() {
             </section>
           </aside>
         </div>
+        </>}
       </main>
     </div>
   )

@@ -1,0 +1,203 @@
+/* Shared UI primitives — Empty state, Skeleton, Avatar, Toast, 404.
+   All colours come from the existing token system (var(--canvas)/--ink/
+   --muted/--border/--team/--page-bg/--mix-base) so light & dark both work. */
+
+/* ───────────── Empty State ───────────── */
+.fc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 56px 24px;
+  background: var(--canvas);
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+}
+.fc-empty.compact { padding: 36px 20px; }
+.fc-empty-icon {
+  font-size: 40px;
+  line-height: 1;
+  margin-bottom: 6px;
+  filter: saturate(0.9);
+}
+.fc-empty-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.3px;
+}
+.fc-empty-msg {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 360px;
+}
+.fc-empty-cta {
+  margin-top: 12px;
+  background: var(--team-deep, var(--ink));
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  padding: 11px 20px;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+}
+.fc-empty-cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.fc-empty-cta:active { transform: translateY(0); }
+
+/* ───────────── Skeleton ───────────── */
+.fc-sk {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--border) 55%, var(--canvas)) 25%,
+    color-mix(in srgb, var(--border) 90%, var(--canvas)) 37%,
+    color-mix(in srgb, var(--border) 55%, var(--canvas)) 63%
+  );
+  background-size: 400% 100%;
+  animation: fc-sk-shimmer 1.4s ease infinite;
+}
+@keyframes fc-sk-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fc-sk { animation: none; }
+}
+
+.fc-sk-list { display: flex; flex-direction: column; gap: 14px; }
+.fc-sk-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 22px;
+}
+.fc-sk-card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.fc-sk-card-head-text { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.fc-sk-card-foot { display: flex; gap: 16px; margin-top: 6px; }
+
+/* ───────────── Avatar ───────────── */
+.fc-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--team, #888) 16%, var(--mix-base));
+  color: var(--team-deep, var(--ink));
+  font-weight: 800;
+  line-height: 1;
+  user-select: none;
+}
+.fc-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.fc-avatar-initial { transform: translateY(0.5px); }
+
+/* ───────────── Toast ───────────── */
+.fc-toast-wrap {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+.fc-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+  max-width: 340px;
+  padding: 13px 16px;
+  background: var(--canvas, #fff);
+  color: var(--ink, #1A1D24);
+  border: 1px solid var(--border, #E8EAEE);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  animation: fc-toast-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.fc-toast-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--team, #1aa179) 18%, var(--mix-base));
+  color: var(--team-deep, #0E9F6E);
+  font-size: 13px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.fc-toast-msg { line-height: 1.4; }
+@keyframes fc-toast-in {
+  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (max-width: 560px) {
+  .fc-toast-wrap { top: auto; bottom: 18px; left: 16px; right: 16px; align-items: stretch; }
+  .fc-toast { min-width: 0; max-width: none; }
+}
+
+/* ───────────── 404 ───────────── */
+.fc-404 {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: var(--page-bg, #F6F7F9);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+}
+.fc-404-inner { text-align: center; max-width: 420px; }
+.fc-404-brand {
+  font-size: 15px; font-weight: 800; letter-spacing: 2px;
+  color: var(--muted, #8A909C);
+  margin-bottom: 18px;
+}
+.fc-404-code {
+  font-size: 96px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: var(--ink, #1A1D24);
+  background: linear-gradient(180deg, var(--ink, #1A1D24), color-mix(in srgb, var(--ink, #1A1D24) 55%, var(--muted, #8A909C)));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.fc-404-title {
+  font-size: 22px; font-weight: 800; letter-spacing: -0.4px;
+  color: var(--ink, #1A1D24);
+  margin: 14px 0 8px;
+}
+.fc-404-msg {
+  font-size: 15px; color: var(--muted, #8A909C); line-height: 1.7;
+  margin-bottom: 26px;
+}
+.fc-404-btn {
+  background: var(--ink, #1A1D24);
+  color: var(--canvas, #fff);
+  border: none;
+  border-radius: 12px;
+  font-size: 15px; font-weight: 700;
+  font-family: inherit;
+  padding: 14px 26px;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+}
+.fc-404-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.fc-404-btn:active { transform: translateY(0); }

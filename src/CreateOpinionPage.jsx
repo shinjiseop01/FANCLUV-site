@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
+import { useToast } from './contexts/ToastContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import { addOpinion } from './opinionStore.js'
@@ -16,6 +17,7 @@ export default function CreateOpinionPage() {
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, setLang, t } = useLang()
+  const { toast } = useToast()
 
   const [category, setCategory] = useState('')
   const [rating, setRating] = useState(0)
@@ -58,6 +60,7 @@ export default function CreateOpinionPage() {
     })
 
     setSubmitted(true)
+    toast(t('toast.opinionCreated'))
     setTimeout(() => navigate(`/club/${team.id}/opinions`), 1300)
   }
 

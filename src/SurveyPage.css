@@ -198,6 +198,27 @@
 /* ── Survey list (cards) ── */
 .sv-main.is-list { max-width: 1080px; }
 
+.sv-filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.sv-filter {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  background: var(--canvas);
+  color: var(--body);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.14s;
+}
+.sv-filter:hover { border-color: color-mix(in srgb, var(--team) 40%, var(--border)); }
+.sv-filter.on {
+  border-color: var(--team);
+  background: color-mix(in srgb, var(--team) 10%, var(--mix-base));
+  color: var(--team-deep);
+  font-weight: 700;
+}
+
 .sv-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));

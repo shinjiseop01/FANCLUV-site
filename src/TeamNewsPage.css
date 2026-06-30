@@ -15,7 +15,19 @@
 .tn-pagehead p { font-size: 15px; color: var(--muted); }
 
 /* Category filter */
+.tn-filterbar {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 14px; margin-bottom: 24px; flex-wrap: wrap;
+}
 .tn-cats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.tn-filterbar .tn-cats { flex: 1; margin-bottom: 0; }
+.tn-sorts { display: inline-flex; gap: 4px; background: var(--page-bg); border-radius: 100px; padding: 4px; flex-shrink: 0; }
+.tn-sort {
+  border: none; background: transparent; color: var(--muted);
+  font-size: 13px; font-weight: 700; padding: 7px 14px; border-radius: 100px;
+  cursor: pointer; font-family: inherit; transition: all 0.15s; white-space: nowrap;
+}
+.tn-sort.on { background: var(--canvas); color: var(--team-deep); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .tn-cat {
   border: 1px solid var(--border); background: var(--canvas); color: var(--body);
   font-size: 13.5px; font-weight: 600; padding: 8px 15px; border-radius: 100px;

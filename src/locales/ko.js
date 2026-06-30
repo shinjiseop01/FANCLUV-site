@@ -288,4 +288,44 @@ export default {
   'act.recent': '최근 활동',
   'act.teamInfo': '응원팀 정보',
   'act.goClub': '구단 홈으로 이동',
+
+  // ── Phase 1 UI/UX 품질 개선 ──
+  // Toast
+  'toast.langChanged': '언어가 변경되었습니다.',
+  'toast.login': '로그인되었습니다.',
+  'toast.logout': '로그아웃되었습니다.',
+  'toast.opinionCreated': '의견이 등록되었습니다.',
+  'toast.surveyDone': '설문 참여가 완료되었습니다.',
+  'toast.liked': '공감했습니다.',
+  'toast.commented': '댓글이 등록되었습니다.',
+  // Empty states
+  'empty.opinionsTitle': '아직 작성된 의견이 없습니다',
+  'empty.opinionsMsg': '가장 먼저 의견을 남겨보세요.',
+  'empty.opinionsCta': '의견 작성하기',
+  'empty.searchTitle': '검색 결과가 없습니다',
+  'empty.searchMsg': '다른 검색어를 입력해 보세요.',
+  'empty.surveysTitle': '현재 진행 중인 설문이 없습니다',
+  'empty.surveysMsg': '새로운 설문이 열리면 가장 먼저 알려드릴게요.',
+  'empty.newsTitle': '표시할 뉴스가 없습니다',
+  'empty.newsMsg': '해당 조건에 맞는 팀 뉴스가 아직 없습니다.',
+  'empty.insightsTitle': '아직 분석할 데이터가 부족합니다',
+  'empty.insightsMsg': '팬 의견이 충분히 모이면 AI 분석이 시작됩니다.',
+  'empty.rankingTitle': '아직 랭킹 데이터가 없습니다',
+  'empty.rankingMsg': '활동에 참여하면 랭킹이 집계됩니다.',
+  'empty.activityTitle': '아직 활동 내역이 없습니다',
+  'empty.activityMsg': '의견을 남기거나 설문에 참여해 활동을 시작해 보세요.',
+  'empty.activityCta': '의견 작성하기',
+  // Misc
+  'common.loadMore': '더 보기',
+  // 404
+  'nf.heading': '페이지를 찾을 수 없습니다',
+  'nf.msg': '요청하신 페이지가 사라졌거나 주소가 잘못되었습니다.',
+  'nf.home': '홈으로 돌아가기',
+  // Survey list status filter
+  'survey.filterAll': '전체',
+  'survey.filterOngoing': '진행 중',
+  'survey.filterClosed': '종료',
+  // News sort filter
+  'news.sortLatest': '최신순',
+  'news.sortImportant': '중요 뉴스',
 }

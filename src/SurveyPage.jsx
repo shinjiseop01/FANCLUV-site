@@ -1,10 +1,16 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
+import { useToast } from './contexts/ToastContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import EmptyState from './components/EmptyState.jsx'
+import { SkeletonList } from './components/Skeleton.jsx'
+import { useFakeLoading } from './lib/useFakeLoading.js'
 import './ClubHomePage.css'
 import './SurveyPage.css'
+
+const STATUS_FILTERS = ['all', 'open', 'closed']
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
@@ -26,8 +32,11 @@ export default function SurveyPage() {
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, setLang, t } = useLang()
+  const { toast } = useToast()
+  const loading = useFakeLoading()
 
   const [selectedId, setSelectedId] = useState(null) // null → 설문 목록 화면
+  const [statusFilter, setStatusFilter] = useState('all')
   const [satisfaction, setSatisfaction] = useState(0)
   const [improve, setImprove] = useState('')
   const [revisit, setRevisit] = useState('')
@@ -70,8 +79,13 @@ export default function SurveyPage() {
   function handleSubmit(e) {
     e.preventDefault()
     setSubmitted(true)
+    toast(t('toast.surveyDone'))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  const visibleSurveys = SURVEYS.filter(s =>
+    statusFilter === 'all' ? true : s.status === statusFilter,
+  )
 
   return (
     <div className="ch-root" style={themeStyle}>
@@ -120,43 +134,63 @@ export default function SurveyPage() {
             <p className="sv-desc">{t('survey.listDesc')}</p>
           </header>
 
-          <div className="sv-grid">
-            {SURVEYS.map(s => {
-              const open = s.status === 'open'
-              const dday = s.dday === 0 ? 'D-DAY' : `D-${s.dday}`
-              return (
-                <article
-                  key={s.id}
-                  className={`sv-card${open ? '' : ' is-closed'}`}
-                  role={open ? 'button' : undefined}
-                  tabIndex={open ? 0 : undefined}
-                  onClick={open ? () => openSurvey(s.id) : undefined}
-                  onKeyDown={open ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSurvey(s.id) } } : undefined}
-                >
-                  <div className="sv-card-top">
-                    <span className={`sv-card-status${open ? '' : ' closed'}`}>
-                      {open ? t('survey.statusOpen') : t('survey.statusClosed')}
-                    </span>
-                    <span className="sv-card-dday">{open ? dday : t('survey.ddayEnded')}</span>
-                  </div>
-                  <h2 className="sv-card-title">{t(`survey.item.${s.id}.title`)}</h2>
-                  <p className="sv-card-desc">{t(`survey.item.${s.id}.desc`)}</p>
-                  <div className="sv-card-meta">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19M10 10.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM20 19v-1.5a3.5 3.5 0 0 0-2.6-3.4M15 4.6a3 3 0 0 1 0 5.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    <span>{t('survey.participants', { count: s.participants.toLocaleString() })}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="sv-card-cta"
-                    disabled={!open}
-                    onClick={open ? e => { e.stopPropagation(); openSurvey(s.id) } : undefined}
-                  >
-                    {open ? t('survey.join') : t('survey.statusClosed')}
-                  </button>
-                </article>
-              )
-            })}
+          <div className="sv-filters" role="group" aria-label={t('survey.listTitle')}>
+            {STATUS_FILTERS.map(f => (
+              <button key={f}
+                className={`sv-filter${statusFilter === f ? ' on' : ''}`}
+                onClick={() => setStatusFilter(f)}>
+                {f === 'all' ? t('survey.filterAll') : f === 'open' ? t('survey.filterOngoing') : t('survey.filterClosed')}
+              </button>
+            ))}
           </div>
+
+          {loading ? (
+            <SkeletonList count={4} lines={2} />
+          ) : visibleSurveys.length === 0 ? (
+            <EmptyState
+              icon="📋"
+              title={t('empty.surveysTitle')}
+              message={t('empty.surveysMsg')}
+            />
+          ) : (
+            <div className="sv-grid">
+              {visibleSurveys.map(s => {
+                const open = s.status === 'open'
+                const dday = s.dday === 0 ? 'D-DAY' : `D-${s.dday}`
+                return (
+                  <article
+                    key={s.id}
+                    className={`sv-card${open ? '' : ' is-closed'}`}
+                    role={open ? 'button' : undefined}
+                    tabIndex={open ? 0 : undefined}
+                    onClick={open ? () => openSurvey(s.id) : undefined}
+                    onKeyDown={open ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSurvey(s.id) } } : undefined}
+                  >
+                    <div className="sv-card-top">
+                      <span className={`sv-card-status${open ? '' : ' closed'}`}>
+                        {open ? t('survey.statusOpen') : t('survey.statusClosed')}
+                      </span>
+                      <span className="sv-card-dday">{open ? dday : t('survey.ddayEnded')}</span>
+                    </div>
+                    <h2 className="sv-card-title">{t(`survey.item.${s.id}.title`)}</h2>
+                    <p className="sv-card-desc">{t(`survey.item.${s.id}.desc`)}</p>
+                    <div className="sv-card-meta">
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19M10 10.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM20 19v-1.5a3.5 3.5 0 0 0-2.6-3.4M15 4.6a3 3 0 0 1 0 5.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <span>{t('survey.participants', { count: s.participants.toLocaleString() })}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="sv-card-cta"
+                      disabled={!open}
+                      onClick={open ? e => { e.stopPropagation(); openSurvey(s.id) } : undefined}
+                    >
+                      {open ? t('survey.join') : t('survey.statusClosed')}
+                    </button>
+                  </article>
+                )
+              })}
+            </div>
+          )}
         </main>
       ) : (
       <main className="sv-main">

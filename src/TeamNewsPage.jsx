@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import EmptyState from './components/EmptyState.jsx'
+import { SkeletonList } from './components/Skeleton.jsx'
+import { useFakeLoading } from './lib/useFakeLoading.js'
 import './ClubHomePage.css'
 import './TeamNewsPage.css'
 
@@ -66,11 +69,16 @@ export default function TeamNewsPage() {
   const team = getTeam(teamId)
   const { lang, setLang, t } = useLang()
   const [category, setCategory] = useState('전체')
+  const [sort, setSort] = useState('latest') // 'latest' | 'important'
+  const loading = useFakeLoading()
 
-  const list = useMemo(
-    () => (category === '전체' ? NEWS : NEWS.filter(n => n.category === category)),
-    [category]
-  )
+  const list = useMemo(() => {
+    const filtered = category === '전체' ? NEWS : NEWS.filter(n => n.category === category)
+    const sorted = [...filtered]
+    if (sort === 'important') sorted.sort((a, b) => b.views - a.views)
+    else sorted.sort((a, b) => b.date.localeCompare(a.date))
+    return sorted
+  }, [category, sort])
 
   if (!team) {
     return (
@@ -136,16 +144,30 @@ export default function TeamNewsPage() {
               <p>{t('news.subtitle')}</p>
             </section>
 
-            <div className="tn-cats" role="group" aria-label="뉴스 카테고리">
-              {CATEGORIES.map(c => (
-                <button key={c} className={`tn-cat${category === c ? ' on' : ''}`}
-                  onClick={() => setCategory(c)}>{c}</button>
-              ))}
+            <div className="tn-filterbar">
+              <div className="tn-cats" role="group" aria-label="뉴스 카테고리">
+                {CATEGORIES.map(c => (
+                  <button key={c} className={`tn-cat${category === c ? ' on' : ''}`}
+                    onClick={() => setCategory(c)}>{c}</button>
+                ))}
+              </div>
+              <div className="tn-sorts" role="group" aria-label="정렬">
+                <button className={`tn-sort${sort === 'latest' ? ' on' : ''}`}
+                  onClick={() => setSort('latest')}>{t('news.sortLatest')}</button>
+                <button className={`tn-sort${sort === 'important' ? ' on' : ''}`}
+                  onClick={() => setSort('important')}>{t('news.sortImportant')}</button>
+              </div>
             </div>
 
             <div className="tn-grid">
               {/* Left */}
               <div className="tn-col-main">
+                {loading ? (
+                  <SkeletonList count={3} lines={2} />
+                ) : list.length === 0 ? (
+                  <EmptyState icon="📰" title={t('empty.newsTitle')} message={t('empty.newsMsg')} />
+                ) : (
+                <>
                 {hero && (
                   <article className="tn-hero" onClick={() => navigate(`/club/${team.id}/news/${hero.id}`)}>
                     <Thumb team={team} category={hero.category} hero />
@@ -190,8 +212,9 @@ export default function TeamNewsPage() {
                       </div>
                     </article>
                   ))}
-                  {list.length === 0 && <div className="tn-empty">해당 카테고리의 뉴스가 없습니다.</div>}
                 </div>
+                </>
+                )}
               </div>
 
               {/* Right */}

@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import { SkeletonList } from './components/Skeleton.jsx'
+import { useFakeLoading } from './lib/useFakeLoading.js'
 import './ClubHomePage.css'
 
 
@@ -59,6 +61,7 @@ export default function ClubHomePage() {
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, setLang, t } = useLang()
+  const loading = useFakeLoading()
 
   if (!team) {
     return (
@@ -109,6 +112,7 @@ export default function ClubHomePage() {
 
       {/* ── Main ── */}
       <main className="ch-main">
+        {loading ? <div className="ch-skel"><SkeletonList count={4} lines={3} /></div> : <>
 
         <section className="ch-welcome">
           <h1>{t('home.welcome', { name: NICKNAME })}</h1>
@@ -204,6 +208,7 @@ export default function ClubHomePage() {
             </Panel>
           </aside>
         </div>
+        </>}
       </main>
 
       {/* Floating write button */}

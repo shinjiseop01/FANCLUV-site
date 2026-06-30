@@ -1,8 +1,10 @@
 import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
+import { useToast } from './contexts/ToastContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import { relativeTime } from './lib/relativeTime.js'
 import './ClubHomePage.css'
 import './OpinionDetailPage.css'
 
@@ -65,7 +67,6 @@ const INITIAL_COMMENTS = [
 ]
 
 const seedOf = id => id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-const timeLabel = h => (h <= 0 ? '방금 전' : h < 24 ? `${h}시간 전` : `${Math.floor(h / 24)}일 전`)
 
 function Stars({ rating }) {
   return (
@@ -88,6 +89,7 @@ export default function OpinionDetailPage() {
   const base = team && Number.isInteger(idx) && BASE_OPINIONS[idx] ? BASE_OPINIONS[idx] : null
 
   const { lang, setLang, t } = useLang()
+  const { toast: notify } = useToast()
   const [comments, setComments] = useState(INITIAL_COMMENTS)
   const [draft, setDraft] = useState('')
   const [liked, setLiked] = useState(false)
@@ -133,12 +135,18 @@ export default function OpinionDetailPage() {
     }
   }
 
+  function toggleLike() {
+    if (!liked) notify(t('toast.liked'), { icon: '❤' })
+    setLiked(v => !v)
+  }
+
   function handleSubmit(e) {
     e.preventDefault()
     const text = draft.trim()
     if (!text) return
     setComments(prev => [...prev, { author: NICKNAME, hours: 0, text }])
     setDraft('')
+    notify(t('toast.commented'))
   }
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
@@ -196,7 +204,7 @@ export default function OpinionDetailPage() {
                 <div className="od-author-meta">
                   <span className="od-author-name">{base.author}</span>
                   <span className="od-author-sub">
-                    {timeLabel(base.hours)} · <span className="od-cat">{base.category}</span>
+                    {relativeTime(base.hours, lang)} · <span className="od-cat">{base.category}</span>
                   </span>
                 </div>
                 <Stars rating={base.rating} />
@@ -217,7 +225,7 @@ export default function OpinionDetailPage() {
 
               {/* Interaction bar */}
               <div className="od-actions">
-                <button className={`od-act od-empathy${liked ? ' on' : ''}`} onClick={() => setLiked(v => !v)}>
+                <button className={`od-act od-empathy${liked ? ' on' : ''}`} onClick={toggleLike}>
                   <span aria-hidden="true">❤️</span> {t('detail.agree')} <strong>{likeCount}</strong>
                 </button>
                 <button className="od-act" onClick={() => commentBoxRef.current?.focus()}>
@@ -243,7 +251,7 @@ export default function OpinionDetailPage() {
                     <div className="od-comment-body">
                       <div className="od-comment-head">
                         <span className="od-comment-name">{c.author}</span>
-                        <span className="od-comment-time">{timeLabel(c.hours)}</span>
+                        <span className="od-comment-time">{relativeTime(c.hours, lang)}</span>
                       </div>
                       <p className="od-comment-text">{c.text}</p>
                     </div>

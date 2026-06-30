@@ -227,6 +227,25 @@
   color: var(--muted);
   font-size: 14px;
 }
+.op-loadmore {
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--body);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.op-loadmore:hover {
+  border-color: var(--team);
+  color: var(--team-deep);
+  background: color-mix(in srgb, var(--team) 5%, var(--canvas));
+}
 
 /* Sidebar */
 .op-side { display: flex; flex-direction: column; gap: 20px; }

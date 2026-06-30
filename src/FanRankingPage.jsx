@@ -3,8 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TEAMS, TeamEmblem, menuPath } from './teams.jsx'
+import EmptyState from './components/EmptyState.jsx'
+import { SkeletonList } from './components/Skeleton.jsx'
+import { useFakeLoading } from './lib/useFakeLoading.js'
 import './ClubHomePage.css'
 import './FanRankingPage.css'
+
+// Mock data is always present; flip to false to preview the empty state.
+const HAS_RANKING = true
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
@@ -97,6 +103,7 @@ export default function FanRankingPage() {
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, setLang, t } = useLang()
+  const loading = useFakeLoading()
   const [scope, setScope] = useState('league') // 'league' | 'club'
   const [criteria, setCriteria] = useState('score')
 
@@ -185,6 +192,12 @@ export default function FanRankingPage() {
 
       {/* ── Main ── */}
       <main className="fr-main">
+        {loading ? (
+          <SkeletonList count={5} lines={1} />
+        ) : !HAS_RANKING ? (
+          <EmptyState icon="🏆" title={t('empty.rankingTitle')} message={t('empty.rankingMsg')} />
+        ) : (
+        <>
         <section className="fr-pagehead">
           <h1>{t('rank.title')}</h1>
           <p>{t('rank.subtitle')}</p>
@@ -356,6 +369,8 @@ export default function FanRankingPage() {
             </section>
           </aside>
         </div>
+        </>
+        )}
       </main>
     </div>
   )

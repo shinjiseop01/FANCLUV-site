@@ -1,11 +1,18 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import { getCreatedOpinions } from './opinionStore.js'
+import EmptyState from './components/EmptyState.jsx'
+import { SkeletonList } from './components/Skeleton.jsx'
+import Avatar from './components/Avatar.jsx'
+import { relativeTime } from './lib/relativeTime.js'
+import { useFakeLoading } from './lib/useFakeLoading.js'
 import './ClubHomePage.css'
 import './OpinionsPage.css'
+
+const PAGE_SIZE = 5
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 const CATEGORIES = ['전체', '경기장', '응원문화', '티켓', 'MD', '선수', '구단 운영', '이벤트', '기타']
@@ -46,11 +53,6 @@ function seedOf(id) {
   return id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
 }
 
-function timeLabel(hours) {
-  if (hours < 24) return `${hours}시간 전`
-  return `${Math.floor(hours / 24)}일 전`
-}
-
 export default function OpinionsPage() {
   const NICKNAME = getCurrentUser()?.nickname || '팬'
   const { teamId } = useParams()
@@ -60,6 +62,11 @@ export default function OpinionsPage() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('전체')
   const [sort, setSort] = useState('최신순')
+  const [page, setPage] = useState(1)
+  const loading = useFakeLoading()
+
+  // Reset pagination whenever the active filter/search/sort changes.
+  useEffect(() => { setPage(1) }, [category, query, sort])
 
   const opinions = useMemo(() => {
     if (!team) return []
@@ -100,6 +107,9 @@ export default function OpinionsPage() {
   }
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
+  const paged = visible.slice(0, page * PAGE_SIZE)
+  const hasMore = paged.length < visible.length
+  const filtersActive = category !== '전체' || query.trim() !== ''
 
   return (
     <div className="ch-root" style={themeStyle}>
@@ -182,48 +192,71 @@ export default function OpinionsPage() {
               </div>
             </div>
 
-            {visible.length === 0 ? (
-              <div className="op-empty">검색 결과가 없습니다.</div>
+            {loading ? (
+              <SkeletonList count={4} lines={2} />
+            ) : visible.length === 0 ? (
+              filtersActive ? (
+                <EmptyState
+                  icon="🔍"
+                  title={t('empty.searchTitle')}
+                  message={t('empty.searchMsg')}
+                />
+              ) : (
+                <EmptyState
+                  icon="💬"
+                  title={t('empty.opinionsTitle')}
+                  message={t('empty.opinionsMsg')}
+                  ctaLabel={t('empty.opinionsCta')}
+                  onCta={() => navigate(`/club/${team.id}/write`)}
+                />
+              )
             ) : (
-              <div className="op-feed">
-                {visible.map(o => {
-                  const popular = o.likes >= popularThreshold
-                  const isNew = o.hours <= 6
-                  return (
-                    <article
-                      key={o.id}
-                      className="op-feed-item"
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => navigate(`/club/${team.id}/opinions/${o.id}`)}
-                      onKeyDown={e => { if (e.key === 'Enter') navigate(`/club/${team.id}/opinions/${o.id}`) }}
-                    >
-                      <div className="op-item-head">
-                        <span className="op-avatar" aria-hidden="true">{o.author[0]}</span>
-                        <span className="op-author">{o.author}</span>
-                        <span className="op-dot-sep" aria-hidden="true">·</span>
-                        <span className="op-time">{timeLabel(o.hours)}</span>
-                        <span className="op-cat-pill">{o.category}</span>
-                        <Stars rating={o.rating} />
-                      </div>
-
-                      {(popular || isNew) && (
-                        <div className="op-badges">
-                          {popular && <span className="op-badge op-badge-hot">{t('op.badgePopular')}</span>}
-                          {isNew && <span className="op-badge op-badge-new">{t('op.badgeNew')}</span>}
+              <>
+                <div className="op-feed">
+                  {paged.map(o => {
+                    const popular = o.likes >= popularThreshold
+                    const isNew = o.hours <= 6
+                    return (
+                      <article
+                        key={o.id}
+                        className="op-feed-item"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => navigate(`/club/${team.id}/opinions/${o.id}`)}
+                        onKeyDown={e => { if (e.key === 'Enter') navigate(`/club/${team.id}/opinions/${o.id}`) }}
+                      >
+                        <div className="op-item-head">
+                          <Avatar name={o.author} size={28} />
+                          <span className="op-author">{o.author}</span>
+                          <span className="op-dot-sep" aria-hidden="true">·</span>
+                          <span className="op-time">{relativeTime(o.hours, lang)}</span>
+                          <span className="op-cat-pill">{o.category}</span>
+                          <Stars rating={o.rating} />
                         </div>
-                      )}
 
-                      <h3 className="op-item-title">{o.title}</h3>
-                      <p className="op-item-body">{o.body}</p>
-                      <div className="op-item-foot">
-                        <span className="op-foot-stat">♥ {t('op.agree')} {o.likes}</span>
-                        <span className="op-foot-stat">💬 {t('op.comment')} {o.comments}</span>
-                      </div>
-                    </article>
-                  )
-                })}
-              </div>
+                        {(popular || isNew) && (
+                          <div className="op-badges">
+                            {popular && <span className="op-badge op-badge-hot">{t('op.badgePopular')}</span>}
+                            {isNew && <span className="op-badge op-badge-new">{t('op.badgeNew')}</span>}
+                          </div>
+                        )}
+
+                        <h3 className="op-item-title">{o.title}</h3>
+                        <p className="op-item-body">{o.body}</p>
+                        <div className="op-item-foot">
+                          <span className="op-foot-stat">♥ {t('op.agree')} {o.likes}</span>
+                          <span className="op-foot-stat">💬 {t('op.comment')} {o.comments}</span>
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+                {hasMore && (
+                  <button className="op-loadmore" onClick={() => setPage(p => p + 1)}>
+                    {t('common.loadMore')}
+                  </button>
+                )}
+              </>
             )}
           </div>
 

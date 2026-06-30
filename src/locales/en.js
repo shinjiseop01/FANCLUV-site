@@ -288,4 +288,44 @@ export default {
   'act.recent': 'Recent Activity',
   'act.teamInfo': 'Club Info',
   'act.goClub': 'Go to club home',
+
+  // ── Phase 1 UI/UX quality ──
+  // Toast
+  'toast.langChanged': 'Language changed.',
+  'toast.login': 'Signed in.',
+  'toast.logout': 'Signed out.',
+  'toast.opinionCreated': 'Your opinion has been posted.',
+  'toast.surveyDone': 'Survey submitted. Thank you!',
+  'toast.liked': 'Liked.',
+  'toast.commented': 'Comment posted.',
+  // Empty states
+  'empty.opinionsTitle': 'No opinions yet',
+  'empty.opinionsMsg': 'Be the first to share your thoughts.',
+  'empty.opinionsCta': 'Write an opinion',
+  'empty.searchTitle': 'No results found',
+  'empty.searchMsg': 'Try a different search term.',
+  'empty.surveysTitle': 'No active surveys right now',
+  'empty.surveysMsg': "We'll let you know as soon as a new survey opens.",
+  'empty.newsTitle': 'No news to show',
+  'empty.newsMsg': 'There is no team news matching this filter yet.',
+  'empty.insightsTitle': 'Not enough data to analyze yet',
+  'empty.insightsMsg': 'AI analysis begins once enough fan opinions are collected.',
+  'empty.rankingTitle': 'No ranking data yet',
+  'empty.rankingMsg': 'Rankings are tallied as fans take part.',
+  'empty.activityTitle': 'No activity yet',
+  'empty.activityMsg': 'Leave an opinion or join a survey to get started.',
+  'empty.activityCta': 'Write an opinion',
+  // Misc
+  'common.loadMore': 'Load more',
+  // 404
+  'nf.heading': 'Page not found',
+  'nf.msg': 'The page you requested has moved or the address is wrong.',
+  'nf.home': 'Back to Home',
+  // Survey list status filter
+  'survey.filterAll': 'All',
+  'survey.filterOngoing': 'Open',
+  'survey.filterClosed': 'Closed',
+  // News sort filter
+  'news.sortLatest': 'Latest',
+  'news.sortImportant': 'Top news',
 }
