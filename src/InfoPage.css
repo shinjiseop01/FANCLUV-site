@@ -1,0 +1,56 @@
+/* Info / policy pages (about, privacy, terms). Token-based → light & dark. */
+
+.info-main { max-width: 720px; margin: 0 auto; padding: 24px 20px 80px; }
+
+.info-back {
+  display: inline-flex; align-items: center;
+  background: none; border: none; color: var(--body);
+  font-size: 14px; font-weight: 600; font-family: inherit;
+  cursor: pointer; padding: 6px 2px; margin-bottom: 14px;
+}
+.info-back:hover { color: var(--team-deep); }
+
+.info-doc {
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 30px;
+}
+
+.info-title {
+  font-size: 24px; font-weight: 800; letter-spacing: -0.5px;
+  color: var(--ink); margin-bottom: 14px;
+}
+.info-intro {
+  font-size: 14.5px; color: var(--body); line-height: 1.75;
+  padding-bottom: 20px; margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-soft, var(--border));
+}
+
+.info-section { margin-top: 22px; }
+.info-h {
+  font-size: 16px; font-weight: 800; color: var(--ink);
+  letter-spacing: -0.2px; margin-bottom: 10px;
+}
+.info-p {
+  font-size: 14px; color: var(--body); line-height: 1.75; margin-bottom: 9px;
+}
+.info-p:last-child { margin-bottom: 0; }
+
+.info-ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.info-ul li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 14px; color: var(--body); line-height: 1.65;
+}
+.info-ul li::before {
+  content: ''; position: absolute; left: 4px; top: 9px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--team);
+}
+
+@media (max-width: 560px) {
+  .info-main { padding: 18px 14px 64px; }
+  .info-doc { padding: 24px 20px; }
+  .info-title { font-size: 21px; }
+}

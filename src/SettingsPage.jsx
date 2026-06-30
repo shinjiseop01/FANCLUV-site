@@ -11,6 +11,18 @@ import './SettingsPage.css'
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 const APP_VERSION = '1.0.0 (MVP)'
 
+// Minimal line icons for the theme switch (sun / moon / monitor) — no emoji.
+const THEME_ICONS = {
+  light: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" /></>,
+  dark: <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />,
+  system: <><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></>,
+}
+const THEME_OPTIONS = [
+  ['light', 'set.themeLight'],
+  ['dark', 'set.themeDark'],
+  ['system', 'set.themeSystem'],
+]
+
 export default function SettingsPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
@@ -161,17 +173,17 @@ export default function SettingsPage() {
         <section className="st-card">
           <h2 className="st-card-title">{t('set.theme')}</h2>
           <div className="st-lang-toggle" role="group" aria-label={t('set.theme')}>
-            {[
-              ['light', 'set.themeLight'],
-              ['dark', 'set.themeDark'],
-              ['system', 'set.themeSystem'],
-            ].map(([key, label]) => (
+            {THEME_OPTIONS.map(([key, label]) => (
               <button
                 key={key}
-                className={`st-lang${theme === key ? ' on' : ''}`}
+                className={`st-lang st-theme${theme === key ? ' on' : ''}`}
                 aria-pressed={theme === key}
                 onClick={() => setTheme(key)}>
-                {t(label)}
+                <svg className="st-theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  {THEME_ICONS[key]}
+                </svg>
+                <span>{t(label)}</span>
               </button>
             ))}
           </div>
@@ -206,15 +218,15 @@ export default function SettingsPage() {
             <span>{t('set.appVersion')}</span>
             <span className="st-muted">{APP_VERSION}</span>
           </div>
-          <div className="st-row" role="button" tabIndex={0} onClick={() => flash(t('set.comingSoon'))}>
+          <div className="st-row" role="button" tabIndex={0} onClick={() => navigate(`/club/${team.id}/about`)}>
             <span>{t('set.about')}</span>
             <span className="st-chevron" aria-hidden="true">›</span>
           </div>
-          <div className="st-row" role="button" tabIndex={0} onClick={() => flash(t('set.comingSoon'))}>
+          <div className="st-row" role="button" tabIndex={0} onClick={() => navigate(`/club/${team.id}/privacy`)}>
             <span>{t('set.privacy')}</span>
             <span className="st-chevron" aria-hidden="true">›</span>
           </div>
-          <div className="st-row" role="button" tabIndex={0} onClick={() => flash(t('set.comingSoon'))}>
+          <div className="st-row" role="button" tabIndex={0} onClick={() => navigate(`/club/${team.id}/terms`)}>
             <span>{t('set.terms')}</span>
             <span className="st-chevron" aria-hidden="true">›</span>
           </div>

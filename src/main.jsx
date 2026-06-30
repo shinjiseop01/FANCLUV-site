@@ -14,6 +14,7 @@ import FindPasswordPage from './FindPasswordPage.jsx'
 import VerifyEmailPage from './VerifyEmailPage.jsx'
 import ProfileEditPage from './ProfileEditPage.jsx'
 import ChangePasswordPage from './ChangePasswordPage.jsx'
+import InfoPage from './InfoPage.jsx'
 import TeamSelectPage from './TeamSelectPage.jsx'
 import ClubHomePage from './ClubHomePage.jsx'
 import OpinionsPage from './OpinionsPage.jsx'
@@ -75,6 +76,9 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
         <Route path="/club/:teamId/profile" element={<RequireAuth><ProfileEditPage /></RequireAuth>} />
         <Route path="/club/:teamId/password" element={<RequireAuth><ChangePasswordPage /></RequireAuth>} />
+        <Route path="/club/:teamId/about" element={<RequireAuth><InfoPage page="about" /></RequireAuth>} />
+        <Route path="/club/:teamId/privacy" element={<RequireAuth><InfoPage page="privacy" /></RequireAuth>} />
+        <Route path="/club/:teamId/terms" element={<RequireAuth><InfoPage page="terms" /></RequireAuth>} />
 
         {/* ── Admin Console (운영자 전용) ── */}
         <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
