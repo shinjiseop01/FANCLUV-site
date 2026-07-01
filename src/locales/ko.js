@@ -12,6 +12,7 @@ export default {
   'common.reselectTeam': '구단 다시 선택하기',
   'common.notifications': '알림',
   'common.noNotifications': '알림이 없습니다',
+  'common.markAllRead': '전체 읽음',
 
   // 네비게이션
   'nav.home': '홈',

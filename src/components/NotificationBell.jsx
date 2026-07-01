@@ -1,21 +1,54 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
+import { relativeTime } from '../lib/relativeTime.js'
+import { listNotifications, unreadCount, markRead, markAllRead } from '../lib/notificationsRepo.js'
 
-// Header notification bell. Notifications aren't wired up yet (MVP), so the
-// dropdown just shows an empty state. Self-contained open/close + click-outside.
+// Header notification bell. Loads notifications from notificationsRepo
+// (Supabase when configured, otherwise mock). Shows an unread badge, a list,
+// per-item read-on-click, and a "mark all read" action.
 export default function NotificationBell() {
-  const { t } = useLang()
+  const { lang, t } = useLang()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const [items, setItems] = useState([])
+  const [unread, setUnread] = useState(0)
   const ref = useRef(null)
+
+  async function refresh() {
+    const [list, count] = await Promise.all([listNotifications(), unreadCount()])
+    setItems(list)
+    setUnread(count)
+  }
+
+  useEffect(() => { refresh() }, [])
 
   useEffect(() => {
     if (!open) return
+    refresh()
     function onDocClick(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false)
     }
     document.addEventListener('mousedown', onDocClick)
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [open])
+
+  async function onItemClick(n) {
+    if (!n.isRead) {
+      await markRead(n.id)
+      setItems(prev => prev.map(x => (x.id === n.id ? { ...x, isRead: true } : x)))
+      setUnread(c => Math.max(0, c - 1))
+    }
+    if (n.url) { setOpen(false); navigate(n.url) }
+  }
+
+  async function onMarkAll() {
+    await markAllRead()
+    setItems(prev => prev.map(x => ({ ...x, isRead: true })))
+    setUnread(0)
+  }
+
+  const hoursSince = iso => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 3600000))
 
   return (
     <div className="fc-bell" ref={ref}>
@@ -31,14 +64,37 @@ export default function NotificationBell() {
           <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
           <path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
+        {unread > 0 && <span className="fc-bell-badge" aria-hidden="true">{unread > 9 ? '9+' : unread}</span>}
       </button>
       {open && (
         <div className="fc-bell-menu" role="menu">
-          <div className="fc-bell-head">{t('common.notifications')}</div>
-          <div className="fc-bell-empty">
-            <span aria-hidden="true">🔔</span>
-            <p>{t('common.noNotifications')}</p>
+          <div className="fc-bell-head">
+            <span>{t('common.notifications')}</span>
+            {unread > 0 && (
+              <button type="button" className="fc-bell-allread" onClick={onMarkAll}>{t('common.markAllRead')}</button>
+            )}
           </div>
+          {items.length === 0 ? (
+            <div className="fc-bell-empty">
+              <span aria-hidden="true">🔔</span>
+              <p>{t('common.noNotifications')}</p>
+            </div>
+          ) : (
+            <ul className="fc-bell-list">
+              {items.map(n => (
+                <li key={n.id}>
+                  <button type="button" className={`fc-bell-item${n.isRead ? '' : ' unread'}`} onClick={() => onItemClick(n)}>
+                    {!n.isRead && <span className="fc-bell-dot" aria-hidden="true" />}
+                    <span className="fc-bell-item-body">
+                      <span className="fc-bell-item-title">{n.title}</span>
+                      {n.body && <span className="fc-bell-item-text">{n.body}</span>}
+                      <span className="fc-bell-item-time">{relativeTime(hoursSince(n.createdAt), lang)}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </div>

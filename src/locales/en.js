@@ -12,6 +12,7 @@ export default {
   'common.reselectTeam': 'Choose a club again',
   'common.notifications': 'Notifications',
   'common.noNotifications': 'No notifications',
+  'common.markAllRead': 'Mark all read',
 
   // nav
   'nav.home': 'Home',

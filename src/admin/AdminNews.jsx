@@ -1,37 +1,48 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { TEAMS, getTeam } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
-import { MOCK_NEWS } from './adminData.js'
+import { adminListNews, createNews, updateNews, deleteNews } from '../lib/newsRepo.js'
 
 const EMPTY = { title: '', content: '', team: TEAMS[0].id, image: '' }
 
 export default function AdminNews() {
   const { t } = useLang()
-  const [news, setNews] = useState(MOCK_NEWS)
+  const [news, setNews] = useState([])
   const [form, setForm] = useState(null)
   const [error, setError] = useState('')
+
+  // 뉴스 목록 로드 (Supabase 우선, 아니면 Mock — newsRepo)
+  useEffect(() => {
+    let active = true
+    adminListNews().then(list => { if (active) setNews(list) })
+    return () => { active = false }
+  }, [])
 
   function openCreate() { setError(''); setForm({ ...EMPTY }) }
   function openEdit(n) { setError(''); setForm({ ...n }) }
   function close() { setForm(null); setError('') }
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  function save(e) {
+  async function save(e) {
     e.preventDefault()
     if (!form.title.trim()) { setError(t('admin.nw.errTitle')); return }
     if (!form.content.trim()) { setError(t('admin.nw.errContent')); return }
     if (form.id) {
-      setNews(list => list.map(n => (n.id === form.id ? { ...n, ...form } : n)))
+      const res = await updateNews(form.id, form)
+      if (!res.ok) { setError(res.error || t('admin.nw.errTitle')); return }
+      setNews(list => list.map(n => (n.id === form.id ? res.news : n)))
     } else {
-      const today = new Date().toISOString().slice(0, 10)
-      setNews(list => [{ ...form, id: 'n' + Date.now(), date: today }, ...list])
+      const res = await createNews(form)
+      if (!res.ok) { setError(res.error || t('admin.nw.errTitle')); return }
+      setNews(list => [res.news, ...list])
     }
     close()
   }
 
-  function remove(id) {
-    setNews(list => list.filter(n => n.id !== id))
+  async function remove(id) {
+    const res = await deleteNews(id)
+    if (res.ok) setNews(list => list.filter(n => n.id !== id))
   }
 
   return (

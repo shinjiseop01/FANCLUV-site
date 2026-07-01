@@ -1,58 +1,18 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import { listNews } from './lib/newsRepo.js'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
-import { useFakeLoading } from './lib/useFakeLoading.js'
 import './ClubHomePage.css'
 import './TeamNewsPage.css'
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 const CATEGORIES = ['전체', '구단 공지', '경기', '선수', '인터뷰', '이적', '이벤트']
 
-const NEWS = [
-  { id: 1, category: '구단 공지', date: '2026.07.01', views: 12840, opinions: 124, survey: 538,
-    title: '구단, 2026 시즌 하반기 멤버십 혜택 개편 발표',
-    summary: '하반기부터 멤버십 등급별 혜택이 확대됩니다. 홈경기 우선 예매와 굿즈 할인 폭이 커집니다.',
-    body: ['구단이 2026 시즌 하반기를 맞아 팬 멤버십 혜택을 대폭 개편한다고 발표했습니다. 이번 개편의 핵심은 홈경기 우선 예매 권한 확대와 공식 굿즈 할인율 상향입니다.',
-      '특히 시즌권 회원에게는 원정 경기 단체 이동 우선 신청권이 새롭게 부여됩니다. 구단은 "팬들의 의견을 적극 반영한 결과"라고 밝혔습니다.',
-      '여러분은 이번 혜택 개편을 어떻게 생각하시나요? 의견을 남기고 설문에 참여해 주세요.'] },
-  { id: 2, category: '경기', date: '2026.06.29', views: 9320, opinions: 88, survey: 401,
-    title: '주말 홈경기, 후반 추가시간 결승골로 짜릿한 승리',
-    summary: '치열했던 라이벌전에서 후반 추가시간 결승골이 터지며 값진 3점을 챙겼습니다.',
-    body: ['주말 홈경기에서 후반 추가시간에 터진 극적인 결승골로 소중한 승점 3점을 획득했습니다. 경기장을 가득 메운 홈 팬들의 응원이 큰 힘이 됐습니다.',
-      '감독은 경기 후 인터뷰에서 "끝까지 포기하지 않은 선수들이 자랑스럽다"고 전했습니다.'] },
-  { id: 3, category: '선수', date: '2026.06.27', views: 7610, opinions: 65, survey: 287,
-    title: '주장, 리그 통산 100호 골 달성… 구단 레전드 반열에',
-    summary: '주장이 리그 통산 100호 골을 기록하며 구단 역사에 새로운 이정표를 세웠습니다.',
-    body: ['팀의 주장이 리그 통산 100호 골이라는 대기록을 달성했습니다. 데뷔 이후 한 팀에서만 쌓아 올린 의미 있는 기록입니다.',
-      '팬들은 SNS를 통해 축하 메시지를 쏟아내고 있습니다.'] },
-  { id: 4, category: '인터뷰', date: '2026.06.24', views: 5480, opinions: 52, survey: 198,
-    title: '[인터뷰] 신임 감독 "팬과 함께 만드는 축구가 목표"',
-    summary: '신임 감독이 취임 후 첫 공식 인터뷰에서 팬 소통과 공격적인 축구 철학을 강조했습니다.',
-    body: ['신임 감독이 취임 후 첫 인터뷰를 가졌습니다. 그는 "팬과 함께 만들어가는 축구"를 핵심 가치로 내세웠습니다.',
-      '또한 유소년 선수 육성과 공격적인 경기 운영에 대한 구상도 함께 밝혔습니다.'] },
-  { id: 5, category: '이적', date: '2026.06.21', views: 14200, opinions: 211, survey: 642,
-    title: '여름 이적시장, 측면 공격수 영입 임박 보도',
-    summary: '여름 이적시장을 맞아 측면 공격 보강을 위한 영입 협상이 막바지에 이르렀다는 보도가 나왔습니다.',
-    body: ['여름 이적시장에서 측면 공격수 영입이 임박했다는 보도가 이어지고 있습니다. 구단은 공식 입장을 아직 내놓지 않았습니다.',
-      '팬들 사이에서는 기대와 우려가 교차하고 있습니다. 여러분의 생각은 어떠신가요?'] },
-  { id: 6, category: '이벤트', date: '2026.06.18', views: 4310, opinions: 39, survey: 156,
-    title: '홈경기 가족의 날, 다양한 팬 참여 부스 운영',
-    summary: '다가오는 홈경기를 가족의 날로 운영합니다. 포토존, 키즈존, 굿즈 체험 부스가 마련됩니다.',
-    body: ['다가오는 홈경기를 "가족의 날"로 운영합니다. 경기 시작 2시간 전부터 다양한 팬 참여 부스가 열립니다.',
-      '포토존, 키즈존, 굿즈 체험 부스 등이 마련되어 온 가족이 즐길 수 있습니다.'] },
-  { id: 7, category: '구단 공지', date: '2026.06.15', views: 3980, opinions: 28, survey: 132,
-    title: '공식 온라인 스토어 리뉴얼 오픈 안내',
-    summary: '공식 온라인 스토어가 새 단장을 마치고 오픈했습니다. 신규 시즌 한정 굿즈도 함께 공개됩니다.',
-    body: ['공식 온라인 스토어가 리뉴얼 오픈했습니다. 상품 검색과 결제 과정이 한층 편리해졌습니다.',
-      '오픈 기념 시즌 한정 굿즈도 함께 공개되었습니다.'] },
-]
-
-const POPULAR = [...NEWS].sort((a, b) => b.views - a.views).slice(0, 5)
 const KEYWORDS = ['#감독', '#이적', '#티켓', '#MD', '#응원가', '#유니폼', '#주장', '#멤버십']
 
 const SHORTCUTS = [
@@ -69,17 +29,29 @@ export default function TeamNewsPage() {
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { t } = useLang()
+  const [news, setNews] = useState([])
+  const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState('전체')
   const [sort, setSort] = useState('latest') // 'latest' | 'important'
-  const loading = useFakeLoading()
+
+  // 구단 뉴스 로드 (Supabase 우선, 아니면 Mock — newsRepo)
+  useEffect(() => {
+    if (!team) return
+    let active = true
+    setLoading(true)
+    listNews(team.id).then(l => { if (active) { setNews(l); setLoading(false) } })
+    return () => { active = false }
+  }, [teamId, team])
 
   const list = useMemo(() => {
-    const filtered = category === '전체' ? NEWS : NEWS.filter(n => n.category === category)
+    const filtered = category === '전체' ? news : news.filter(n => n.category === category)
     const sorted = [...filtered]
-    if (sort === 'important') sorted.sort((a, b) => b.views - a.views)
+    if (sort === 'important') sorted.sort((a, b) => (b.important ? 1 : 0) - (a.important ? 1 : 0) || b.date.localeCompare(a.date))
     else sorted.sort((a, b) => b.date.localeCompare(a.date))
     return sorted
-  }, [category, sort])
+  }, [news, category, sort])
+
+  const popular = useMemo(() => [...news].sort((a, b) => b.views - a.views).slice(0, 5), [news])
 
   if (!team) {
     return (
@@ -91,7 +63,7 @@ export default function TeamNewsPage() {
   }
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
-  const detail = newsId ? NEWS.find(n => n.id === Number(newsId)) : null
+  const detail = newsId ? news.find(n => String(n.id) === String(newsId)) : null
   const goWrite = () => navigate(`/club/${team.id}/write`)
   const goSurvey = () => navigate(`/club/${team.id}/survey`)
 
@@ -133,7 +105,7 @@ export default function TeamNewsPage() {
       {/* ── Main ── */}
       <main className="tn-main">
         {detail ? (
-          <NewsDetail news={detail} team={team} onBack={() => navigate(`/club/${team.id}/news`)}
+          <NewsDetail news={detail} team={team} t={t} onBack={() => navigate(`/club/${team.id}/news`)}
             onWrite={goWrite} onSurvey={goSurvey} />
         ) : (
           <>
@@ -220,7 +192,7 @@ export default function TeamNewsPage() {
                 <section className="tn-panel">
                   <h2 className="tn-panel-title">{t('news.popular')}</h2>
                   <ul className="tn-popular">
-                    {POPULAR.map((n, i) => (
+                    {popular.map((n, i) => (
                       <li key={n.id}>
                         <button className="tn-pop-item" onClick={() => navigate(`/club/${team.id}/news/${n.id}`)}>
                           <span className="tn-pop-rank">{i + 1}</span>
@@ -278,7 +250,7 @@ function Thumb({ team, category, hero }) {
   )
 }
 
-function NewsDetail({ news, team, onBack, onWrite, onSurvey }) {
+function NewsDetail({ news, team, t, onBack, onWrite, onSurvey }) {
   return (
     <article className="tn-detail">
       <button className="tn-back" onClick={onBack}>{t('news.backToList')}</button>

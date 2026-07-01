@@ -146,10 +146,21 @@ npm run lint     # oxlint
 - 화면은 `useEffect`로 비동기 로드(로딩 상태 포함). **UI/디자인은 기존 그대로**. 작성 의견 상세 열람도 정상 동작.
 - `src/opinionStore.js` = Mock 작성 의견 localStorage 백엔드(`fancluv_created_opinions`) — repo가 Mock 모드에서 사용.
 
+### 팀 뉴스 — `src/lib/newsRepo.js` (Supabase-우선 + Mock 폴백)
+- **Supabase 이관 완료(3차)**. `TeamNewsPage`(팬) + `AdminNews`(관리자)의 단일 데이터 소스. Supabase 설정 시 `team_news` 테이블(제목·내용·team_id·category·image_url·author·status·is_important), 아니면 Mock.
+- 팬 API: `listNews(teamId)`(구단 필터, 최신순/중요 뉴스 정렬). 관리자 API: `adminListNews`/`createNews`/`updateNews`/`deleteNews`(관리자 RLS `is_admin()`). SQL: `0006_news_notifications.sql`.
+
+### 알림 — `src/lib/notificationsRepo.js` + `components/NotificationBell.jsx`
+- **Supabase 이관 완료(3차)**. 벨에 안읽음 배지 + 목록 + 개별/전체 읽음. Supabase 설정 시 `notifications` 테이블, 아니면 Mock(localStorage, 시드 포함).
+- **알림 생성은 DB 트리거**(`0006`, SECURITY DEFINER): 댓글/공감(의견 작성자에게), 새 설문/새 뉴스(대상 구단 팬에게). Mock 모드는 각 repo가 `pushMockNotification`으로 데모 생성.
+- 클라이언트는 조회 + 읽음 처리만: `listNotifications`/`unreadCount`/`markRead`/`markAllRead`. 본인 알림만 RLS로 노출.
+
 ### 관리자 콘솔 — `src/admin/`
 - `RequireAdmin` 가드로 보호. `AdminLayout` + 중첩 라우트(대시보드/회원/의견/설문/뉴스/신고/설정).
 - 데이터는 `adminData.js`의 Mock. 댓글 관리 기능 포함, 토스트 없이 인라인 피드백.
-- **대시보드 고도화**(`AdminDashboard.jsx` + `AdminCharts.jsx`): KPI 8종, 구단별 현황 테이블(만족도·참여율 미니바), 최근 활동(가입/의견/댓글/신고), 차트(라인·바·도넛·감정 누적바 — 순수 SVG, 라이브러리 없음), 빠른 작업 4종. 데이터는 `adminData.js`의 getter(`getDashboardStats`/`getTeamBreakdown`/`getRecent*`/`getDaily*`/`getTeamOpinionShare`/`getSentimentDistribution`)로 분리 → **Supabase 연동 시 getter 내부만 실제 쿼리로 교체**(각 함수 주석에 교체 지점 표기).
+- **대시보드 고도화**(`AdminDashboard.jsx` + `AdminCharts.jsx`): KPI 8종, 구단별 현황 테이블(만족도·참여율 미니바), 최근 활동(가입/의견/댓글/신고), 차트(라인·바·도넛·감정 누적바 — 순수 SVG, 라이브러리 없음), 빠른 작업 4종.
+- **KPI는 Supabase 집계 연동**: `getDashboardStats()`(async)가 Supabase 설정 시 `count(*)` 쿼리(회원/의견/댓글/오늘 의견/진행 설문/좋아요/응답)로 계산, 아니면 Mock. 나머지 대시보드 데이터(구단별/최근/차트)와 신고는 아직 Mock.
+- **관리자 CRUD가 Supabase에 반영**: 설문(`surveysRepo`)·뉴스(`newsRepo`)는 관리자 RLS(`is_admin()`)로 서버 반영. `/admin` 접근은 `RequireAdmin`+`isAdmin()`(profiles.role) → 일반 사용자 차단.
 
 ### 계정 복구 / 프로필 / 정보 페이지
 - **FindIdPage / FindPasswordPage** (`RecoveryPages.css`) — 아이디·비밀번호 찾기 (Mock).

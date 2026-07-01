@@ -7,6 +7,7 @@
 import { supabase, isSupabaseConfigured } from './supabase.js'
 import { getCurrentUser } from './auth.js'
 import { getCreatedOpinions, addOpinion as addCreatedOpinion } from '../opinionStore.js'
+import { pushMockNotification } from './notificationsRepo.js'
 
 // ── 공통 헬퍼 ──
 function hoursSince(iso) {
@@ -208,6 +209,8 @@ export async function addComment(opinionId, content) {
     if (error) return { ok: false, error: error.message }
     return { ok: true, comment: { id: data.id, author: me.nickname, avatarUrl: me.avatarUrl, hours: 0, text } }
   }
+  // Mock: 알림 데모 (실제 Supabase 는 DB 트리거가 "의견 작성자"에게 생성)
+  pushMockNotification({ type: 'comment', title: '새 댓글', body: '내 의견에 새 댓글이 달렸습니다.' })
   return { ok: true, comment: { id: `c${Date.now()}`, author: me?.nickname || '팬', avatarUrl: me?.avatarUrl || null, hours: 0, text } }
 }
 
@@ -239,5 +242,7 @@ export async function toggleLike(opinionId, nextLiked) {
     }
     return { ok: true }
   }
+  // Mock: 공감 시 알림 데모 (실제 Supabase 는 DB 트리거가 담당)
+  if (nextLiked) pushMockNotification({ type: 'like', title: '새 공감', body: '내 의견에 공감이 추가되었습니다.' })
   return { ok: true } // Mock: 세션 내 상태만 유지
 }

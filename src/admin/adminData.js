@@ -5,6 +5,7 @@
 
 import { ROLES } from '../lib/auth.js'
 import { TEAMS } from '../teams.jsx'
+import { supabase, isSupabaseConfigured } from '../lib/supabase.js'
 
 // Left navigation. `roles` lets future Super Admin / staff / club-admin builds
 // filter items per role from a single source of truth.
@@ -97,22 +98,54 @@ function seeded(seed, min, max) {
   return min + ((h >>> 0) % (max - min + 1))
 }
 
-// ── KPI 카드 ──
-// Supabase: count/aggregate 쿼리 (profiles, opinions, comments, surveys, likes)
-export function getDashboardStats() {
+// count(*) 헬퍼 (head:true → 데이터 없이 개수만)
+async function sbCount(table, build) {
+  let q = supabase.from(table).select('id', { count: 'exact', head: true })
+  if (build) q = build(q)
+  const { count } = await q
+  return count || 0
+}
+
+// ── KPI 카드 ── (async)
+// Supabase 설정 시 실제 count 집계, 아니면 Mock 값.
+export async function getDashboardStats() {
+  if (isSupabaseConfigured) {
+    const start = new Date(); start.setHours(0, 0, 0, 0)
+    const iso = start.toISOString()
+    const [members, opinions, comments, openSurveys, opinionsToday, likes, responses] = await Promise.all([
+      sbCount('profiles'),
+      sbCount('opinions'),
+      sbCount('comments'),
+      sbCount('surveys', q => q.eq('status', 'open')),
+      sbCount('opinions', q => q.gte('created_at', iso)),
+      sbCount('likes'),
+      sbCount('survey_responses'),
+    ])
+    return {
+      totalMembers: members,
+      activeMembers: members,               // 활동 추적 전이라 전체와 동일(추후 세분화)
+      totalOpinions: opinions,
+      opinionsToday,
+      activeSurveys: openSurveys,
+      surveyParticipation: members ? Math.min(100, Math.round((responses / members) * 100)) : 0,
+      totalComments: comments,
+      totalLikes: likes,
+      pendingReports: MOCK_REPORTS.filter(r => r.status === 'pending').length, // 신고는 아직 Mock
+      teamCount: getTeamBreakdown().length,
+    }
+  }
+  // Mock (동기 값이지만 async 시그니처로 통일)
   const teams = getTeamBreakdown()
-  const opinions = 2560
   const totalResponses = MOCK_SURVEYS.reduce((s, v) => s + v.responses, 0)
   return {
     totalMembers: 12840,
     activeMembers: 9310,
-    totalOpinions: opinions,
+    totalOpinions: 2560,
     opinionsToday: 42,
     activeSurveys: MOCK_SURVEYS.filter(s => s.status === 'open').length,
-    surveyParticipation: 63,      // %  (응답자수 / 대상회원수)
+    surveyParticipation: 63,
     totalComments: 8740,
     totalLikes: 41200,
-    // 보조 지표
     pendingReports: MOCK_REPORTS.filter(r => r.status === 'pending').length,
     totalResponses,
     teamCount: teams.length,

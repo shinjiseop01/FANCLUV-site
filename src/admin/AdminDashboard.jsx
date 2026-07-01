@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { getCurrentUser } from '../lib/auth.js'
@@ -31,7 +32,14 @@ export default function AdminDashboard() {
   const navigate = useNavigate()
   const admin = getCurrentUser()
 
-  const stats = getDashboardStats()
+  // KPI 는 Supabase 집계(async) 또는 Mock. 로드 전에는 0 으로 표시.
+  const [stats, setStats] = useState({})
+  useEffect(() => {
+    let active = true
+    getDashboardStats().then(s => { if (active) setStats(s) })
+    return () => { active = false }
+  }, [])
+
   const teams = getTeamBreakdown()
   const recentMembers = getRecentMembers()
   const recentOpinions = getRecentOpinions()
@@ -60,7 +68,7 @@ export default function AdminDashboard() {
           <div key={c.key} className="adm-stat">
             <span className="adm-stat-icon" aria-hidden="true">{c.icon}</span>
             <span className="adm-stat-value">
-              {Number(stats[c.key]).toLocaleString()}{c.suffix || ''}
+              {Number(stats[c.key] || 0).toLocaleString()}{c.suffix || ''}
             </span>
             <span className="adm-stat-label">{t(c.labelKey)}</span>
           </div>

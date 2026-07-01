@@ -6,6 +6,7 @@
 import { supabase, isSupabaseConfigured } from './supabase.js'
 import { getCurrentUser } from './auth.js'
 import { MOCK_SURVEYS } from '../admin/adminData.js'
+import { pushMockNotification } from './notificationsRepo.js'
 
 // 종료 후 이 일수가 지나면 목록에서 자동으로 숨긴다.
 export const SURVEY_HIDE_DAYS = 7
@@ -137,6 +138,7 @@ export async function createSurvey({ title, desc = '', question = '', endDate = 
   }
   const survey = { id: 's' + Date.now(), title, desc, question, endDate, status: 'open', responses: 0 }
   mockAdminSurveys = [survey, ...mockAdminSurveys]
+  pushMockNotification({ type: 'survey', title: '새 설문', body: title, url: teamId ? `/club/${teamId}/survey` : null })
   return { ok: true, survey }
 }
 
