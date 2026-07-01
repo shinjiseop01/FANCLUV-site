@@ -39,6 +39,8 @@ export default function SocialAuth({ onSuccess, onError, onStart }) {
     onStart?.()
     setBusy(providerId)
     const res = await socialLogin(providerId)
+    // OAuth 리다이렉트(예: Supabase Google)는 브라우저가 이동하므로 여기서 처리하지 않는다.
+    if (res.redirecting) return
     setBusy(null)
     if (res.ok) onSuccess?.(res)
     else onError?.(res.error)

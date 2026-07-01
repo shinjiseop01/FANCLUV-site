@@ -62,9 +62,9 @@ export default function ProfileEditPage() {
     setOkMsg(t('profile.imageRemoved'))
   }
 
-  function saveNickname() {
+  async function saveNickname() {
     setError(''); setOkMsg('')
-    const res = changeNickname(nickname)
+    const res = await changeNickname(nickname)
     if (res.ok) {
       setOkMsg(t('profile.nicknameUpdated'))
     } else {

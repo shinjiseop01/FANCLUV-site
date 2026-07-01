@@ -105,10 +105,14 @@ npm run lint     # oxlint
 - **활동 배지** (`lib/activityBadge.js`) — 점수 기반 🌱Rookie→⚽Active→🔥Super→👑Legend. 내 활동 레벨 카드에 사용.
 - **페이지네이션 준비** — 팬 의견 목록은 `PAGE_SIZE=5` + "더 보기" 버튼(향후 무한 스크롤/페이지네이션 전환 대비).
 
-### 인증 — `src/lib/auth.js`
-- localStorage 기반 **목 인증**. 모든 인증 로직을 이 파일에 격리 → 추후 **Supabase Auth로 교체** 예정 (내부 구현만 바꾸면 화면 코드 유지).
-- localStorage 키: `fancluv_users`(가입자 배열), `fancluv_session`(현재 로그인 email).
-- 데모 시드 계정: **`fan@fancluv.kr` / `1234`** (닉네임 `민준`).
+### 인증 — `src/lib/auth.js` (Supabase-우선 + Mock 폴백 어댑터)
+- **Supabase 연동 완료(1차: Auth + Profile)**. `.env` 에 키가 있으면(`isSupabaseConfigured`) 실제 **Supabase Auth + `profiles` 테이블** 사용, 없으면 기존 **localStorage Mock 자동 폴백**(앱 안 깨짐). 설정법: [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
+- `src/lib/supabase.js` — env 로 client 생성 + `isSupabaseConfigured` 감지. `src/contexts/AuthContext.jsx` — 비동기 세션/프로필 로드 + 라우트 가드 `loading` 게이트(`main.jsx`의 `RequireAuth`/`RequireAdmin`가 모드별 분기).
+- **동기 캐시**: `getCurrentUser()`/`isAuthenticated()`/`isAdmin()` 는 여전히 동기. Supabase 모드에서는 AuthContext가 로드한 프로필을 auth.js 캐시(`cachedUser`)에 반영해 기존 화면 코드가 그대로 동작.
+- 스키마: `supabase/migrations/0001_profiles.sql`(profiles + RLS + 신규가입 트리거), `0002_data_tables.sql`(opinions/surveys — 다음 단계 준비).
+- `login`/`signup`/`logout`/`socialLogin`/`changePassword`/`changeNickname`/`requestPasswordReset` 등은 **async**(양 모드 지원). Google 소셜 = `supabase.auth.signInWithOAuth`, **Kakao/NAVER는 인터페이스만 유지(다음 단계)**.
+- localStorage 키(Mock 모드): `fancluv_users`(가입자 배열), `fancluv_session`(현재 로그인 email).
+- 데모 시드 계정(Mock 모드 전용): **`fan@fancluv.kr` / `1234`** (닉네임 `민준`), `admin@fancluv.kr` / `admin123`.
 - export 함수: `signup`, `login`, `logout`, `getCurrentUser`, `isAuthenticated`, `setSelectedTeam` 등 + `isAdmin()`(관리자 판정).
 - **권한 체계(`ROLES`/`ADMIN_ROLES`)**: `fan`(기본) / `admin`, 그리고 예정 `superadmin`·`staff`(FANCLUV 직원)·`club_admin`(구단 관리자). 관리자 접근 판정은 `ADMIN_ROLES` 배열 한 곳으로 일원화 → 역할 추가 시 배열만 확장.
 - **본인인증 체계(`VERIFICATION`)**: `unverified` / `email_verified` / `phone_verified`. MVP는 **이메일 Mock 인증만 동작**. 사용자 객체에 `isEmailVerified`/`emailVerifiedAt`/`isPhoneVerified`/`isPhoneVerifiedAt` 플래그 보관 → 향후 휴대폰 본인인증(PASS/NICE/KCB)을 그대로 얹을 수 있게 구조 선반영.

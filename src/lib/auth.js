@@ -1,20 +1,21 @@
-// FANCLUV — MVP mock authentication (localStorage based).
+// FANCLUV — Authentication (Supabase-first, with localStorage Mock fallback).
 //
-// ⚠️ 실서비스에서는 Supabase Auth로 교체 필요.
-//    - 비밀번호 평문 저장 금지 (여기서는 MVP Mock 단계라 임시 저장)
-//    - 사용자/세션은 서버·Supabase가 관리해야 함
+// ┌─ 동작 방식 ────────────────────────────────────────────────────────────┐
+// │ • .env 에 Supabase 키가 있으면(isSupabaseConfigured) → 실제 Supabase    │
+// │   Auth + profiles 테이블 사용 (실제 회원가입/로그인/세션/프로필).      │
+// │ • 키가 없으면 → 기존 localStorage Mock 으로 자동 폴백 (앱이 안 깨짐).   │
+// └────────────────────────────────────────────────────────────────────────┘
 //
-// 인증 관련 로직을 이 한 파일로 분리해 두었으므로, Supabase 도입 시
-// 아래 함수들의 내부 구현만 교체하면 화면 코드는 그대로 사용할 수 있습니다.
-
+// getCurrentUser()/isAuthenticated()/isAdmin() 는 화면 여러 곳에서 "동기"로
+// 호출된다. Supabase 세션은 비동기이므로, AuthContext 가 세션/프로필을 로드해
+// 아래 동기 캐시(cachedUser)에 반영하고, 그 값을 동기로 반환한다.
+import { supabase, isSupabaseConfigured } from './supabase.js'
 import { getProvider } from './oauth.js'
 
 const USERS_KEY = 'fancluv_users'
-const SESSION_KEY = 'fancluv_session' // 현재 로그인한 사용자의 email 을 저장
+const SESSION_KEY = 'fancluv_session' // (Mock) 현재 로그인한 사용자의 email
 
-// 권한(Role) 체계 — 향후 Super Admin / FANCLUV 직원 / 구단 관리자 확장을 대비해
-// 역할을 사용자 객체의 `role` 필드로 관리한다. 관리자 콘솔 접근이 가능한 역할을
-// ADMIN_ROLES 한 곳에서 관리하므로, 역할 추가 시 이 배열만 확장하면 된다.
+// 권한(Role) 체계 — 관리자 콘솔 접근 가능한 역할을 ADMIN_ROLES 한 곳에서 관리.
 export const ROLES = {
   FAN: 'fan',
   ADMIN: 'admin',
@@ -24,383 +25,402 @@ export const ROLES = {
 }
 export const ADMIN_ROLES = [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.STAFF, ROLES.CLUB_ADMIN]
 
-// 본인인증(Verification) 체계 — MVP는 이메일 Mock 인증만 동작한다.
-// 데이터 구조는 향후 Supabase Auth + 휴대폰 본인인증(PASS/NICE/KCB)을 그대로
-// 얹을 수 있도록 미리 준비한다. 인증 흐름은 verificationStatus 한 곳으로 표현하고,
-// 세부 플래그(isEmailVerified / isPhoneVerified + *At 타임스탬프)를 함께 보관한다.
+// 본인인증(Verification) 체계.
 export const VERIFICATION = {
   UNVERIFIED: 'unverified',
   EMAIL_VERIFIED: 'email_verified',
   PHONE_VERIFIED: 'phone_verified',
 }
 
-// 신규 사용자의 기본 인증 필드.
+// ════════════════════════════════════════════════════════════════════════
+//  동기 프로필 캐시 (Supabase 모드에서 legacy 동기 API 를 지원)
+// ════════════════════════════════════════════════════════════════════════
+let cachedUser = null
+
+// AuthContext 가 캐시를 직접 세팅할 때 사용.
+export function _setAuthCache(user) { cachedUser = user }
+
+// DB profiles row(+auth user) → 앱 사용자 객체로 매핑.
+// DB role('user'|'admin') → 앱 role('fan'|'admin') 로 변환해 기존 판정 로직 유지.
+function mapSupabaseUser(authUser, profile) {
+  if (!authUser) return null
+  const p = profile || {}
+  const emailVerified = !!authUser.email_confirmed_at || !!p.is_email_verified
+  return {
+    id: authUser.id,
+    email: authUser.email || p.email || null,
+    nickname: p.nickname || authUser.email?.split('@')[0] || 'FANCLUV 팬',
+    selectedTeam: p.selected_team || null,
+    gender: p.gender || null,
+    ageGroup: p.age_group || null,
+    avatarUrl: p.avatar_url || null,
+    role: p.role === 'admin' ? ROLES.ADMIN : ROLES.FAN,
+    provider: p.provider || 'email',
+    isEmailVerified: emailVerified,
+    verificationStatus:
+      p.verification_status ||
+      (emailVerified ? VERIFICATION.EMAIL_VERIFIED : VERIFICATION.UNVERIFIED),
+  }
+}
+
+// 현재 Supabase 세션 + 프로필을 읽어 캐시에 반영하고 사용자 객체를 반환.
+// AuthContext 초기화/세션변경 시 호출.
+export async function loadCurrentSupabaseUser() {
+  if (!isSupabaseConfigured) return null
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) { cachedUser = null; return null }
+  const authUser = session.user
+  const { data: profile } = await supabase
+    .from('profiles').select('*').eq('id', authUser.id).maybeSingle()
+  cachedUser = mapSupabaseUser(authUser, profile)
+  return cachedUser
+}
+
+// Supabase auth 에러를 사용자 친화 메시지로 변환.
+function translateAuthError(error) {
+  const msg = (error?.message || '').toLowerCase()
+  if (msg.includes('invalid login')) return '이메일 또는 비밀번호가 올바르지 않습니다.'
+  if (msg.includes('email not confirmed')) return '이메일 인증이 완료되지 않은 계정입니다.'
+  if (msg.includes('already registered') || msg.includes('already exists')) return '이미 가입된 이메일입니다.'
+  if (msg.includes('password')) return '비밀번호는 6자 이상이어야 합니다.'
+  return error?.message || '요청을 처리하지 못했습니다. 다시 시도해 주세요.'
+}
+
+async function patchSupabaseProfile(patch) {
+  if (!cachedUser) return { ok: false, error: '로그인이 필요합니다.' }
+  const { error } = await supabase.from('profiles').update(patch).eq('id', cachedUser.id)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  MOCK 구현 (localStorage) — Supabase 미설정 시 폴백. 기존 동작 그대로 유지.
+// ════════════════════════════════════════════════════════════════════════
 function defaultVerification() {
   return {
-    isEmailVerified: false,
-    emailVerifiedAt: null,
-    isPhoneVerified: false,
-    phoneVerifiedAt: null,
-    verificationMethod: 'none',         // 'none' | 'email' | 'phone'
-    verificationStatus: VERIFICATION.UNVERIFIED,
+    isEmailVerified: false, emailVerifiedAt: null,
+    isPhoneVerified: false, phoneVerifiedAt: null,
+    verificationMethod: 'none', verificationStatus: VERIFICATION.UNVERIFIED,
   }
 }
-
-// 데모 시드 계정용 — 이미 이메일 인증을 마친 상태.
 function seededEmailVerified(at) {
   return {
-    isEmailVerified: true,
-    emailVerifiedAt: at,
-    isPhoneVerified: false,
-    phoneVerifiedAt: null,
-    verificationMethod: 'email',
-    verificationStatus: VERIFICATION.EMAIL_VERIFIED,
+    isEmailVerified: true, emailVerifiedAt: at,
+    isPhoneVerified: false, phoneVerifiedAt: null,
+    verificationMethod: 'email', verificationStatus: VERIFICATION.EMAIL_VERIFIED,
   }
 }
-
 function readUsers() {
-  try {
-    return JSON.parse(localStorage.getItem(USERS_KEY)) || []
-  } catch {
-    return []
-  }
+  try { return JSON.parse(localStorage.getItem(USERS_KEY)) || [] } catch { return [] }
 }
-
-function writeUsers(users) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users))
-}
-
-// 비밀번호를 제외한 안전한 사용자 정보
+function writeUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)) }
 function publicUser(u) {
   if (!u) return null
   const { password, ...rest } = u
   return rest
 }
+function setSession(email) { localStorage.setItem(SESSION_KEY, email) }
 
-function setSession(email) {
-  localStorage.setItem(SESSION_KEY, email)
-}
-
-// 기존에 안내하던 데모 계정을 한 번 시드해, 가입 없이도 둘러볼 수 있게 함.
-// (실서비스 전환 시 제거)
 function ensureSeed() {
   const users = readUsers()
   let changed = false
-
   let fan = users.find(u => u.email === 'fan@fancluv.kr')
   if (!fan) {
-    fan = {
-      nickname: '민준',
-      email: 'fan@fancluv.kr',
-      password: '1234', // 평문 — 실서비스에서는 Supabase Auth로 교체 필요
-      joinedAt: '2025-03-14T00:00:00.000Z',
-      selectedTeam: null,
-      role: ROLES.FAN,
-    }
-    users.push(fan)
-    changed = true
+    fan = { nickname: '민준', email: 'fan@fancluv.kr', password: '1234',
+      joinedAt: '2025-03-14T00:00:00.000Z', selectedTeam: null, role: ROLES.FAN }
+    users.push(fan); changed = true
   }
-  // FANCLUV 운영자(Admin) 데모 계정
   let admin = users.find(u => u.email === 'admin@fancluv.kr')
   if (!admin) {
-    admin = {
-      nickname: 'FANCLUV 운영자',
-      email: 'admin@fancluv.kr',
-      password: 'admin123', // 평문 — 데모용. 실서비스에서는 Supabase Auth + 권한 관리로 교체
-      joinedAt: '2025-01-01T00:00:00.000Z',
-      selectedTeam: null,
-      role: ROLES.ADMIN,
-    }
-    users.push(admin)
-    changed = true
+    admin = { nickname: 'FANCLUV 운영자', email: 'admin@fancluv.kr', password: 'admin123',
+      joinedAt: '2025-01-01T00:00:00.000Z', selectedTeam: null, role: ROLES.ADMIN }
+    users.push(admin); changed = true
   }
-  // 데모 계정 backfill — 이메일 인증 완료 상태 + 신규 프로필 필드 보강.
   for (const u of [fan, admin]) {
-    if (u.verificationStatus == null) {
-      Object.assign(u, seededEmailVerified(u.joinedAt))
-      changed = true
-    }
+    if (u.verificationStatus == null) { Object.assign(u, seededEmailVerified(u.joinedAt)); changed = true }
     if (!('gender' in u)) { u.gender = null; changed = true }
     if (!('ageGroup' in u)) { u.ageGroup = u === fan ? '20' : null; changed = true }
     if (!('avatarUrl' in u)) { u.avatarUrl = null; changed = true }
     if (!('lastNicknameChangeAt' in u)) { u.lastNicknameChangeAt = null; changed = true }
+    if (!('provider' in u)) { u.provider = null; changed = true }
   }
-
   if (changed) writeUsers(users)
 }
-ensureSeed()
+// Mock 모드에서만 데모 계정 시드.
+if (!isSupabaseConfigured) ensureSeed()
 
-// ── 회원가입 ──
-// 이메일 인증번호 확인 후 호출되므로, 가입 시점에 이미 이메일 인증을 마친 것으로 본다.
-export function signup({ nickname, email, password, gender = null, ageGroup = null }) {
+function mockSignup({ nickname, email, password, gender = null, ageGroup = null }) {
   const users = readUsers()
-  const dup = users.find(u => u.email.toLowerCase() === email.toLowerCase())
-  if (dup) return { ok: false, error: '이미 가입된 이메일입니다.' }
-
+  if (users.find(u => u.email.toLowerCase() === email.toLowerCase()))
+    return { ok: false, error: '이미 가입된 이메일입니다.' }
   const now = new Date().toISOString()
   const user = {
-    nickname,
-    email,
-    password, // 평문 저장 — 실서비스에서는 Supabase Auth로 교체 필요
-    provider: null,        // 이메일 가입 계정은 null (소셜 계정은 'google'|'kakao'|'naver')
-    providerUserId: null,
-    gender,            // 'male' | 'female' | 'na' | null
-    ageGroup,          // '10' | '20' | '30' | '40' | '50+'
-    avatarUrl: null,   // 프로필 이미지 (data URL)
-    lastNicknameChangeAt: null, // 닉네임 변경 제한(90일) 기준
-    joinedAt: now,
-    selectedTeam: null,
-    role: ROLES.FAN,
-    ...seededEmailVerified(now), // 인증번호 확인을 거쳤으므로 이메일 인증 완료 상태
+    nickname, email, password,
+    provider: null, providerUserId: null,
+    gender, ageGroup, avatarUrl: null, lastNicknameChangeAt: null,
+    joinedAt: now, selectedTeam: null, role: ROLES.FAN,
+    ...seededEmailVerified(now),
   }
-  users.push(user)
-  writeUsers(users)
-  setSession(email) // 가입 직후 자동 로그인
+  users.push(user); writeUsers(users); setSession(email)
   return { ok: true, user: publicUser(user) }
 }
-
-// ── 로그인 ──
-export function login({ email, password }) {
+function mockLogin({ email, password }) {
   const users = readUsers()
-  const user = users.find(
-    u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-  )
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password)
   if (!user) return { ok: false, error: '이메일 또는 비밀번호가 올바르지 않습니다.' }
-  // 이메일 미인증 계정은 로그인 차단(관리자는 예외).
-  if (!ADMIN_ROLES.includes(user.role) && !user.isEmailVerified) {
+  if (!ADMIN_ROLES.includes(user.role) && !user.isEmailVerified)
     return { ok: false, error: '이메일 인증이 완료되지 않은 계정입니다.', code: 'unverified' }
-  }
   setSession(email)
   return { ok: true, user: publicUser(user) }
 }
-
-// ── 소셜 로그인 / 회원가입 (Google · Kakao · NAVER) ──
-// OAuth Provider(oauth.js)에서 표준 프로필을 받아 계정을 만들거나 로그인시킨다.
-// MVP는 Mock 이지만, 계정 매칭·연결 로직은 실서비스에서도 그대로 사용할 수 있게 짰다.
-//
-// 매칭 우선순위:
-//   1) 같은 provider + providerUserId 로 이미 가입한 소셜 계정 → 그대로 로그인
-//   2) 같은 이메일의 기존 계정이 있으면 → 소셜 정보를 붙여 자동 연결(account linking)
-//   3) 둘 다 없으면 → 신규 소셜 계정 생성
-export async function socialLogin(providerId) {
-  const provider = getProvider(providerId)
-  if (!provider) return { ok: false, error: '지원하지 않는 로그인 방식입니다.' }
-
-  let profile
-  try {
-    profile = await provider.signIn() // { provider, providerUserId, email, nickname, profileImage }
-  } catch {
-    return { ok: false, error: '소셜 로그인에 실패했습니다. 다시 시도해 주세요.' }
-  }
-  if (!profile) return { ok: false, error: '소셜 로그인에 실패했습니다. 다시 시도해 주세요.' }
-
+function mockLogout() { localStorage.removeItem(SESSION_KEY) }
+function mockGetCurrentUser() {
+  const email = localStorage.getItem(SESSION_KEY)
+  if (!email) return null
+  return publicUser(readUsers().find(u => u.email.toLowerCase() === email.toLowerCase()))
+}
+function mockPatchUser(email, patch) {
+  const users = readUsers()
+  const idx = users.findIndex(u => u.email.toLowerCase() === (email || '').toLowerCase())
+  if (idx === -1) return { ok: false }
+  users[idx] = { ...users[idx], ...patch }; writeUsers(users)
+  return { ok: true, user: publicUser(users[idx]) }
+}
+function mockPatchSessionUser(patch) {
+  const email = localStorage.getItem(SESSION_KEY)
+  if (!email) return { ok: false, error: '로그인이 필요합니다.' }
+  return mockPatchUser(email, patch)
+}
+function mockSocialLogin(profile, isNewRef) {
+  // profile: { provider, providerUserId, email, nickname, profileImage }
   const users = readUsers()
   const emailLc = (profile.email || '').toLowerCase()
   const now = new Date().toISOString()
-  let isNew = false
-
-  // 1) 이미 연결된 소셜 계정
   let user = users.find(u => u.provider === profile.provider && u.providerUserId === profile.providerUserId)
-
-  // 2) 같은 이메일의 기존 계정과 자동 연결
   if (!user && emailLc) {
     user = users.find(u => u.email.toLowerCase() === emailLc)
     if (user) {
       user.provider = profile.provider
       user.providerUserId = profile.providerUserId
       if (!user.avatarUrl && profile.profileImage) user.avatarUrl = profile.profileImage
-      // 소셜 인증을 거쳤으므로 이메일 인증 완료로 간주
-      Object.assign(user, seededEmailVerified(now))
-      writeUsers(users)
+      Object.assign(user, seededEmailVerified(now)); writeUsers(users)
     }
   }
-
-  // 3) 신규 소셜 계정 생성
   if (!user) {
     user = {
-      nickname: profile.nickname,
-      email: profile.email,
-      password: null,                    // 소셜 계정은 비밀번호 없음
-      provider: profile.provider,        // 'google' | 'kakao' | 'naver'
-      providerUserId: profile.providerUserId,
-      avatarUrl: profile.profileImage,   // 프로필 이미지 자동 로드(현재는 placeholder)
-      gender: null,
-      ageGroup: null,
-      lastNicknameChangeAt: null,
-      joinedAt: now,
-      selectedTeam: null,
-      role: ROLES.FAN,
-      ...seededEmailVerified(now),       // 소셜 인증 = 이메일 인증 완료로 간주
+      nickname: profile.nickname, email: profile.email, password: null,
+      provider: profile.provider, providerUserId: profile.providerUserId,
+      avatarUrl: profile.profileImage, gender: null, ageGroup: null,
+      lastNicknameChangeAt: null, joinedAt: now, selectedTeam: null, role: ROLES.FAN,
+      ...seededEmailVerified(now),
     }
-    users.push(user)
-    writeUsers(users)
-    isNew = true
+    users.push(user); writeUsers(users); if (isNewRef) isNewRef.value = true
   }
-
   setSession(user.email)
-  return { ok: true, user: publicUser(user), isNew }
+  return { ok: true, user: publicUser(user) }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  공개 API (facade) — Supabase 모드/Mock 모드 자동 분기
+// ════════════════════════════════════════════════════════════════════════
+
+// ── 회원가입 ──
+export async function signup({ nickname, email, password, gender = null, ageGroup = null }) {
+  if (isSupabaseConfigured) {
+    const { data, error } = await supabase.auth.signUp({
+      email, password,
+      options: { data: { nickname, gender, age_group: ageGroup, provider: 'email' } },
+    })
+    if (error) return { ok: false, error: translateAuthError(error) }
+    // 이메일 확인 설정이 켜져 있으면 세션이 없다(메일 확인 후 로그인).
+    const needsConfirm = !data.session
+    if (data.session) await loadCurrentSupabaseUser()
+    return { ok: true, needsConfirm, user: cachedUser }
+  }
+  return mockSignup({ nickname, email, password, gender, ageGroup })
+}
+
+// ── 로그인 ──
+export async function login({ email, password }) {
+  if (isSupabaseConfigured) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      const code = (error.message || '').toLowerCase().includes('not confirmed') ? 'unverified' : undefined
+      return { ok: false, error: translateAuthError(error), code }
+    }
+    const user = await loadCurrentSupabaseUser()
+    return { ok: true, user }
+  }
+  return mockLogin({ email, password })
 }
 
 // ── 로그아웃 ──
-export function logout() {
-  localStorage.removeItem(SESSION_KEY)
+export async function logout() {
+  cachedUser = null // 가드가 즉시 반영되도록 동기 초기화
+  if (isSupabaseConfigured) { await supabase.auth.signOut(); return }
+  mockLogout()
 }
 
-// ── 현재 로그인 사용자 (새로고침 후에도 유지) ──
+// ── 소셜 로그인 (Google = Supabase OAuth / Kakao·NAVER = 인터페이스 유지) ──
+export async function socialLogin(providerId) {
+  if (isSupabaseConfigured) {
+    if (providerId === 'google') {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin },
+      })
+      if (error) return { ok: false, error: translateAuthError(error) }
+      return { ok: true, redirecting: true } // 브라우저가 Google 로 리다이렉트됨
+    }
+    // Kakao / NAVER: Provider 인터페이스만 유지, 실제 연동은 다음 단계.
+    const name = providerId === 'kakao' ? 'Kakao' : 'NAVER'
+    return { ok: false, error: `${name} 로그인은 다음 단계에서 연동될 예정입니다.` }
+  }
+  // Mock 모드 — 기존 소셜 Mock 로그인.
+  const provider = getProvider(providerId)
+  if (!provider) return { ok: false, error: '지원하지 않는 로그인 방식입니다.' }
+  let profile
+  try { profile = await provider.signIn() } catch { profile = null }
+  if (!profile) return { ok: false, error: '소셜 로그인에 실패했습니다. 다시 시도해 주세요.' }
+  const isNewRef = { value: false }
+  const res = mockSocialLogin(profile, isNewRef)
+  return { ...res, isNew: isNewRef.value }
+}
+
+// ── 현재 로그인 사용자 (동기) ──
 export function getCurrentUser() {
-  const email = localStorage.getItem(SESSION_KEY)
-  if (!email) return null
-  const user = readUsers().find(u => u.email.toLowerCase() === email.toLowerCase())
-  return publicUser(user)
+  return isSupabaseConfigured ? cachedUser : mockGetCurrentUser()
 }
+export function isAuthenticated() { return !!getCurrentUser() }
+export function getRole() { return getCurrentUser()?.role || ROLES.FAN }
+export function isAdmin() { return ADMIN_ROLES.includes(getRole()) }
 
-export function isAuthenticated() {
-  return !!getCurrentUser()
-}
-
-// 현재 로그인 사용자의 역할 (없으면 fan 으로 간주)
-export function getRole() {
-  return getCurrentUser()?.role || ROLES.FAN
-}
-
-// 관리자 콘솔 접근 권한 여부 (ADMIN_ROLES 기준)
-export function isAdmin() {
-  return ADMIN_ROLES.includes(getRole())
-}
-
-// ── 본인인증 (Mock) ──
-// 관리자(ADMIN_ROLES)는 인증 없이 통과시킨다. 일반 사용자는 이메일 인증 필요.
 export function requiresEmailVerification(user) {
   if (!user) return false
   if (ADMIN_ROLES.includes(user.role)) return false
   return !user.isEmailVerified
 }
 
-function patchUser(email, patch) {
-  const users = readUsers()
-  const idx = users.findIndex(u => u.email.toLowerCase() === (email || '').toLowerCase())
-  if (idx === -1) return { ok: false }
-  users[idx] = { ...users[idx], ...patch }
-  writeUsers(users)
-  return { ok: true, user: publicUser(users[idx]) }
-}
-
-// 이메일 인증 완료 처리 (Mock — 실제 메일 발송/검증 없음).
-// 실서비스: Supabase 이메일 인증 콜백에서 이 상태를 갱신.
-export function verifyEmail(email) {
-  return patchUser(email, {
-    isEmailVerified: true,
-    emailVerifiedAt: new Date().toISOString(),
-    verificationMethod: 'email',
-    verificationStatus: VERIFICATION.EMAIL_VERIFIED,
+// ── 이메일 인증 ──
+// Supabase: 가입 시 확인 메일 발송(설정에 따름). 여기선 재발송을 시도한다.
+export async function verifyEmail(email) {
+  if (isSupabaseConfigured) {
+    // 실제 인증은 메일 링크로 완료됨. 편의상 확인 메일 재발송을 시도.
+    try { await supabase.auth.resend({ type: 'signup', email }) } catch { /* noop */ }
+    return { ok: true }
+  }
+  return mockPatchUser(email, {
+    isEmailVerified: true, emailVerifiedAt: new Date().toISOString(),
+    verificationMethod: 'email', verificationStatus: VERIFICATION.EMAIL_VERIFIED,
   })
 }
 
-// 휴대폰 본인인증 완료 처리 — 구조만 준비(현재 UI 미연결, 정식 서비스 예정).
-// 실서비스: PASS/NICE/KCB 콜백에서 이 상태를 갱신.
+// 휴대폰 본인인증 — 구조만 준비(다음 단계).
 export function verifyPhone(email) {
-  return patchUser(email, {
-    isPhoneVerified: true,
-    phoneVerifiedAt: new Date().toISOString(),
-    verificationMethod: 'phone',
-    verificationStatus: VERIFICATION.PHONE_VERIFIED,
+  if (isSupabaseConfigured) return { ok: true }
+  return mockPatchUser(email, {
+    isPhoneVerified: true, phoneVerifiedAt: new Date().toISOString(),
+    verificationMethod: 'phone', verificationStatus: VERIFICATION.PHONE_VERIFIED,
   })
 }
 
-// 이메일 인증번호 발급 (Mock) — 실제 메일 발송 대신 6자리 코드를 만들어 반환한다.
-// 실서비스: 서버가 코드를 발송/검증하고 클라이언트에는 노출하지 않는다.
+// 이메일 인증번호 발급 (Mock 전용 — Supabase 는 확인 메일을 사용).
 export function issueEmailCode(email) {
   const q = (email || '').trim()
   if (!q) return { ok: false, error: '이메일을 입력해 주세요.' }
+  if (isSupabaseConfigured) return { ok: true, code: null } // Supabase 모드에선 미사용
   const dup = readUsers().some(u => u.email.toLowerCase() === q.toLowerCase())
   if (dup) return { ok: false, error: '이미 가입된 이메일입니다.' }
-  const code = String(Math.floor(100000 + Math.random() * 900000))
-  return { ok: true, code }
-}
-
-// 세션 사용자에 부분 업데이트
-function patchSessionUser(patch) {
-  const email = localStorage.getItem(SESSION_KEY)
-  if (!email) return { ok: false, error: '로그인이 필요합니다.' }
-  return patchUser(email, patch)
+  return { ok: true, code: String(Math.floor(100000 + Math.random() * 900000)) }
 }
 
 // ── 프로필 수정 ──
-// 프로필 이미지 변경 (data URL 저장)
-export function updateAvatar(avatarUrl) {
-  return patchSessionUser({ avatarUrl })
+export async function updateAvatar(avatarUrl) {
+  if (isSupabaseConfigured) {
+    if (cachedUser) cachedUser = { ...cachedUser, avatarUrl } // 낙관적 반영
+    return patchSupabaseProfile({ avatar_url: avatarUrl })
+  }
+  return mockPatchSessionUser({ avatarUrl })
 }
 
-// 닉네임 변경 제한: 90일에 1회
 export const NICKNAME_COOLDOWN_DAYS = 90
 export function nicknameChangeInfo() {
   const u = getCurrentUser()
   if (!u) return { canChange: false, nextChangeAt: null }
+  if (isSupabaseConfigured) return { canChange: true, nextChangeAt: null } // 쿨다운은 다음 단계
   if (!u.lastNicknameChangeAt) return { canChange: true, nextChangeAt: null }
   const next = new Date(u.lastNicknameChangeAt).getTime() + NICKNAME_COOLDOWN_DAYS * 86400000
   return { canChange: Date.now() >= next, nextChangeAt: new Date(next).toISOString() }
 }
-export function changeNickname(nickname) {
+export async function changeNickname(nickname) {
   const name = (nickname || '').trim()
   if (!name) return { ok: false, error: '닉네임을 입력해 주세요.' }
+  if (isSupabaseConfigured) {
+    if (cachedUser) cachedUser = { ...cachedUser, nickname: name }
+    return patchSupabaseProfile({ nickname: name })
+  }
   const info = nicknameChangeInfo()
-  if (!info.canChange) return { ok: false, error: '닉네임은 90일에 한 번만 변경할 수 있습니다.', nextChangeAt: info.nextChangeAt }
-  return patchSessionUser({ nickname: name, lastNicknameChangeAt: new Date().toISOString() })
+  if (!info.canChange)
+    return { ok: false, error: '닉네임은 90일에 한 번만 변경할 수 있습니다.', nextChangeAt: info.nextChangeAt }
+  return mockPatchSessionUser({ nickname: name, lastNicknameChangeAt: new Date().toISOString() })
 }
 
 // ── 비밀번호 변경 ──
-export function changePassword(currentPassword, newPassword) {
+export async function changePassword(currentPassword, newPassword) {
+  if (isSupabaseConfigured) {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) return { ok: false, error: translateAuthError(error) }
+    return { ok: true }
+  }
   const email = localStorage.getItem(SESSION_KEY)
   if (!email) return { ok: false, error: '로그인이 필요합니다.' }
   const users = readUsers()
   const idx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase())
   if (idx === -1) return { ok: false, error: '사용자를 찾을 수 없습니다.' }
   if (users[idx].password !== currentPassword) return { ok: false, error: '현재 비밀번호가 일치하지 않습니다.' }
-  users[idx] = { ...users[idx], password: newPassword }
-  writeUsers(users)
+  users[idx] = { ...users[idx], password: newPassword }; writeUsers(users)
   return { ok: true }
 }
 
-// ── 응원팀 저장 (팀 선택 시) ──
-export function setSelectedTeam(teamId) {
+// ── 응원팀 저장 ──
+export async function setSelectedTeam(teamId) {
+  if (isSupabaseConfigured) {
+    if (cachedUser) cachedUser = { ...cachedUser, selectedTeam: teamId } // 낙관적 반영
+    await patchSupabaseProfile({ selected_team: teamId })
+    return
+  }
   const email = localStorage.getItem(SESSION_KEY)
   if (!email) return
   const users = readUsers()
   const idx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase())
   if (idx === -1) return
-  users[idx].selectedTeam = teamId
-  writeUsers(users)
+  users[idx].selectedTeam = teamId; writeUsers(users)
 }
 
-// ── 계정 복구 (아이디 찾기 / 비밀번호 찾기) ──
-// 모두 Mock 단계이며, Supabase 도입 시 내부 구현만 교체하면 화면 코드는 유지됩니다.
-//   - findAccountByHint  → Supabase: 서버 측 조회 후 마스킹된 이메일 응답
-//   - requestPasswordReset → Supabase: supabase.auth.resetPasswordForEmail(email)
-
-// 이메일 마스킹: 로컬파트 앞 3글자만 노출. 예) fan@fancluv.kr → fan****@fancluv.kr
+// ── 계정 복구 (아이디/비밀번호 찾기) ──
 export function maskEmail(email) {
   if (!email || !email.includes('@')) return email || ''
   const [local, domain] = email.split('@')
-  const visible = local.slice(0, Math.min(3, local.length))
-  return `${visible}****@${domain}`
+  return `${local.slice(0, Math.min(3, local.length))}****@${domain}`
 }
-
-// 닉네임(전체/부분) 또는 가입 이메일 일부로 계정을 찾아 마스킹된 이메일을 반환.
 export function findAccountByHint(hint) {
   const q = (hint || '').trim().toLowerCase()
   if (!q) return { ok: false }
+  if (isSupabaseConfigured) {
+    // 익명 클라이언트로는 타 사용자 조회 불가(RLS). 서버 함수는 다음 단계.
+    return { ok: false, error: '아이디 찾기는 다음 단계에서 지원될 예정입니다.' }
+  }
   const user = readUsers().find(u =>
-    u.nickname.toLowerCase().includes(q) ||
-    u.email.toLowerCase().includes(q),
-  )
+    u.nickname.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
   if (!user) return { ok: false }
   return { ok: true, maskedEmail: maskEmail(user.email) }
 }
-
-// 비밀번호 재설정 요청 (Mock — 실제 메일 발송 없음).
-export function requestPasswordReset(email) {
-  const q = (email || '').trim().toLowerCase()
+export async function requestPasswordReset(email) {
+  const q = (email || '').trim()
   if (!q) return { ok: false }
-  const exists = readUsers().some(u => u.email.toLowerCase() === q)
-  return { ok: exists }
+  if (isSupabaseConfigured) {
+    const { error } = await supabase.auth.resetPasswordForEmail(q, { redirectTo: window.location.origin })
+    return { ok: !error }
+  }
+  return { ok: readUsers().some(u => u.email.toLowerCase() === q.toLowerCase()) }
 }

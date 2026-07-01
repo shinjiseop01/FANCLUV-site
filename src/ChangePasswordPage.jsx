@@ -35,7 +35,7 @@ export default function ChangePasswordPage() {
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
   const NICKNAME = user?.nickname || '팬'
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     if (!current) { setError(t('pw.errCurrent')); return }
@@ -43,7 +43,7 @@ export default function ChangePasswordPage() {
     if (next.length < 4) { setError(t('pw.errLen')); return }
     if (next !== confirm) { setError(t('pw.errMatch')); return }
     if (next === current) { setError(t('pw.errSame')); return }
-    const res = changePassword(current, next)
+    const res = await changePassword(current, next)
     if (res.ok) {
       setDone(true)
     } else {

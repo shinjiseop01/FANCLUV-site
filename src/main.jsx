@@ -2,8 +2,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { isAuthenticated, isAdmin } from './lib/auth.js'
+import { isSupabaseConfigured } from './lib/supabase.js'
 import { LanguageProvider } from './contexts/LanguageContext.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
+import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
 import './index.css'
 import './theme.css'
 import './components/components.css'
@@ -38,14 +40,31 @@ import AdminReports from './admin/AdminReports.jsx'
 import AdminSettings from './admin/AdminSettings.jsx'
 import AccessDenied from './admin/AccessDenied.jsx'
 
-// 보호 라우트: 로그인하지 않은 사용자가 접근하면 로그인 페이지로 이동
+// 세션 로딩 중 표시(잠깐). Supabase 모드에서 초기 세션 확인 동안 노출.
+function AuthGate() {
+  return <div style={{ minHeight: '100vh' }} aria-busy="true" />
+}
+
+// 보호 라우트: 로그인하지 않은 사용자가 접근하면 로그인 페이지로 이동.
+// - Supabase 모드: 세션 로딩(loading) 동안 대기 후 판단.
+// - Mock 모드: 기존처럼 동기 isAuthenticated() 로 즉시 판단.
 function RequireAuth({ children }) {
-  return isAuthenticated() ? children : <Navigate to="/" replace />
+  const { user, loading } = useAuth()
+  if (!isSupabaseConfigured) return isAuthenticated() ? children : <Navigate to="/" replace />
+  if (loading) return <AuthGate />
+  return user ? children : <Navigate to="/" replace />
 }
 
 // 운영자 전용 라우트: 비로그인 → 로그인, 로그인했지만 일반 사용자 → 접근 거부 안내
 function RequireAdmin({ children }) {
-  if (!isAuthenticated()) return <Navigate to="/" replace />
+  const { user, loading } = useAuth()
+  if (!isSupabaseConfigured) {
+    if (!isAuthenticated()) return <Navigate to="/" replace />
+    if (!isAdmin()) return <AccessDenied />
+    return children
+  }
+  if (loading) return <AuthGate />
+  if (!user) return <Navigate to="/" replace />
   if (!isAdmin()) return <AccessDenied />
   return children
 }
@@ -54,6 +73,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider>
     <LanguageProvider>
+    <AuthProvider>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LoginPage />} />
@@ -94,6 +114,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
+    </AuthProvider>
     </LanguageProvider>
     </ThemeProvider>
   </StrictMode>,

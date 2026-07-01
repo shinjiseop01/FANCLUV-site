@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { login, ADMIN_ROLES } from './lib/auth.js'
+import { isSupabaseConfigured } from './lib/supabase.js'
+import { useAuth } from './contexts/AuthContext.jsx'
 import { useLang } from './contexts/LanguageContext.jsx'
 import SocialAuth from './components/SocialAuth.jsx'
 import './LoginPage.css'
@@ -8,6 +10,7 @@ import './LoginPage.css'
 export default function LoginPage() {
   const navigate = useNavigate()
   const { t } = useLang()
+  const { user: sessionUser } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -21,19 +24,23 @@ export default function LoginPage() {
     else navigate('/team-select')
   }
 
-  function handleSubmit(e) {
+  // Supabase 모드: OAuth(구글) 리다이렉트 복귀 등으로 이미 세션이 있으면 자동 진입.
+  useEffect(() => {
+    if (isSupabaseConfigured && sessionUser) routeAfterAuth(sessionUser)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionUser])
+
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     if (!email.trim()) { setError(t('login.errEmail')); return }
     if (!password.trim()) { setError(t('login.errPw')); return }
     setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      const result = login({ email: email.trim(), password })
-      // 이메일 미인증 계정은 login()에서 차단되어 여기 도달하지 않는다.
-      if (result.ok) routeAfterAuth(result.user)
-      else setError(result.error)
-    }, 800)
+    const result = await login({ email: email.trim(), password })
+    setLoading(false)
+    // 이메일 미인증 계정은 login()에서 차단되어 여기 도달하지 않는다.
+    if (result.ok) routeAfterAuth(result.user)
+    else setError(result.error)
   }
 
   return (

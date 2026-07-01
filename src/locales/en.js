@@ -152,6 +152,7 @@ export default {
   'signup.codePh': '6-digit code',
   'signup.confirmCode': 'Verify',
   'signup.emailVerified': 'Email verified',
+  'signup.confirmEmailSent': 'A confirmation email has been sent. Click the link in the email to verify, then log in.',
   'signup.errCode': 'The verification code does not match.',
   'signup.errEmailVerify': 'Please verify your email.',
   'signup.errAge': 'Please select your age group.',

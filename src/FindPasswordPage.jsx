@@ -20,9 +20,9 @@ export default function FindPasswordPage() {
     if (!email.trim()) { setError(t('findPw.errEmail')); return }
     if (!EMAIL_RE.test(email.trim())) { setError(t('findPw.errFormat')); return }
     setLoading(true)
-    setTimeout(() => {
+    setTimeout(async () => {
+      const res = await requestPasswordReset(email)
       setLoading(false)
-      const res = requestPasswordReset(email)
       if (res.ok) {
         setSentTo(email.trim())
       } else {

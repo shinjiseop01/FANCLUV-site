@@ -152,6 +152,7 @@ export default {
   'signup.codePh': '인증번호 6자리',
   'signup.confirmCode': '인증 확인',
   'signup.emailVerified': '이메일 인증 완료',
+  'signup.confirmEmailSent': '확인 메일을 보냈습니다. 메일의 링크를 눌러 인증을 완료한 뒤 로그인해 주세요.',
   'signup.errCode': '인증번호가 일치하지 않습니다.',
   'signup.errEmailVerify': '이메일 인증을 완료해 주세요.',
   'signup.errAge': '나이대를 선택해 주세요.',
