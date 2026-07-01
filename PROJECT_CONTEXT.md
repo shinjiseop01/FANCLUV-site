@@ -1,7 +1,7 @@
 # FANCLUV — 프로젝트 컨텍스트 (핸드오프 문서)
 
 > 새 채팅에서 이 파일을 읽으면 바로 이어서 작업할 수 있도록 정리한 문서입니다.
-> 최종 정리: 2026-06-30 / `main` 브랜치 기준 (작업 트리 clean)
+> 최종 정리: 2026-07-01 / `main` 브랜치 기준 (작업 트리 clean, 최신 커밋 `79fc2e7`)
 
 ## 1. 프로젝트 개요
 
@@ -31,6 +31,9 @@ npm run lint     # oxlint
 |------|--------|------|
 | `/` | LoginPage | ✗ |
 | `/signup` | SignupPage | ✗ |
+| `/find-id` | FindIdPage (아이디 찾기) | ✗ |
+| `/find-password` | FindPasswordPage (비밀번호 찾기) | ✗ |
+| `/verify-email` | VerifyEmailPage (이메일 인증) | ✓ |
 | `/team-select` | TeamSelectPage | ✓ |
 | `/club/:teamId` | ClubHomePage (구단 홈) | ✓ |
 | `/club/:teamId/opinions` | OpinionsPage (팬 의견 목록) | ✓ |
@@ -43,6 +46,24 @@ npm run lint     # oxlint
 | `/club/:teamId/insights` | AIInsightsPage (AI 인사이트) | ✓ |
 | `/club/:teamId/ranking` | FanRankingPage (팬 랭킹) | ✓ |
 | `/club/:teamId/settings` | SettingsPage (설정) | ✓ |
+| `/club/:teamId/profile` | ProfileEditPage (프로필 수정) | ✓ |
+| `/club/:teamId/password` | ChangePasswordPage (비밀번호 변경) | ✓ |
+| `/club/:teamId/about` `…/privacy` `…/terms` | InfoPage (page prop 분기: 소개/개인정보/약관) | ✓ |
+| `*` | NotFoundPage (404) | — |
+
+**관리자 콘솔** (`/admin`, `RequireAdmin` — 비로그인→로그인, 일반유저→AccessDenied):
+
+| 경로 | 페이지 |
+|------|--------|
+| `/admin` | AdminDashboard (index) |
+| `/admin/members` | AdminMembers (회원 관리) |
+| `/admin/opinions` | AdminOpinions (의견/댓글 관리) |
+| `/admin/surveys` | AdminSurveys (설문 관리) |
+| `/admin/news` | AdminNews (뉴스 관리) |
+| `/admin/reports` | AdminReports (신고 관리) |
+| `/admin/settings` | AdminSettings (설정) |
+
+- 레이아웃: `src/admin/AdminLayout.jsx` · 목 데이터: `src/admin/adminData.js` · 스타일: `src/admin/admin.css`
 
 전역 Provider: `ThemeProvider` → `LanguageProvider` → `BrowserRouter`.
 
@@ -60,12 +81,23 @@ npm run lint     # oxlint
 ### 설문 목록 — `src/SurveyPage.jsx`
 - `selectedId` 내부 상태로 **목록 → 상세 → 완료** 3단계 전환(라우팅 미사용). 목록은 5개 Mock 설문 카드(2~3열 반응형). 상세 폼(별점·객관식·주관식)은 기존 유지.
 - 상태 필터(전체/진행 중/종료) 지원.
+- **종료 후 7일 자동 숨김**: 종료 설문은 `closedAt` 종료일을 가지며 `SURVEY_HIDE_DAYS(=7)` 경과 시 `isSurveyExpired()`로 목록에서 자동 제거.
+- **참여(상세) 화면에는 뒤로가기 버튼 없음** — 참여 집중. 완료 화면은 "설문 목록으로 돌아가기" 버튼만 제공. (목록 화면 상단의 홈 이동 back 버튼은 유지)
+
+### 상단 로고 동작 — 모든 `.ch-*` 헤더 공통
+- 로그인 상태에서 **FANCLUV 로고 클릭 시 항상 구단 홈(`/club/:teamId`)으로 이동**. 로고는 `role="button" tabIndex={0}` + Enter/Space 키 지원(키보드 접근 가능).
+
+### 팬 랭킹 아이콘 — `src/components/RankIcon.jsx`
+- 팬 랭킹 페이지의 이모지(🥇🔥🏆📝 등)를 **모노크롬 SVG 라인 아이콘**으로 통일. `currentColor` 상속 → 팀 컬러(`--team-deep`)/다크·라이트 자동 대응.
+- 메달(금/은/동, `MEDAL_COLORS`), 주간 통계·배지(opinions/comments/surveys/empathy), 팬 레벨(rookie/active/super/legend) 아이콘 제공.
 
 ### 공통 UI 프리미티브 (Phase 1 품질 개선)
 재사용 컴포넌트는 `src/components/`, 스타일은 `src/components/components.css`(main.jsx에서 1회 import). 모두 토큰 기반이라 라이트/다크 자동 대응.
 - **EmptyState** (`components/EmptyState.jsx`) — 아이콘+제목+메시지+선택적 CTA. 팬 의견/설문/뉴스/AI 인사이트/랭킹/내 활동/검색결과 빈 화면.
 - **Skeleton** (`components/Skeleton.jsx`) — `Skeleton`/`SkeletonCard`/`SkeletonList`. 로딩 중 표시. 로딩 시뮬레이션은 `lib/useFakeLoading.js`(기본 550ms, 실제 API 연동 시 교체 지점).
 - **Avatar** (`components/Avatar.jsx`) — 기본 이니셜 아바타, 향후 `src`(프로필 이미지) 지원 구조.
+- **RankIcon** (`components/RankIcon.jsx`) — 팬 랭킹용 SVG 라인 아이콘 세트(위 참조).
+- **전역 키보드 focus 링 (a11y)** — `components.css`에 `:focus-visible` 규칙. 버튼/링크/입력창에 팀 컬러(`var(--team, #2563EB)` 폴백) 아웃라인. 마우스 클릭 시엔 안 보이고 Tab 이동 시에만 표시.
 - **Toast** — ❌ 제거됨(MVP). 전역 Toast Provider/Context는 삭제. 완료 피드백은 화면 전환·버튼 상태·목록 갱신으로 대체. (단, 의견 상세의 공유/신고용 로컬 `od-toast`는 별도 인라인 메시지로 유지)
 - **NotFoundPage** (`NotFoundPage.jsx`) — `path="*"` 404. 로그인+팀 선택 시 구단 홈으로, 아니면 로그인으로.
 - **상대 시간** (`lib/relativeTime.js`) — `relativeTime(hours, lang)` → 방금 전/N분 전/N시간 전/어제/N일 전. 의견 목록·상세·댓글에 사용.
@@ -76,7 +108,9 @@ npm run lint     # oxlint
 - localStorage 기반 **목 인증**. 모든 인증 로직을 이 파일에 격리 → 추후 **Supabase Auth로 교체** 예정 (내부 구현만 바꾸면 화면 코드 유지).
 - localStorage 키: `fancluv_users`(가입자 배열), `fancluv_session`(현재 로그인 email).
 - 데모 시드 계정: **`fan@fancluv.kr` / `1234`** (닉네임 `민준`).
-- export 함수: `signup`, `login`, `logout`, `getCurrentUser`, `isAuthenticated`, `setSelectedTeam`.
+- export 함수: `signup`, `login`, `logout`, `getCurrentUser`, `isAuthenticated`, `setSelectedTeam` 등 + `isAdmin()`(관리자 판정).
+- **권한 체계(`ROLES`/`ADMIN_ROLES`)**: `fan`(기본) / `admin`, 그리고 예정 `superadmin`·`staff`(FANCLUV 직원)·`club_admin`(구단 관리자). 관리자 접근 판정은 `ADMIN_ROLES` 배열 한 곳으로 일원화 → 역할 추가 시 배열만 확장.
+- **본인인증 체계(`VERIFICATION`)**: `unverified` / `email_verified` / `phone_verified`. MVP는 **이메일 Mock 인증만 동작**. 사용자 객체에 `isEmailVerified`/`emailVerifiedAt`/`isPhoneVerified`/`isPhoneVerifiedAt` 플래그 보관 → 향후 휴대폰 본인인증(PASS/NICE/KCB)을 그대로 얹을 수 있게 구조 선반영.
 - ⚠️ 비밀번호 평문 저장 (MVP 한정). 실서비스 전 반드시 교체.
 
 ### 다국어 — `src/contexts/LanguageContext.jsx` + `src/locales/{ko,en}.js`
@@ -94,30 +128,51 @@ npm run lint     # oxlint
 - 팬이 작성한 의견을 구단 id별로 localStorage(`fancluv_created_opinions`)에 저장 → 네비게이션 후에도 목록 상단 유지.
 - `getCreatedOpinions(teamId)`, `addOpinion(teamId, opinion)`.
 
+### 관리자 콘솔 — `src/admin/`
+- `RequireAdmin` 가드로 보호. `AdminLayout` + 중첩 라우트(대시보드/회원/의견/설문/뉴스/신고/설정).
+- 데이터는 `adminData.js`의 Mock. 댓글 관리 기능 포함, 토스트 없이 인라인 피드백.
+
+### 계정 복구 / 프로필 / 정보 페이지
+- **FindIdPage / FindPasswordPage** (`RecoveryPages.css`) — 아이디·비밀번호 찾기 (Mock).
+- **VerifyEmailPage** — Mock 이메일 인증 흐름 (`AccountPages.css`).
+- **ProfileEditPage / ChangePasswordPage** — 프로필 수정·비밀번호 변경.
+- **InfoPage** (`InfoPage.jsx` + `infoContent.js`) — `page` prop으로 소개/개인정보/약관 렌더.
+
 ## 4. 완료된 작업 (git 히스토리, 최신 → 과거)
 
-1. **Settings 페이지** 구현 (`966cb11`)
-2. **한/영 다국어** 구현 (`2a2ec78`)
-3. 페이지 헤더에 **로그인 유저 닉네임 표시** (`a28662b`)
-4. **목 인증 영속화** (localStorage 세션 유지) (`c9537cd`)
-5. Survey / AI Insights / Fan Ranking **라우팅 버그 수정** (`050c495`)
-6. Fan Ranking: 리그/클럽 랭킹 탭, 기준 필터, 순위 변동 추가 (`1aa515d`, `d28b21d`)
-7. AI Insights 페이지 (`43c209a`)
-8. Team News 페이지 (`6728831`)
-9. Match Center 페이지 + 로고 크기 조정 (`8659b83`, `53fc663`)
-10. My Activity 대시보드 (`54d64fd`)
-11. 의견 작성 플로우 / 상세 / 댓글 / 목록 UI (`92251e6`, `89ef1cf`, `508215b`, `1fcac2e`)
-12. Survey 버튼 연결 (`3befb12`)
-13. Vercel 404 수정: 클라이언트 라우팅 + SPA fallback (`d150b0e`)
-14. 초기 커밋 (`b22a591`)
+1. 앱 정보 페이지(소개/개인정보/약관) 추가 + 설정 UI 개선 (`79fc2e7`)
+2. 계정 인증·프로필 설정 개선 (`01b0205`)
+3. Mock 이메일 인증 구조 추가 (`77f13a4`)
+4. 관리자 팀 선택 대비(contrast)·헤더 액션 정렬 수정 (`ad9f0b0`)
+5. 댓글 관리 추가 + 토스트 알림 제거 (`78fce00`)
+6. **FANCLUV 관리자 콘솔 MVP** 구현 (`e534abd`)
+7. 계정 복구 페이지(아이디/비번 찾기) (`dbc0739`)
+8. 전반적 UI/UX 품질 개선 (`803abc6`)
+9. **다크모드** 구현 (`259aa01`)
+10. 설문 리스트로 설문 흐름 개선 (`df0f014`)
+11. **Settings 페이지** 구현 (`966cb11`)
+12. **한/영 다국어** 구현 (`2a2ec78`)
+13. 페이지 헤더에 **로그인 유저 닉네임 표시** (`a28662b`)
+14. **목 인증 영속화** (localStorage 세션 유지) (`c9537cd`)
+15. Survey / AI Insights / Fan Ranking **라우팅 버그 수정** (`050c495`)
+16. Fan Ranking: 리그/클럽 랭킹 탭, 기준 필터, 순위 변동 추가 (`1aa515d`, `d28b21d`)
+17. AI Insights 페이지 (`43c209a`)
+18. Team News 페이지 (`6728831`)
+19. Match Center 페이지 + 로고 크기 조정 (`8659b83`, `53fc663`)
+20. My Activity 대시보드 (`54d64fd`)
+21. 의견 작성 플로우 / 상세 / 댓글 / 목록 UI (`92251e6`, `89ef1cf`, `508215b`, `1fcac2e`)
+22. Survey 버튼 연결 (`3befb12`)
+23. Vercel 404 수정: 클라이언트 라우팅 + SPA fallback (`d150b0e`)
+24. 초기 커밋 (`b22a591`)
 
-→ **8개 주요 페이지가 모두 구현된 상태.** 현재 기능 골격은 완성 단계.
+→ **팬 화면 8개 + 계정 복구/인증/정보 페이지 + 관리자 콘솔까지 구현 완료.** 기능 골격 완성 단계이며, 다음 마일스톤은 Supabase 백엔드 연동.
 
 ## 5. 알려진 특이사항 / TODO 후보
 
 - `src/App.jsx`는 **여전히 Vite 기본 템플릿** (실제 앱은 `main.jsx`가 진입점). 라우트에 미연결 — 정리/삭제 가능.
 - `README.md`도 Vite 기본 템플릿 그대로.
-- 백엔드/DB 없음 → **Supabase 연동**이 다음 큰 마일스톤 (auth.js부터 교체 지점 마련됨).
+- 백엔드/DB 없음 → **Supabase 연동**이 다음 큰 마일스톤 (auth.js부터 교체 지점 마련됨). 권한(`ROLES`)·본인인증(`VERIFICATION`) 데이터 구조는 이미 확장 대비해 선반영됨.
+- 이메일 인증은 **Mock만 동작**, 휴대폰 본인인증(PASS/NICE/KCB)은 구조만 준비된 상태 → 실제 연동 필요.
 - 비밀번호 평문 저장 (목업 한정).
 - 루트에 `log-in page.docx`, `tmp/`, `.DS_Store` 존재.
 

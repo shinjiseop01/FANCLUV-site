@@ -2,6 +2,27 @@
    All colours come from the existing token system (var(--canvas)/--ink/
    --muted/--border/--team/--page-bg/--mix-base) so light & dark both work. */
 
+/* ───────────── Global keyboard-focus (a11y) ─────────────
+   A consistent focus ring for keyboard/Tab users across every page.
+   :focus-visible keeps mouse clicks clean (no ring on click), while Tab
+   navigation shows a clear ring. Uses the active team colour when a page
+   sets --team, and a neutral brand blue elsewhere (login, team select). */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[tabindex]:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--team, #2563EB);
+  outline-offset: 2px;
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--team, #2563EB);
+  outline-offset: 1px;
+}
+
 /* ───────────── Empty State ───────────── */
 .fc-empty {
   display: flex;

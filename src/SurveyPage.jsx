@@ -18,13 +18,25 @@ const IMPROVE_OPTIONS = ['좌석 / 시야', '편의시설', '먹거리 / 매점'
 const REVISIT_OPTIONS = ['매우 그렇다', '그렇다', '보통이다', '아니다']
 
 // 설문 목록 (Mock Data). 제목·설명은 locale 의 survey.item.<id>.* 키로 표시.
+// 종료된 설문은 closedAt(종료일)을 갖는다 — 종료 후 SURVEY_HIDE_DAYS 일이 지나면
+// 목록에서 자동으로 사라진다. (아래 season 은 최근 종료라 현재는 노출된다.)
 const SURVEYS = [
   { id: 'home',     participants: 1284, dday: 5,  status: 'open' },
   { id: 'cheer',    participants: 873,  dday: 12, status: 'open' },
   { id: 'md',       participants: 642,  dday: 3,  status: 'open' },
   { id: 'facility', participants: 1521, dday: 8,  status: 'open' },
-  { id: 'season',   participants: 2087, dday: 0,  status: 'closed' },
+  { id: 'season',   participants: 2087, dday: 0,  status: 'closed', closedAt: '2026-06-28' },
 ]
+
+// 종료 후 이 일수가 지나면 설문을 목록에서 자동으로 숨긴다.
+// 예) closedAt 2026-08-01 → 2026-08-08(=+7일)부터 목록에서 제거.
+const SURVEY_HIDE_DAYS = 7
+
+function isSurveyExpired(s) {
+  if (s.status !== 'closed' || !s.closedAt) return false
+  const elapsed = (Date.now() - new Date(s.closedAt).getTime()) / 86400000 // 일 단위
+  return elapsed >= SURVEY_HIDE_DAYS
+}
 
 export default function SurveyPage() {
   const NICKNAME = getCurrentUser()?.nickname || '팬'
@@ -81,9 +93,9 @@ export default function SurveyPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const visibleSurveys = SURVEYS.filter(s =>
-    statusFilter === 'all' ? true : s.status === statusFilter,
-  )
+  const visibleSurveys = SURVEYS
+    .filter(s => !isSurveyExpired(s)) // 종료 후 7일 지난 설문 자동 제거
+    .filter(s => (statusFilter === 'all' ? true : s.status === statusFilter))
 
   return (
     <div className="ch-root" style={themeStyle}>
@@ -91,7 +103,7 @@ export default function SurveyPage() {
       {/* ── Header (shared style) ── */}
       <header className="ch-header">
         <div className="ch-topbar">
-          <div className="ch-logo" onClick={() => navigate('/team-select')}>FANCLUV</div>
+          <div className="ch-logo" role="button" tabIndex={0} onClick={() => navigate(`/club/${teamId}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/club/${teamId}`) } }}>FANCLUV</div>
           <div className="ch-club">
             <TeamEmblem color={team.color} size={30} className="ch-club-emblem" />
             <span className="ch-club-name">{team.name}</span>
@@ -189,10 +201,6 @@ export default function SurveyPage() {
         </main>
       ) : (
       <main className="sv-main">
-        {!submitted && (
-          <button className="sv-back" onClick={backToList}>{t('common.back')}</button>
-        )}
-
         {submitted ? (
           <div className="sv-done">
             <div className="sv-done-icon" aria-hidden="true">
@@ -202,7 +210,6 @@ export default function SurveyPage() {
             <p>{t('survey.doneMsg')}</p>
             <div className="sv-done-actions">
               <button className="sv-btn-primary" onClick={backToList}>{t('survey.backList')}</button>
-              <button className="sv-btn-ghost" onClick={() => navigate(`/club/${team.id}`)}>{t('survey.backHome')}</button>
             </div>
           </div>
         ) : (

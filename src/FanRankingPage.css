@@ -203,6 +203,14 @@
   background: var(--page-bg); display: flex; align-items: center; justify-content: center; font-size: 19px;
 }
 .fr-badge.done .fr-badge-icon { background: color-mix(in srgb, var(--team) 14%, var(--mix-base)); }
+
+/* ── Ranking SVG icons (replace emoji) ── */
+.fr-weekstat-icon svg,
+.fr-badge-icon svg,
+.fr-level-emoji svg { color: var(--team-deep); }
+.fr-medal svg { display: block; }
+.fr-myrank-level svg { vertical-align: -2px; }          /* inherits white on team bg */
+.fr-level-hint svg { vertical-align: -2px; color: var(--team-deep); }
 .fr-badge-body { flex: 1; }
 .fr-badge-label { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
 .fr-badge-done { font-size: 11px; font-weight: 700; color: var(--team-deep); background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); padding: 2px 8px; border-radius: 100px; }
@@ -221,6 +229,7 @@
 .fr-cta-btn {
   height: 48px; border-radius: 10px; font-size: 14.5px; font-weight: 700;
   cursor: pointer; font-family: inherit; transition: filter 0.15s, transform 0.1s, background 0.15s;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
 }
 .fr-cta-btn.primary { background: var(--team-deep); color: #fff; border: none; }
 .fr-cta-btn.primary:hover { filter: brightness(1.08); transform: translateY(-1px); }

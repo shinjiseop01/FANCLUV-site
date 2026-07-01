@@ -321,8 +321,8 @@ export default {
   'rank.levelCurrent': '현재',
   'rank.badges': '이번 주 획득 가능한 배지',
   'rank.ctaText': '랭킹을 올리려면 지금 의견을 남겨보세요.',
-  'rank.ctaWrite': '📝 의견 작성하기',
-  'rank.ctaSurvey': '📊 설문 참여하기',
+  'rank.ctaWrite': '의견 작성하기',
+  'rank.ctaSurvey': '설문 참여하기',
   'rank.top50': 'TOP 50',
   'rank.criteriaBasis': '{c} 기준',
 

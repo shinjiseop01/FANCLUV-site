@@ -33,7 +33,7 @@ export default function InfoPage({ page }) {
     <div className="ch-root" style={themeStyle}>
       <header className="ch-header">
         <div className="ch-topbar">
-          <div className="ch-logo" onClick={() => navigate('/team-select')}>FANCLUV</div>
+          <div className="ch-logo" role="button" tabIndex={0} onClick={() => navigate(`/club/${teamId}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/club/${teamId}`) } }}>FANCLUV</div>
           <div className="ch-club">
             <TeamEmblem color={team.color} size={30} className="ch-club-emblem" />
             <span className="ch-club-name">{team.name}</span>

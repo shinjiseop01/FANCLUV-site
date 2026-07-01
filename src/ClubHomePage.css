@@ -43,7 +43,10 @@
   color: var(--ink);
   cursor: pointer;
   justify-self: start;
+  border-radius: 6px;
+  transition: opacity 0.15s ease;
 }
+.ch-logo:hover { opacity: 0.7; }
 
 .ch-club {
   display: flex;

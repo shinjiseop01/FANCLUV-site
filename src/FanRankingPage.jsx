@@ -5,6 +5,7 @@ import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TEAMS, TeamEmblem, menuPath } from './teams.jsx'
 import EmptyState from './components/EmptyState.jsx'
+import RankIcon from './components/RankIcon.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import { useFakeLoading } from './lib/useFakeLoading.js'
 import './ClubHomePage.css'
@@ -59,7 +60,8 @@ function fanMetrics(key) {
 
 const CRIT_KEY = { score: 'rank.critScore', opinions: 'rank.critOpinions', comments: 'rank.critComments', surveys: 'rank.critSurveys', empathy: 'rank.critEmpathy' }
 
-const MEDALS = ['🥇', '🥈', '🥉']
+// 1·2·3위 메달 색상 (금 / 은 / 동)
+const MEDAL_COLORS = ['#E8B33D', '#A9B2BD', '#C77B45']
 
 // my rank (mock) per scope
 const MY = {
@@ -68,10 +70,10 @@ const MY = {
 }
 
 const WEEK_STATS = [
-  { key: 'opinions', icon: '📝', label: '가장 많은 의견 작성', name: '블루윙', value: '32건' },
-  { key: 'comments', icon: '💬', label: '가장 많은 댓글', name: '레전드7', value: '128개' },
-  { key: 'surveys', icon: '📊', label: '가장 많은 설문 참여', name: '서포터K', value: '19회' },
-  { key: 'empathy', icon: '❤️', label: '가장 많은 공감', name: '직관러', value: '540개' },
+  { key: 'opinions', icon: 'opinions', label: '가장 많은 의견 작성', name: '블루윙', value: '32건' },
+  { key: 'comments', icon: 'comments', label: '가장 많은 댓글', name: '레전드7', value: '128개' },
+  { key: 'surveys', icon: 'surveys', label: '가장 많은 설문 참여', name: '서포터K', value: '19회' },
+  { key: 'empathy', icon: 'empathy', label: '가장 많은 공감', name: '직관러', value: '540개' },
 ]
 const SCORE_RULES = [
   { label: '의견 작성', points: '+10점' },
@@ -80,16 +82,16 @@ const SCORE_RULES = [
   { label: '공감 받기', points: '+2점' },
 ]
 const LEVELS = [
-  { emoji: '🌱', name: 'Rookie Fan', min: 0 },
-  { emoji: '⚽', name: 'Active Fan', min: 200 },
-  { emoji: '🔥', name: 'Super Fan', min: 600 },
-  { emoji: '🏆', name: 'Legend Fan', min: 1200 },
+  { icon: 'rookie', name: 'Rookie Fan', min: 0 },
+  { icon: 'active', name: 'Active Fan', min: 200 },
+  { icon: 'super', name: 'Super Fan', min: 600 },
+  { icon: 'legend', name: 'Legend Fan', min: 1200 },
 ]
 const BADGES = [
-  { icon: '📝', label: '첫 의견 작성', desc: '의견 1건 작성하기', done: true },
-  { icon: '💬', label: '댓글 10개 작성', desc: '댓글 10개 남기기', progress: 70 },
-  { icon: '📊', label: '설문 5회 참여', desc: '설문 5회 참여하기', progress: 40 },
-  { icon: '❤️', label: '공감 50개 받기', desc: '내 의견에 공감 50개', progress: 24 },
+  { icon: 'opinions', label: '첫 의견 작성', desc: '의견 1건 작성하기', done: true },
+  { icon: 'comments', label: '댓글 10개 작성', desc: '댓글 10개 남기기', progress: 70 },
+  { icon: 'surveys', label: '설문 5회 참여', desc: '설문 5회 참여하기', progress: 40 },
+  { icon: 'empathy', label: '공감 50개 받기', desc: '내 의견에 공감 50개', progress: 24 },
 ]
 
 function Change({ value }) {
@@ -162,7 +164,7 @@ export default function FanRankingPage() {
       {/* ── Header (shared style) ── */}
       <header className="ch-header">
         <div className="ch-topbar">
-          <div className="ch-logo" onClick={() => navigate('/team-select')}>FANCLUV</div>
+          <div className="ch-logo" role="button" tabIndex={0} onClick={() => navigate(`/club/${teamId}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/club/${teamId}`) } }}>FANCLUV</div>
           <div className="ch-club">
             <TeamEmblem color={team.color} size={30} className="ch-club-emblem" />
             <span className="ch-club-name">{team.name}</span>
@@ -193,7 +195,7 @@ export default function FanRankingPage() {
         {loading ? (
           <SkeletonList count={5} lines={1} />
         ) : !HAS_RANKING ? (
-          <EmptyState icon="🏆" title={t('empty.rankingTitle')} message={t('empty.rankingMsg')} />
+          <EmptyState icon={<RankIcon name="legend" size={30} />} title={t('empty.rankingTitle')} message={t('empty.rankingMsg')} />
         ) : (
         <>
         <section className="fr-pagehead">
@@ -232,7 +234,9 @@ export default function FanRankingPage() {
                 const center = p.rank === 1
                 return (
                   <div key={p.rank} className={`fr-podium r${p.rank}${center ? ' first' : ''}`}>
-                    <div className="fr-medal" aria-hidden="true">{MEDALS[p.rank - 1]}</div>
+                    <div className="fr-medal" aria-hidden="true">
+                      <RankIcon name="medal" size={center ? 36 : 30} style={{ color: MEDAL_COLORS[p.rank - 1] }} />
+                    </div>
                     <span className="fr-podium-avatar">{p.name[0]}</span>
                     <span className="fr-podium-name">{p.name}</span>
                     <span className="fr-podium-team">
@@ -251,7 +255,7 @@ export default function FanRankingPage() {
                 <span className="fr-myrank-avatar">{NICKNAME[0]}</span>
                 <div>
                   <span className="fr-myrank-name">{t('rank.myRank', { name: NICKNAME })}</span>
-                  <span className="fr-myrank-level">{myLevel.emoji} {myLevel.name}</span>
+                  <span className="fr-myrank-level"><RankIcon name={myLevel.icon} size={15} /> {myLevel.name}</span>
                 </div>
                 <span className="fr-myrank-scope">{scopeLabel}</span>
               </div>
@@ -307,7 +311,7 @@ export default function FanRankingPage() {
               <div className="fr-weekstats">
                 {WEEK_STATS.map(s => (
                   <div key={s.key} className="fr-weekstat">
-                    <span className="fr-weekstat-icon" aria-hidden="true">{s.icon}</span>
+                    <span className="fr-weekstat-icon" aria-hidden="true"><RankIcon name={s.icon} size={20} /></span>
                     <div className="fr-weekstat-body">
                       <span className="fr-weekstat-label">{s.label}</span>
                       <span className="fr-weekstat-name">{s.name} · {s.value}</span>
@@ -323,7 +327,7 @@ export default function FanRankingPage() {
               <div className="fr-levels">
                 {LEVELS.map((lv, i) => (
                   <div key={lv.name} className={`fr-level${i === myLevelIdx ? ' on' : ''}`}>
-                    <span className="fr-level-emoji" aria-hidden="true">{lv.emoji}</span>
+                    <span className="fr-level-emoji" aria-hidden="true"><RankIcon name={lv.icon} size={18} /></span>
                     <span className="fr-level-name">{lv.name}</span>
                     {i === myLevelIdx && <span className="fr-level-tag">현재</span>}
                   </div>
@@ -332,7 +336,7 @@ export default function FanRankingPage() {
               {nextLevel && (
                 <>
                   <div className="fr-level-bar"><span style={{ width: `${levelProgress}%` }} /></div>
-                  <p className="fr-level-hint">다음 레벨 <strong>{nextLevel.emoji} {nextLevel.name}</strong>까지 {levelProgress}%</p>
+                  <p className="fr-level-hint">다음 레벨 <strong><RankIcon name={nextLevel.icon} size={14} /> {nextLevel.name}</strong>까지 {levelProgress}%</p>
                 </>
               )}
               <div className="fr-rules">
@@ -348,7 +352,7 @@ export default function FanRankingPage() {
               <div className="fr-badges">
                 {BADGES.map(b => (
                   <div key={b.label} className={`fr-badge${b.done ? ' done' : ''}`}>
-                    <span className="fr-badge-icon" aria-hidden="true">{b.icon}</span>
+                    <span className="fr-badge-icon" aria-hidden="true"><RankIcon name={b.icon} size={20} /></span>
                     <div className="fr-badge-body">
                       <span className="fr-badge-label">{b.label}{b.done && <span className="fr-badge-done">획득 완료</span>}</span>
                       <span className="fr-badge-desc">{b.desc}</span>
@@ -362,8 +366,8 @@ export default function FanRankingPage() {
             {/* CTA */}
             <section className="fr-cta">
               <p className="fr-cta-text">{t('rank.ctaText')}</p>
-              <button className="fr-cta-btn primary" onClick={goWrite}>{t('rank.ctaWrite')}</button>
-              <button className="fr-cta-btn secondary" onClick={goSurvey}>{t('rank.ctaSurvey')}</button>
+              <button className="fr-cta-btn primary" onClick={goWrite}><RankIcon name="opinions" size={16} /> {t('rank.ctaWrite')}</button>
+              <button className="fr-cta-btn secondary" onClick={goSurvey}><RankIcon name="surveys" size={16} /> {t('rank.ctaSurvey')}</button>
             </section>
           </aside>
         </div>

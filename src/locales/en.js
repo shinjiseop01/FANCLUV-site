@@ -321,8 +321,8 @@ export default {
   'rank.levelCurrent': 'Current',
   'rank.badges': 'Badges to earn this week',
   'rank.ctaText': 'Leave an opinion now to climb the ranking.',
-  'rank.ctaWrite': '📝 Write Opinion',
-  'rank.ctaSurvey': '📊 Join Survey',
+  'rank.ctaWrite': 'Write Opinion',
+  'rank.ctaSurvey': 'Join Survey',
   'rank.top50': 'TOP 50',
   'rank.criteriaBasis': 'by {c}',
 
