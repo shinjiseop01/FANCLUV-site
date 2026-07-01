@@ -454,6 +454,42 @@ export default {
   'admin.dash.newMembersToday': 'New Members Today',
   'admin.dash.pendingReports': 'Pending Reports',
   'admin.dash.quick': 'Quick actions',
+  // Dashboard (enhanced)
+  'admin.dash.mockNote': 'Mock data',
+  'admin.dash.mockHint': 'Sample data for now. Real data will show once Supabase is connected.',
+  // KPI
+  'admin.dash.totalMembers': 'Total Members',
+  'admin.dash.activeMembers': 'Active Members',
+  'admin.dash.totalOpinions': 'Total Opinions',
+  'admin.dash.participation': 'Survey Participation',
+  'admin.dash.comments': 'Comments',
+  'admin.dash.likes': 'Likes',
+  // Quick actions
+  'admin.dash.qCreateSurvey': 'Create Survey',
+  'admin.dash.qCreateNews': 'Post News',
+  'admin.dash.qMembers': 'Members',
+  'admin.dash.qReports': 'Reports',
+  // Charts
+  'admin.dash.chartSignups': 'Daily Signups',
+  'admin.dash.chartOpinions': 'Daily Opinions',
+  'admin.dash.chartTeamShare': 'Opinions by Club',
+  'admin.dash.chartSentiment': 'Sentiment Distribution',
+  'admin.dash.sentiment.positive': 'Positive',
+  'admin.dash.sentiment.neutral': 'Neutral',
+  'admin.dash.sentiment.negative': 'Negative',
+  // Club breakdown
+  'admin.dash.teamStatus': 'Club Status',
+  'admin.dash.thTeam': 'Club',
+  'admin.dash.thMembers': 'Members',
+  'admin.dash.thOpinions': 'Opinions',
+  'admin.dash.thSatisfaction': 'Satisfaction',
+  'admin.dash.thParticipation': 'Participation',
+  // Recent activity
+  'admin.dash.recentMembers': 'Recent Members',
+  'admin.dash.recentOpinions': 'Recent Opinions',
+  'admin.dash.recentComments': 'Recent Comments',
+  'admin.dash.recentReports': 'Recent Reports',
+  'admin.dash.viewAll': 'View all',
   // Members
   'admin.mem.sub': '{n} members total',
   'admin.mem.searchPh': 'Search by nickname or email',

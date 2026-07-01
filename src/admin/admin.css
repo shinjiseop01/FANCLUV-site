@@ -211,3 +211,75 @@
   .adm-comment { flex-direction: column; }
   .adm-comment .adm-actions { width: 100%; justify-content: flex-start; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   Dashboard (enhanced) — KPI · charts · club status · recent
+   All token-based → light & dark both work.
+   ════════════════════════════════════════════════════════════ */
+.adm-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.adm-mock-chip {
+  flex-shrink: 0; font-size: 11.5px; font-weight: 700; color: var(--muted);
+  background: var(--page-bg); border: 1px solid var(--border);
+  padding: 5px 11px; border-radius: 100px; cursor: default;
+}
+.adm-dash-section { margin-bottom: 32px; }
+
+/* Panels & grids */
+.adm-panel { background: var(--canvas); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+.adm-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
+.adm-panel-title { font-size: 15px; font-weight: 800; color: var(--ink); }
+.adm-panel-link {
+  flex-shrink: 0; font-size: 12.5px; font-weight: 700; color: var(--team-deep);
+  background: none; border: none; cursor: pointer; font-family: inherit; padding: 0;
+}
+.adm-panel-link:hover { text-decoration: underline; }
+.adm-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 32px; }
+
+/* Charts */
+.adm-chart-svg { width: 100%; height: auto; display: block; }
+.adm-chart-axis { fill: var(--muted); font-size: 9px; font-weight: 600; }
+.adm-donut-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.adm-donut-svg { width: 150px; height: 150px; flex-shrink: 0; }
+.adm-donut-total { fill: var(--ink); font-size: 22px; font-weight: 800; }
+.adm-donut-cap { fill: var(--muted); font-size: 11px; font-weight: 600; }
+.adm-donut-legend, .adm-stack-legend { list-style: none; display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 130px; }
+.adm-donut-legend li, .adm-stack-legend li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.adm-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.adm-legend-label { color: var(--body); font-weight: 600; }
+.adm-legend-val { margin-left: auto; color: var(--ink); font-weight: 800; }
+
+/* Stacked bar (sentiment) */
+.adm-stack { display: flex; flex-direction: column; gap: 16px; }
+.adm-stack-bar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; background: var(--page-bg); }
+.adm-stack-seg { height: 100%; }
+
+/* Club status table */
+.adm-table-wrap.flat { border: none; border-radius: 0; }
+.adm-team-cell { display: inline-flex; align-items: center; gap: 9px; }
+.adm-team-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.adm-minibar {
+  display: inline-block; width: 74px; height: 7px; border-radius: 100px;
+  background: var(--border-soft); overflow: hidden; vertical-align: middle; margin-right: 8px;
+}
+.adm-minibar > span { display: block; height: 100%; border-radius: 100px; background: var(--team); }
+.adm-minibar-val { font-size: 12.5px; font-weight: 700; color: var(--ink); }
+
+/* Recent activity lists */
+.adm-recent { list-style: none; display: flex; flex-direction: column; }
+.adm-recent-item { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border-soft); }
+.adm-recent-item:last-child { border-bottom: none; }
+.adm-recent-item.muted { opacity: 0.55; }
+.adm-recent-avatar {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--team) 12%, var(--mix-base));
+  color: var(--team-deep); font-size: 14px; font-weight: 800;
+}
+.adm-recent-body { flex: 1; min-width: 0; }
+.adm-recent-title { display: block; font-size: 13.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm-recent-meta { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.adm-recent-date { flex-shrink: 0; font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+@media (max-width: 860px) {
+  .adm-grid-2 { grid-template-columns: 1fr; }
+}

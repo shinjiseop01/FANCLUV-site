@@ -143,6 +143,7 @@ npm run lint     # oxlint
 ### 관리자 콘솔 — `src/admin/`
 - `RequireAdmin` 가드로 보호. `AdminLayout` + 중첩 라우트(대시보드/회원/의견/설문/뉴스/신고/설정).
 - 데이터는 `adminData.js`의 Mock. 댓글 관리 기능 포함, 토스트 없이 인라인 피드백.
+- **대시보드 고도화**(`AdminDashboard.jsx` + `AdminCharts.jsx`): KPI 8종, 구단별 현황 테이블(만족도·참여율 미니바), 최근 활동(가입/의견/댓글/신고), 차트(라인·바·도넛·감정 누적바 — 순수 SVG, 라이브러리 없음), 빠른 작업 4종. 데이터는 `adminData.js`의 getter(`getDashboardStats`/`getTeamBreakdown`/`getRecent*`/`getDaily*`/`getTeamOpinionShare`/`getSentimentDistribution`)로 분리 → **Supabase 연동 시 getter 내부만 실제 쿼리로 교체**(각 함수 주석에 교체 지점 표기).
 
 ### 계정 복구 / 프로필 / 정보 페이지
 - **FindIdPage / FindPasswordPage** (`RecoveryPages.css`) — 아이디·비밀번호 찾기 (Mock).

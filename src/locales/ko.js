@@ -454,6 +454,42 @@ export default {
   'admin.dash.newMembersToday': '오늘 신규 가입자',
   'admin.dash.pendingReports': '미처리 신고',
   'admin.dash.quick': '빠른 관리',
+  // 대시보드 고도화
+  'admin.dash.mockNote': 'Mock 데이터',
+  'admin.dash.mockHint': '현재는 예시 데이터입니다. Supabase 연동 시 실제 데이터로 표시됩니다.',
+  // KPI
+  'admin.dash.totalMembers': '전체 회원 수',
+  'admin.dash.activeMembers': '활성 회원 수',
+  'admin.dash.totalOpinions': '전체 팬 의견 수',
+  'admin.dash.participation': '설문 참여율',
+  'admin.dash.comments': '댓글 수',
+  'admin.dash.likes': '좋아요 수',
+  // 빠른 작업
+  'admin.dash.qCreateSurvey': '설문 생성',
+  'admin.dash.qCreateNews': '뉴스 등록',
+  'admin.dash.qMembers': '회원 관리',
+  'admin.dash.qReports': '신고 관리',
+  // 차트
+  'admin.dash.chartSignups': '일별 가입자 추이',
+  'admin.dash.chartOpinions': '일별 의견 작성 수',
+  'admin.dash.chartTeamShare': '구단별 의견 비율',
+  'admin.dash.chartSentiment': '감정 분석 분포',
+  'admin.dash.sentiment.positive': '긍정',
+  'admin.dash.sentiment.neutral': '중립',
+  'admin.dash.sentiment.negative': '부정',
+  // 구단별 현황
+  'admin.dash.teamStatus': '구단별 현황',
+  'admin.dash.thTeam': '구단',
+  'admin.dash.thMembers': '회원 수',
+  'admin.dash.thOpinions': '의견 수',
+  'admin.dash.thSatisfaction': '만족도',
+  'admin.dash.thParticipation': '설문 참여율',
+  // 최근 활동
+  'admin.dash.recentMembers': '최근 가입 회원',
+  'admin.dash.recentOpinions': '최근 작성 의견',
+  'admin.dash.recentComments': '최근 댓글',
+  'admin.dash.recentReports': '최근 신고',
+  'admin.dash.viewAll': '전체 보기',
   // 회원 관리
   'admin.mem.sub': '총 {n}명의 회원',
   'admin.mem.searchPh': '닉네임 또는 이메일로 검색',
