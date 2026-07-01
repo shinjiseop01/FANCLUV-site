@@ -129,6 +129,12 @@ npm run lint     # oxlint
 - `auth.socialLogin(providerId)` 계정 매칭: ① provider+providerUserId 일치 → 로그인 ② 같은 이메일 기존 계정 → **자동 연결(account linking)** ③ 없으면 신규 소셜 계정 생성. 소셜 계정은 `password:null`, 이메일 인증 완료로 간주.
 - 사용자 스키마에 `provider`/`providerUserId` 필드 추가(이메일 계정은 null).
 
+**Supabase 실연동(4차)** — 설정법: [SOCIAL_LOGIN_SETUP.md](SOCIAL_LOGIN_SETUP.md).
+- `SUPABASE_PROVIDER_CONFIG`(oauth.js): `google`·`kakao`=native, `naver`=custom.
+- Supabase 모드 `socialLogin`: **Google·Kakao → `supabase.auth.signInWithOAuth({ provider })`**(native, ID/Secret은 Supabase 대시보드). **NAVER → Supabase 미지원 → 커스텀 OAuth**: `VITE_NAVER_CLIENT_ID` 있으면 NAVER authorize 로 리다이렉트(콜백 토큰교환은 Edge Function `naver-callback`), 없으면 설정 안내 메시지.
+- **프로필 매핑**: `0007_social_login.sql` — `profiles.provider_user_id` 컬럼 추가 + `handle_new_user` 트리거가 OAuth 메타데이터(provider/provider_user_id/nickname/avatar_url)를 profiles에 매핑.
+- **중복 이메일**: Supabase "Allow linking accounts with same email" 활성 시 자동 연결, 기본값은 안내/오류 표시(Mock은 자동 연결). 이메일 로그인/회원가입은 그대로 유지.
+
 ### 다국어 — `src/contexts/LanguageContext.jsx` + `src/locales/{ko,en}.js`
 - `useLang()` → `{ lang, setLang, t }`. `t(key, vars?)`는 `{token}` 보간 지원, 누락 시 ko 폴백 → raw key 폴백.
 - localStorage 키: `fancluv_lang` (기본 `ko`).

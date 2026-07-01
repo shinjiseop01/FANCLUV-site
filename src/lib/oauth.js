@@ -130,3 +130,13 @@ export const OAUTH_PROVIDERS = [
 export function getProvider(id) {
   return OAUTH_PROVIDERS.find(p => p.id === id) || null
 }
+
+// ── Supabase Auth 연동 설정 ──
+// `native: true`  → Supabase 가 기본 지원 → supabase.auth.signInWithOAuth({ provider })
+// `native: false` → Supabase 미지원(예: NAVER) → 커스텀 OAuth(Edge Function) 필요.
+// 설정 방법: SOCIAL_LOGIN_SETUP.md
+export const SUPABASE_PROVIDER_CONFIG = {
+  google: { supabaseProvider: 'google', native: true },
+  kakao:  { supabaseProvider: 'kakao', native: true },
+  naver:  { supabaseProvider: null, native: false },
+}

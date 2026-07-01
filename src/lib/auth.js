@@ -10,7 +10,7 @@
 // 호출된다. Supabase 세션은 비동기이므로, AuthContext 가 세션/프로필을 로드해
 // 아래 동기 캐시(cachedUser)에 반영하고, 그 값을 동기로 반환한다.
 import { supabase, isSupabaseConfigured } from './supabase.js'
-import { getProvider } from './oauth.js'
+import { getProvider, SUPABASE_PROVIDER_CONFIG } from './oauth.js'
 
 const USERS_KEY = 'fancluv_users'
 const SESSION_KEY = 'fancluv_session' // (Mock) 현재 로그인한 사용자의 email
@@ -56,6 +56,7 @@ function mapSupabaseUser(authUser, profile) {
     avatarUrl: p.avatar_url || null,
     role: p.role === 'admin' ? ROLES.ADMIN : ROLES.FAN,
     provider: p.provider || 'email',
+    providerUserId: p.provider_user_id || null,
     nicknameUpdatedAt: p.nickname_updated_at || null,
     isEmailVerified: emailVerified,
     verificationStatus:
@@ -265,17 +266,38 @@ export async function logout() {
 // ── 소셜 로그인 (Google = Supabase OAuth / Kakao·NAVER = 인터페이스 유지) ──
 export async function socialLogin(providerId) {
   if (isSupabaseConfigured) {
-    if (providerId === 'google') {
+    const cfg = SUPABASE_PROVIDER_CONFIG[providerId]
+    if (!cfg) return { ok: false, error: '지원하지 않는 로그인 방식입니다.' }
+
+    // Google · Kakao — Supabase 기본 지원 provider.
+    if (cfg.native) {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: cfg.supabaseProvider,
         options: { redirectTo: window.location.origin },
       })
       if (error) return { ok: false, error: translateAuthError(error) }
-      return { ok: true, redirecting: true } // 브라우저가 Google 로 리다이렉트됨
+      return { ok: true, redirecting: true } // 브라우저가 provider 로 리다이렉트됨
     }
-    // Kakao / NAVER: Provider 인터페이스만 유지, 실제 연동은 다음 단계.
-    const name = providerId === 'kakao' ? 'Kakao' : 'NAVER'
-    return { ok: false, error: `${name} 로그인은 다음 단계에서 연동될 예정입니다.` }
+
+    // NAVER — Supabase 미지원 → 커스텀 OAuth authorize 로 리다이렉트.
+    // (콜백에서 code→token→Supabase 세션 교환은 Edge Function 이 처리 — SOCIAL_LOGIN_SETUP.md)
+    if (providerId === 'naver') {
+      const clientId = import.meta.env.VITE_NAVER_CLIENT_ID
+      if (!clientId || clientId.includes('your-naver')) {
+        return { ok: false, error: 'NAVER 로그인 설정이 필요합니다. SOCIAL_LOGIN_SETUP.md 를 참고해 주세요.' }
+      }
+      const redirectUri = import.meta.env.VITE_NAVER_CALLBACK_URL || `${window.location.origin}/auth/naver/callback`
+      const state = Math.random().toString(36).slice(2)
+      try { sessionStorage.setItem('naver_oauth_state', state) } catch { /* noop */ }
+      const authorizeUrl =
+        'https://nid.naver.com/oauth2.0/authorize?response_type=code' +
+        `&client_id=${encodeURIComponent(clientId)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&state=${encodeURIComponent(state)}`
+      window.location.href = authorizeUrl
+      return { ok: true, redirecting: true }
+    }
+    return { ok: false, error: '지원하지 않는 로그인 방식입니다.' }
   }
   // Mock 모드 — 기존 소셜 Mock 로그인.
   const provider = getProvider(providerId)
