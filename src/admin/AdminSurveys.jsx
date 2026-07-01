@@ -1,40 +1,55 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import EmptyState from '../components/EmptyState.jsx'
-import { MOCK_SURVEYS } from './adminData.js'
+import {
+  adminListSurveys, createSurvey, updateSurvey,
+  closeSurvey as closeSurveyApi, deleteSurvey,
+} from '../lib/surveysRepo.js'
 
 const EMPTY = { title: '', desc: '', question: '', endDate: '' }
 
 export default function AdminSurveys() {
   const { t } = useLang()
-  const [surveys, setSurveys] = useState(MOCK_SURVEYS)
+  const [surveys, setSurveys] = useState([])
   const [form, setForm] = useState(null)   // null=closed, {id?, ...fields}=open
   const [error, setError] = useState('')
+
+  // 설문 목록 로드 (Supabase 우선, 아니면 Mock — surveysRepo)
+  useEffect(() => {
+    let active = true
+    adminListSurveys().then(list => { if (active) setSurveys(list) })
+    return () => { active = false }
+  }, [])
 
   function openCreate() { setError(''); setForm({ ...EMPTY }) }
   function openEdit(s) { setError(''); setForm({ ...s }) }
   function close() { setForm(null); setError('') }
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  function save(e) {
+  async function save(e) {
     e.preventDefault()
     if (!form.title.trim()) { setError(t('admin.sv.errTitle')); return }
     if (!form.question.trim()) { setError(t('admin.sv.errQuestion')); return }
     if (form.id) {
-      setSurveys(list => list.map(s => (s.id === form.id ? { ...s, ...form } : s)))
+      const res = await updateSurvey(form.id, form)
+      if (!res.ok) { setError(res.error || t('admin.sv.errTitle')); return }
+      setSurveys(list => list.map(s => (s.id === form.id ? res.survey : s)))
     } else {
-      const id = 's' + Date.now()
-      setSurveys(list => [{ ...form, id, status: 'open', responses: 0 }, ...list])
+      const res = await createSurvey(form)
+      if (!res.ok) { setError(res.error || t('admin.sv.errTitle')); return }
+      setSurveys(list => [res.survey, ...list])
     }
     close()
   }
 
-  function closeSurvey(id) {
-    setSurveys(list => list.map(s => (s.id === id ? { ...s, status: 'closed' } : s)))
+  async function closeSurvey(id) {
+    const res = await closeSurveyApi(id)
+    if (res.ok) setSurveys(list => list.map(s => (s.id === id ? { ...s, status: 'closed' } : s)))
   }
 
-  function remove(id) {
-    setSurveys(list => list.filter(s => s.id !== id))
+  async function remove(id) {
+    const res = await deleteSurvey(id)
+    if (res.ok) setSurveys(list => list.filter(s => s.id !== id))
   }
 
   return (

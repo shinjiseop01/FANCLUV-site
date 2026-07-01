@@ -250,6 +250,7 @@ export default {
   'survey.listDesc': '진행 중인 설문에 참여하고 의견을 들려주세요. 결과는 AI 분석을 거쳐 구단에 전달됩니다.',
   'survey.statusOpen': '진행 중',
   'survey.statusClosed': '마감',
+  'survey.statusDone': '참여 완료',
   'survey.participants': '{count}명 참여',
   'survey.join': '참여하기',
   'survey.ddayEnded': '마감',

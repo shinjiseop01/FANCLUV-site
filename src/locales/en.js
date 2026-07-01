@@ -250,6 +250,7 @@ export default {
   'survey.listDesc': 'Take part in open surveys and share your thoughts. Results are delivered to the club after AI analysis.',
   'survey.statusOpen': 'Open',
   'survey.statusClosed': 'Closed',
+  'survey.statusDone': 'Completed',
   'survey.participants': '{count} participants',
   'survey.join': 'Participate',
   'survey.ddayEnded': 'Closed',

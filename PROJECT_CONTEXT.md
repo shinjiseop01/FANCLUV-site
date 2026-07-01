@@ -78,11 +78,13 @@ npm run lint     # oxlint
 - 팀 컬러 틴트는 `color-mix(... var(--mix-base))` 패턴 사용 — `--mix-base`가 라이트=흰색 / 다크=어두운 표면으로 전환되어 틴트가 자연스럽게 어두워짐.
 - 설정 페이지에서 ☀️라이트 / 🌙다크 / 💻시스템 선택.
 
-### 설문 목록 — `src/SurveyPage.jsx`
-- `selectedId` 내부 상태로 **목록 → 상세 → 완료** 3단계 전환(라우팅 미사용). 목록은 5개 Mock 설문 카드(2~3열 반응형). 상세 폼(별점·객관식·주관식)은 기존 유지.
-- 상태 필터(전체/진행 중/종료) 지원.
-- **종료 후 7일 자동 숨김**: 종료 설문은 `closedAt` 종료일을 가지며 `SURVEY_HIDE_DAYS(=7)` 경과 시 `isSurveyExpired()`로 목록에서 자동 제거.
-- **참여(상세) 화면에는 뒤로가기 버튼 없음** — 참여 집중. 완료 화면은 "설문 목록으로 돌아가기" 버튼만 제공. (목록 화면 상단의 홈 이동 back 버튼은 유지)
+### 설문 / 설문 응답 — `src/lib/surveysRepo.js` (Supabase-우선 + Mock 폴백)
+- **Supabase 이관 완료**. `SurveyPage`(팬) + `AdminSurveys`(관리자)의 단일 데이터 소스. Supabase 설정 시 `surveys`/`survey_responses` + `surveys_view`(응답수·현재 사용자 참여여부 집계) 사용, 아니면 Mock.
+- 팬 API: `listSurveys(teamId)`(대상 구단 team_id 또는 전체, **종료 7일 경과 자동 숨김**), `submitResponse(surveyId, teamId, answers)`(1인 1회, DB `unique(survey_id,user_id)`).
+- 관리자 API: `adminListSurveys`/`createSurvey`/`updateSurvey`/`closeSurvey`/`deleteSurvey` → Supabase CRUD(관리자 RLS `is_admin()`), Mock은 세션 배열.
+- **중복 참여 방지**: 참여한 설문은 카드가 "참여 완료" 상태(비활성) 표시. Mock은 `fancluv_survey_participated` localStorage, Supabase는 `surveys_view.has_responded`.
+- `selectedId` 내부 상태로 **목록 → 상세 → 완료** 3단계 전환. 상세 폼(별점·객관식·주관식 Q1~Q4)은 고정 템플릿 유지(UI 불변), 응답은 `answers` jsonb로 저장. 제목/설명은 Supabase=DB값, Mock=locale 키 겸용.
+- 상태 필터(전체/진행 중/종료), 참여 화면 뒤로가기 없음, 완료 화면은 "목록으로 돌아가기"만 — 기존 UI 유지.
 
 ### 상단 로고 동작 — 모든 `.ch-*` 헤더 공통
 - 로그인 상태에서 **FANCLUV 로고 클릭 시 항상 구단 홈(`/club/:teamId`)으로 이동**. 로고는 `role="button" tabIndex={0}` + Enter/Space 키 지원(키보드 접근 가능).
