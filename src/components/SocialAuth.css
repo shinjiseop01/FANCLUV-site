@@ -1,0 +1,97 @@
+/* Social login / signup buttons — shared by LoginPage & SignupPage.
+   Both auth screens use a fixed dark aesthetic (gold accent), so these
+   use the same dark-friendly tokens with each service's official brand
+   colour. Kept understated to fit FANCLUV's design system. */
+
+.social-auth { margin-top: 20px; }
+
+/* "또는 / OR" divider */
+.social-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: var(--text-muted, #8A8A8A);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.social-divider::before,
+.social-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border, #2E2E2E);
+}
+
+.social-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.social-btn {
+  width: 100%;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 14.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s, background 0.15s, box-shadow 0.15s;
+}
+.social-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.social-btn:active:not(:disabled) { transform: translateY(0); }
+.social-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+
+.social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.social-icon svg { width: 18px; height: 18px; display: block; }
+
+/* Google — white button, subtle border (official light style) */
+.social-google {
+  background: #FFFFFF;
+  color: #1F1F1F;
+  border-color: #DADCE0;
+}
+.social-google:hover:not(:disabled) { background: #F6F7F8; }
+
+/* Kakao — brand yellow */
+.social-kakao {
+  background: #FEE500;
+  color: #191600;
+}
+.social-kakao:hover:not(:disabled) { filter: brightness(0.97); }
+
+/* NAVER — brand green */
+.social-naver {
+  background: #03C75A;
+  color: #FFFFFF;
+}
+.social-naver:hover:not(:disabled) { filter: brightness(0.96); }
+
+/* Per-button loading spinner — inherits the button's text colour */
+.social-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2.2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  opacity: 0.7;
+  animation: social-spin 0.7s linear infinite;
+}
+@keyframes social-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 480px) {
+  .social-btn { height: 54px; font-size: 15px; }
+}

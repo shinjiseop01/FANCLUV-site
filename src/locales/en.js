@@ -36,6 +36,9 @@ export default {
   'login.findId': 'Find ID',
   'login.findPw': 'Find Password',
   'login.signup': 'Sign up',
+  // Social login (Google / Kakao / NAVER)
+  'auth.or': 'OR',
+  'auth.continueWith': 'Continue with {provider}',
   // Account recovery (find ID / password)
   'find.backToLogin': 'Back to login',
   'findId.title': 'Find your ID',

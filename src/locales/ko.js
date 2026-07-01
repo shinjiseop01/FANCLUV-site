@@ -36,6 +36,9 @@ export default {
   'login.findId': '아이디 찾기',
   'login.findPw': '비밀번호 찾기',
   'login.signup': '회원가입',
+  // 소셜 로그인 (Google / Kakao / NAVER)
+  'auth.or': '또는',
+  'auth.continueWith': '{provider}로 계속하기',
   // 계정 복구 (아이디/비밀번호 찾기)
   'find.backToLogin': '로그인으로 돌아가기',
   'findId.title': '아이디 찾기',

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signup, issueEmailCode } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
+import SocialAuth from './components/SocialAuth.jsx'
 import './SignupPage.css'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -51,6 +52,12 @@ export default function SignupPage() {
     setError('')
     if (codeInput.trim() !== sentCode) { setError(t('signup.errCode')); return }
     setEmailVerified(true)
+  }
+
+  // 소셜 회원가입/로그인 성공 → 기존 팀 있으면 구단 홈, 아니면 팀 선택으로.
+  function handleSocialSuccess(res) {
+    if (res.user.selectedTeam) navigate(`/club/${res.user.selectedTeam}`)
+    else navigate('/team-select')
   }
 
   function handleSubmit(e) {
@@ -217,6 +224,8 @@ export default function SignupPage() {
             )}
           </button>
         </form>
+
+        <SocialAuth onSuccess={handleSocialSuccess} onError={setError} />
 
         <p className="signup-login-row">
           {t('signup.haveAccount')} <Link to="/" className="signup-login-link">{t('signup.loginLink')}</Link>

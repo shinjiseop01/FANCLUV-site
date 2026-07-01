@@ -7,6 +7,8 @@
 // 인증 관련 로직을 이 한 파일로 분리해 두었으므로, Supabase 도입 시
 // 아래 함수들의 내부 구현만 교체하면 화면 코드는 그대로 사용할 수 있습니다.
 
+import { getProvider } from './oauth.js'
+
 const USERS_KEY = 'fancluv_users'
 const SESSION_KEY = 'fancluv_session' // 현재 로그인한 사용자의 email 을 저장
 
@@ -140,6 +142,8 @@ export function signup({ nickname, email, password, gender = null, ageGroup = nu
     nickname,
     email,
     password, // 평문 저장 — 실서비스에서는 Supabase Auth로 교체 필요
+    provider: null,        // 이메일 가입 계정은 null (소셜 계정은 'google'|'kakao'|'naver')
+    providerUserId: null,
     gender,            // 'male' | 'female' | 'na' | null
     ageGroup,          // '10' | '20' | '30' | '40' | '50+'
     avatarUrl: null,   // 프로필 이미지 (data URL)
@@ -168,6 +172,73 @@ export function login({ email, password }) {
   }
   setSession(email)
   return { ok: true, user: publicUser(user) }
+}
+
+// ── 소셜 로그인 / 회원가입 (Google · Kakao · NAVER) ──
+// OAuth Provider(oauth.js)에서 표준 프로필을 받아 계정을 만들거나 로그인시킨다.
+// MVP는 Mock 이지만, 계정 매칭·연결 로직은 실서비스에서도 그대로 사용할 수 있게 짰다.
+//
+// 매칭 우선순위:
+//   1) 같은 provider + providerUserId 로 이미 가입한 소셜 계정 → 그대로 로그인
+//   2) 같은 이메일의 기존 계정이 있으면 → 소셜 정보를 붙여 자동 연결(account linking)
+//   3) 둘 다 없으면 → 신규 소셜 계정 생성
+export async function socialLogin(providerId) {
+  const provider = getProvider(providerId)
+  if (!provider) return { ok: false, error: '지원하지 않는 로그인 방식입니다.' }
+
+  let profile
+  try {
+    profile = await provider.signIn() // { provider, providerUserId, email, nickname, profileImage }
+  } catch {
+    return { ok: false, error: '소셜 로그인에 실패했습니다. 다시 시도해 주세요.' }
+  }
+  if (!profile) return { ok: false, error: '소셜 로그인에 실패했습니다. 다시 시도해 주세요.' }
+
+  const users = readUsers()
+  const emailLc = (profile.email || '').toLowerCase()
+  const now = new Date().toISOString()
+  let isNew = false
+
+  // 1) 이미 연결된 소셜 계정
+  let user = users.find(u => u.provider === profile.provider && u.providerUserId === profile.providerUserId)
+
+  // 2) 같은 이메일의 기존 계정과 자동 연결
+  if (!user && emailLc) {
+    user = users.find(u => u.email.toLowerCase() === emailLc)
+    if (user) {
+      user.provider = profile.provider
+      user.providerUserId = profile.providerUserId
+      if (!user.avatarUrl && profile.profileImage) user.avatarUrl = profile.profileImage
+      // 소셜 인증을 거쳤으므로 이메일 인증 완료로 간주
+      Object.assign(user, seededEmailVerified(now))
+      writeUsers(users)
+    }
+  }
+
+  // 3) 신규 소셜 계정 생성
+  if (!user) {
+    user = {
+      nickname: profile.nickname,
+      email: profile.email,
+      password: null,                    // 소셜 계정은 비밀번호 없음
+      provider: profile.provider,        // 'google' | 'kakao' | 'naver'
+      providerUserId: profile.providerUserId,
+      avatarUrl: profile.profileImage,   // 프로필 이미지 자동 로드(현재는 placeholder)
+      gender: null,
+      ageGroup: null,
+      lastNicknameChangeAt: null,
+      joinedAt: now,
+      selectedTeam: null,
+      role: ROLES.FAN,
+      ...seededEmailVerified(now),       // 소셜 인증 = 이메일 인증 완료로 간주
+    }
+    users.push(user)
+    writeUsers(users)
+    isNew = true
+  }
+
+  setSession(user.email)
+  return { ok: true, user: publicUser(user), isNew }
 }
 
 // ── 로그아웃 ──

@@ -97,6 +97,7 @@ npm run lint     # oxlint
 - **Skeleton** (`components/Skeleton.jsx`) — `Skeleton`/`SkeletonCard`/`SkeletonList`. 로딩 중 표시. 로딩 시뮬레이션은 `lib/useFakeLoading.js`(기본 550ms, 실제 API 연동 시 교체 지점).
 - **Avatar** (`components/Avatar.jsx`) — 기본 이니셜 아바타, 향후 `src`(프로필 이미지) 지원 구조.
 - **RankIcon** (`components/RankIcon.jsx`) — 팬 랭킹용 SVG 라인 아이콘 세트(위 참조).
+- **SocialAuth** (`components/SocialAuth.jsx` + `.css`) — Google/Kakao/NAVER 소셜 로그인·회원가입 버튼(공식 로고 + 브랜드 컬러) + "또는" 구분선. 로그인/회원가입 화면 공용. `onSuccess/onError`로 라우팅·에러 위임.
 - **전역 키보드 focus 링 (a11y)** — `components.css`에 `:focus-visible` 규칙. 버튼/링크/입력창에 팀 컬러(`var(--team, #2563EB)` 폴백) 아웃라인. 마우스 클릭 시엔 안 보이고 Tab 이동 시에만 표시.
 - **Toast** — ❌ 제거됨(MVP). 전역 Toast Provider/Context는 삭제. 완료 피드백은 화면 전환·버튼 상태·목록 갱신으로 대체. (단, 의견 상세의 공유/신고용 로컬 `od-toast`는 별도 인라인 메시지로 유지)
 - **NotFoundPage** (`NotFoundPage.jsx`) — `path="*"` 404. 로그인+팀 선택 시 구단 홈으로, 아니면 로그인으로.
@@ -112,6 +113,13 @@ npm run lint     # oxlint
 - **권한 체계(`ROLES`/`ADMIN_ROLES`)**: `fan`(기본) / `admin`, 그리고 예정 `superadmin`·`staff`(FANCLUV 직원)·`club_admin`(구단 관리자). 관리자 접근 판정은 `ADMIN_ROLES` 배열 한 곳으로 일원화 → 역할 추가 시 배열만 확장.
 - **본인인증 체계(`VERIFICATION`)**: `unverified` / `email_verified` / `phone_verified`. MVP는 **이메일 Mock 인증만 동작**. 사용자 객체에 `isEmailVerified`/`emailVerifiedAt`/`isPhoneVerified`/`isPhoneVerifiedAt` 플래그 보관 → 향후 휴대폰 본인인증(PASS/NICE/KCB)을 그대로 얹을 수 있게 구조 선반영.
 - ⚠️ 비밀번호 평문 저장 (MVP 한정). 실서비스 전 반드시 교체.
+
+### 소셜 로그인 — `src/lib/oauth.js` + `auth.socialLogin()`
+- **OAuth Provider 추상화**: `OAuthProvider` 베이스 + `GoogleProvider`/`KakaoProvider`/`NaverProvider`. `OAUTH_PROVIDERS` 배열에 등록 → 화면(SocialAuth)에서 순회 렌더. Provider 추가는 클래스 정의 후 배열에만 추가하면 됨.
+- 각 Provider의 `signIn()`은 표준 프로필 `{ provider, providerUserId, email, nickname, profileImage }`(`normalizeProfile`)을 반환. **MVP는 Mock 프로필 즉시 반환**, 실서비스는 `signIn()` 내부만 `supabase.auth.signInWithOAuth({ provider })`로 교체.
+- 프로필 이미지는 현재 **placeholder(data URI SVG)** — 실 provider 사진 URL로 대체 예정. `avatarUrl`에 저장되어 Avatar가 자동 표시.
+- `auth.socialLogin(providerId)` 계정 매칭: ① provider+providerUserId 일치 → 로그인 ② 같은 이메일 기존 계정 → **자동 연결(account linking)** ③ 없으면 신규 소셜 계정 생성. 소셜 계정은 `password:null`, 이메일 인증 완료로 간주.
+- 사용자 스키마에 `provider`/`providerUserId` 필드 추가(이메일 계정은 null).
 
 ### 다국어 — `src/contexts/LanguageContext.jsx` + `src/locales/{ko,en}.js`
 - `useLang()` → `{ lang, setLang, t }`. `t(key, vars?)`는 `{token}` 보간 지원, 누락 시 ko 폴백 → raw key 폴백.

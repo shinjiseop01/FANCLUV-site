@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { login, ADMIN_ROLES } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
+import SocialAuth from './components/SocialAuth.jsx'
 import './LoginPage.css'
 
 export default function LoginPage() {
@@ -13,6 +14,13 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // 로그인 성공 후 이동 경로: 운영자 → 관리자 콘솔, 팀 선택 완료 → 구단 홈, 그 외 → 팀 선택.
+  function routeAfterAuth(user) {
+    if (ADMIN_ROLES.includes(user.role)) navigate('/admin')
+    else if (user.selectedTeam) navigate(`/club/${user.selectedTeam}`)
+    else navigate('/team-select')
+  }
+
   function handleSubmit(e) {
     e.preventDefault()
     setError('')
@@ -22,19 +30,9 @@ export default function LoginPage() {
     setTimeout(() => {
       setLoading(false)
       const result = login({ email: email.trim(), password })
-      if (result.ok) {
-        // 운영자(Admin)는 관리자 콘솔로, 일반 사용자는 기존 흐름(구단 홈/팀 선택)으로.
-        // 이메일 미인증 계정은 login()에서 차단되어 여기 도달하지 않는다.
-        if (ADMIN_ROLES.includes(result.user.role)) {
-          navigate('/admin')
-        } else if (result.user.selectedTeam) {
-          navigate(`/club/${result.user.selectedTeam}`)
-        } else {
-          navigate('/team-select')
-        }
-      } else {
-        setError(result.error)
-      }
+      // 이메일 미인증 계정은 login()에서 차단되어 여기 도달하지 않는다.
+      if (result.ok) routeAfterAuth(result.user)
+      else setError(result.error)
     }, 800)
   }
 
@@ -148,6 +146,8 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          <SocialAuth onSuccess={res => routeAfterAuth(res.user)} onError={setError} />
 
           <div className="form-footer">
             <Link to="/find-id" className="form-link">{t('login.findId')}</Link>
