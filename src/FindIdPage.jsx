@@ -17,9 +17,9 @@ export default function FindIdPage() {
     setError('')
     if (!hint.trim()) { setError(t('findId.errInput')); return }
     setLoading(true)
-    setTimeout(() => {
+    setTimeout(async () => {
+      const res = await findAccountByHint(hint)
       setLoading(false)
-      const res = findAccountByHint(hint)
       if (res.ok) {
         setResult({ maskedEmail: res.maskedEmail })
       } else {

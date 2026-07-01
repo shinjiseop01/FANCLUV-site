@@ -56,6 +56,7 @@ function mapSupabaseUser(authUser, profile) {
     avatarUrl: p.avatar_url || null,
     role: p.role === 'admin' ? ROLES.ADMIN : ROLES.FAN,
     provider: p.provider || 'email',
+    nicknameUpdatedAt: p.nickname_updated_at || null,
     isEmailVerified: emailVerified,
     verificationStatus:
       p.verification_status ||
@@ -343,25 +344,28 @@ export async function updateAvatar(avatarUrl) {
   return mockPatchSessionUser({ avatarUrl })
 }
 
-export const NICKNAME_COOLDOWN_DAYS = 90
+export const NICKNAME_COOLDOWN_DAYS = 90 // 3개월에 1회
 export function nicknameChangeInfo() {
   const u = getCurrentUser()
   if (!u) return { canChange: false, nextChangeAt: null }
-  if (isSupabaseConfigured) return { canChange: true, nextChangeAt: null } // 쿨다운은 다음 단계
-  if (!u.lastNicknameChangeAt) return { canChange: true, nextChangeAt: null }
-  const next = new Date(u.lastNicknameChangeAt).getTime() + NICKNAME_COOLDOWN_DAYS * 86400000
+  // Supabase: profiles.nickname_updated_at, Mock: lastNicknameChangeAt
+  const last = isSupabaseConfigured ? u.nicknameUpdatedAt : u.lastNicknameChangeAt
+  if (!last) return { canChange: true, nextChangeAt: null }
+  const next = new Date(last).getTime() + NICKNAME_COOLDOWN_DAYS * 86400000
   return { canChange: Date.now() >= next, nextChangeAt: new Date(next).toISOString() }
 }
 export async function changeNickname(nickname) {
   const name = (nickname || '').trim()
   if (!name) return { ok: false, error: '닉네임을 입력해 주세요.' }
-  if (isSupabaseConfigured) {
-    if (cachedUser) cachedUser = { ...cachedUser, nickname: name }
-    return patchSupabaseProfile({ nickname: name })
-  }
   const info = nicknameChangeInfo()
   if (!info.canChange)
-    return { ok: false, error: '닉네임은 90일에 한 번만 변경할 수 있습니다.', nextChangeAt: info.nextChangeAt }
+    return { ok: false, error: '닉네임은 3개월에 한 번만 변경할 수 있습니다.', nextChangeAt: info.nextChangeAt }
+  if (isSupabaseConfigured) {
+    const now = new Date().toISOString()
+    const res = await patchSupabaseProfile({ nickname: name, nickname_updated_at: now })
+    if (res.ok && cachedUser) cachedUser = { ...cachedUser, nickname: name, nicknameUpdatedAt: now }
+    return res
+  }
   return mockPatchSessionUser({ nickname: name, lastNicknameChangeAt: new Date().toISOString() })
 }
 
@@ -403,15 +407,19 @@ export function maskEmail(email) {
   const [local, domain] = email.split('@')
   return `${local.slice(0, Math.min(3, local.length))}****@${domain}`
 }
-export function findAccountByHint(hint) {
-  const q = (hint || '').trim().toLowerCase()
+export async function findAccountByHint(hint) {
+  const q = (hint || '').trim()
   if (!q) return { ok: false }
   if (isSupabaseConfigured) {
-    // 익명 클라이언트로는 타 사용자 조회 불가(RLS). 서버 함수는 다음 단계.
-    return { ok: false, error: '아이디 찾기는 다음 단계에서 지원될 예정입니다.' }
+    // 서버 RPC(find_account_by_hint, SECURITY DEFINER)로 조회 → 클라이언트는
+    // 전체 유저 목록을 읽지 않고, 마스킹된 이메일만 돌려받는다.
+    const { data, error } = await supabase.rpc('find_account_by_hint', { hint: q })
+    if (error || !data || data.length === 0) return { ok: false }
+    return { ok: true, maskedEmail: data[0].masked_email }
   }
+  const lc = q.toLowerCase()
   const user = readUsers().find(u =>
-    u.nickname.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+    u.nickname.toLowerCase().includes(lc) || u.email.toLowerCase().includes(lc))
   if (!user) return { ok: false }
   return { ok: true, maskedEmail: maskEmail(user.email) }
 }

@@ -4,7 +4,7 @@ import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
-import { addOpinion } from './opinionStore.js'
+import { createOpinion } from './lib/opinionsRepo.js'
 import './ClubHomePage.css'
 import './CreateOpinionPage.css'
 
@@ -37,7 +37,7 @@ export default function CreateOpinionPage() {
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     if (!category) { setError(t('create.errCategory')); return }
@@ -45,18 +45,10 @@ export default function CreateOpinionPage() {
     if (!title.trim()) { setError(t('create.errTitle')); return }
     if (!body.trim()) { setError(t('create.errBody')); return }
 
-    addOpinion(team.id, {
-      id: `u${Date.now()}`,
-      author: NICKNAME,
-      category,
-      rating,
-      hours: 0,
-      title: title.trim(),
-      body: body.trim(),
-      likes: 0,
-      comments: 0,
-      hasPhoto: !!photoName,
+    const res = await createOpinion(team.id, {
+      category, rating, title: title.trim(), body: body.trim(), hasPhoto: !!photoName,
     })
+    if (!res.ok) { setError(res.error || t('create.errBody')); return }
 
     setSubmitted(true)
     setTimeout(() => navigate(`/club/${team.id}/opinions`), 1300)

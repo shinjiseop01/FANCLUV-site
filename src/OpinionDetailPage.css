@@ -301,3 +301,7 @@
   .od-comment-form { flex-direction: column; align-items: stretch; }
   .od-comment-submit { width: 100%; }
 }
+
+/* Async load / not-found states (Supabase 이관) */
+.od-loading, .od-notfound { padding: 48px 8px; color: var(--muted); font-size: 14px; text-align: center; }
+.od-notfound { display: flex; flex-direction: column; align-items: center; gap: 14px; }

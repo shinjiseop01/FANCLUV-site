@@ -4,12 +4,11 @@ import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
-import { getCreatedOpinions } from './opinionStore.js'
+import { listOpinions } from './lib/opinionsRepo.js'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import Avatar from './components/Avatar.jsx'
 import { relativeTime } from './lib/relativeTime.js'
-import { useFakeLoading } from './lib/useFakeLoading.js'
 import './ClubHomePage.css'
 import './OpinionsPage.css'
 
@@ -18,41 +17,6 @@ const PAGE_SIZE = 5
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 const CATEGORIES = ['전체', '경기장', '응원문화', '티켓', 'MD', '선수', '구단 운영', '이벤트', '기타']
 const SORTS = ['최신순', '공감순', '댓글순']
-
-// Base opinion pool — phrased to fit any club. Per-club numbers are derived from a seed.
-const BASE_OPINIONS = [
-  { author: '블루윙', category: '경기장', rating: 4, hours: 2,
-    title: '홈 경기장 좌석 시야 개선이 필요합니다',
-    body: 'N석 일부 구역은 광고판에 가려 골대가 잘 보이지 않습니다. 시야 방해 좌석은 예매 시 미리 안내해주면 좋겠어요.' },
-  { author: '직관러', category: '응원문화', rating: 5, hours: 5,
-    title: '원정 응원 분위기가 정말 최고였습니다',
-    body: '지난 원정에서 서포터즈 응원이 끝까지 이어져 선수들에게 큰 힘이 됐을 것 같아요. 이런 문화가 계속 이어지길 바랍니다.' },
-  { author: '시즌권홀더', category: '티켓', rating: 3, hours: 9,
-    title: '티켓 예매 페이지 안정성 개선 요청',
-    body: '인기 경기 예매 오픈 직후 페이지가 자주 멈춥니다. 대기열 시스템 도입을 진지하게 검토해주셨으면 합니다.' },
-  { author: '굿즈수집가', category: 'MD', rating: 4, hours: 14,
-    title: '신규 유니폼 디자인 만족도가 높아요',
-    body: '이번 시즌 홈 유니폼 색감과 디테일이 훌륭합니다. 다만 사이즈별 재고가 빨리 소진돼 재입고 주기가 빨라지면 좋겠어요.' },
-  { author: '응원단장', category: '선수', rating: 5, hours: 20,
-    title: '유소년 출신 선수 출전 기회 확대 희망',
-    body: '아카데미에서 성장한 선수들이 1군에서 뛰는 모습을 더 보고 싶습니다. 장기적으로 구단 색깔을 만드는 길이라 생각해요.' },
-  { author: '풋볼러버', category: '구단 운영', rating: 4, hours: 28,
-    title: '팬 소통 간담회를 정례화해 주세요',
-    body: '구단의 방향성을 팬들과 직접 공유하는 자리가 분기마다 있으면 신뢰가 더 쌓일 것 같습니다. 온라인 병행도 환영합니다.' },
-  { author: '홈경기지킴이', category: '이벤트', rating: 4, hours: 33,
-    title: '가족 단위 관중을 위한 이벤트가 늘었으면',
-    body: '아이와 함께 오는 팬들이 많아졌는데, 경기 전 체험 부스나 포토존이 더 다양해지면 좋겠습니다.' },
-  { author: '평일직관', category: '경기장', rating: 3, hours: 41,
-    title: '경기장 먹거리 줄이 너무 깁니다',
-    body: '하프타임에 매점 줄이 길어 후반 시작을 놓칠 때가 많아요. 키오스크나 모바일 주문을 도입하면 좋겠습니다.' },
-  { author: '레전드7', category: '기타', rating: 4, hours: 52,
-    title: '대중교통 막차 시간 연계 안내 부탁',
-    body: '야간 경기 후 대중교통 이용 정보가 한곳에 정리돼 있으면 편할 것 같아요. 셔틀 운영 확대도 검토 부탁드립니다.' },
-]
-
-function seedOf(id) {
-  return id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-}
 
 export default function OpinionsPage() {
   const NICKNAME = getCurrentUser()?.nickname || '팬'
@@ -64,22 +28,24 @@ export default function OpinionsPage() {
   const [category, setCategory] = useState('전체')
   const [sort, setSort] = useState('최신순')
   const [page, setPage] = useState(1)
-  const loading = useFakeLoading()
+  const [opinions, setOpinions] = useState([])
+  const [loading, setLoading] = useState(true)
 
   // Reset pagination whenever the active filter/search/sort changes.
   useEffect(() => { setPage(1) }, [category, query, sort])
 
-  const opinions = useMemo(() => {
-    if (!team) return []
-    const seed = seedOf(team.id)
-    const base = BASE_OPINIONS.map((o, i) => {
-      const likes = 40 + ((seed * (i + 3)) % 320)
-      const comments = 4 + ((seed * (i + 7)) % 46)
-      return { ...o, id: i + 1, likes, comments }
+  // 구단별 의견 로드 — Supabase 설정 시 실제 데이터, 아니면 Mock (opinionsRepo).
+  useEffect(() => {
+    if (!team) return
+    let active = true
+    setLoading(true)
+    listOpinions(team.id).then(list => {
+      if (!active) return
+      setOpinions(list)
+      setLoading(false)
     })
-    // fan-created opinions show first (newest at the very top)
-    return [...getCreatedOpinions(team.id), ...base]
-  }, [team])
+    return () => { active = false }
+  }, [teamId, team])
 
   const popularThreshold = useMemo(() => {
     const sorted = [...opinions].map(o => o.likes).sort((a, b) => b - a)

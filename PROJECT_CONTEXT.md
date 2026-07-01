@@ -109,8 +109,10 @@ npm run lint     # oxlint
 - **Supabase 연동 완료(1차: Auth + Profile)**. `.env` 에 키가 있으면(`isSupabaseConfigured`) 실제 **Supabase Auth + `profiles` 테이블** 사용, 없으면 기존 **localStorage Mock 자동 폴백**(앱 안 깨짐). 설정법: [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 - `src/lib/supabase.js` — env 로 client 생성 + `isSupabaseConfigured` 감지. `src/contexts/AuthContext.jsx` — 비동기 세션/프로필 로드 + 라우트 가드 `loading` 게이트(`main.jsx`의 `RequireAuth`/`RequireAdmin`가 모드별 분기).
 - **동기 캐시**: `getCurrentUser()`/`isAuthenticated()`/`isAdmin()` 는 여전히 동기. Supabase 모드에서는 AuthContext가 로드한 프로필을 auth.js 캐시(`cachedUser`)에 반영해 기존 화면 코드가 그대로 동작.
-- 스키마: `supabase/migrations/0001_profiles.sql`(profiles + RLS + 신규가입 트리거), `0002_data_tables.sql`(opinions/surveys — 다음 단계 준비).
-- `login`/`signup`/`logout`/`socialLogin`/`changePassword`/`changeNickname`/`requestPasswordReset` 등은 **async**(양 모드 지원). Google 소셜 = `supabase.auth.signInWithOAuth`, **Kakao/NAVER는 인터페이스만 유지(다음 단계)**.
+- 스키마: `0001_profiles.sql`(profiles + RLS + 트리거), `0003_nickname_and_find_account.sql`(닉네임 쿨다운 컬럼 + 아이디찾기 RPC), `0004_opinions_comments_likes.sql`(팬 의견/댓글/공감 + `opinions_view`), `0002_data_tables.sql`(설문 — 다음 단계 준비).
+- `login`/`signup`/`logout`/`socialLogin`/`changePassword`/`changeNickname`/`requestPasswordReset`/`findAccountByHint` 등은 **async**(양 모드 지원). Google 소셜 = `supabase.auth.signInWithOAuth`, **Kakao/NAVER는 인터페이스만 유지(다음 단계)**.
+- **닉네임 쿨다운(3개월/90일)**: Supabase는 `profiles.nickname_updated_at`, Mock은 `lastNicknameChangeAt` 기준. `nicknameChangeInfo()`/`changeNickname()`이 양 모드 공통 처리 → 프로필 수정 화면 연동.
+- **아이디 찾기**: Supabase는 서버 RPC `find_account_by_hint`(SECURITY DEFINER, 마스킹 이메일 반환) → 클라이언트가 전체 유저를 조회하지 않음. Mock은 로컬 조회.
 - localStorage 키(Mock 모드): `fancluv_users`(가입자 배열), `fancluv_session`(현재 로그인 email).
 - 데모 시드 계정(Mock 모드 전용): **`fan@fancluv.kr` / `1234`** (닉네임 `민준`), `admin@fancluv.kr` / `admin123`.
 - export 함수: `signup`, `login`, `logout`, `getCurrentUser`, `isAuthenticated`, `setSelectedTeam` 등 + `isAdmin()`(관리자 판정).
@@ -136,9 +138,11 @@ npm run lint     # oxlint
 - `MENU_ITEMS`: 상단 내비 8개 메뉴(한글 canonical). `menuPath(item, teamId)`로 경로 변환. `getTeam(id)`.
 - `TeamEmblem`: SVG 축구공 엠블럼 컴포넌트 (구단 컬러 적용).
 
-### 작성된 의견 저장 — `src/opinionStore.js`
-- 팬이 작성한 의견을 구단 id별로 localStorage(`fancluv_created_opinions`)에 저장 → 네비게이션 후에도 목록 상단 유지.
-- `getCreatedOpinions(teamId)`, `addOpinion(teamId, opinion)`.
+### 팬 의견 / 댓글 / 공감 — `src/lib/opinionsRepo.js` (Supabase-우선 + Mock 폴백)
+- **Supabase 이관 완료(2차)**. `OpinionsPage`/`OpinionDetailPage`/`CreateOpinionPage`의 단일 데이터 소스. Supabase 설정 시 `opinions`/`comments`/`likes` 테이블 + `opinions_view`(작성자·공감수·댓글수 집계) 사용, 아니면 Mock(seeded 풀 + `opinionStore.js` localStorage).
+- API(모두 async): `listOpinions(teamId)`(구단 필터), `getOpinionDetail(teamId,id)`(+연관), `createOpinion`, `listComments`/`addComment`, `getLikeState`/`toggleLike`(1인 1회, 취소 가능).
+- 화면은 `useEffect`로 비동기 로드(로딩 상태 포함). **UI/디자인은 기존 그대로**. 작성 의견 상세 열람도 정상 동작.
+- `src/opinionStore.js` = Mock 작성 의견 localStorage 백엔드(`fancluv_created_opinions`) — repo가 Mock 모드에서 사용.
 
 ### 관리자 콘솔 — `src/admin/`
 - `RequireAdmin` 가드로 보호. `AdminLayout` + 중첩 라우트(대시보드/회원/의견/설문/뉴스/신고/설정).
