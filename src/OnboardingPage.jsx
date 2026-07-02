@@ -15,7 +15,8 @@ export default function OnboardingPage() {
   const { t } = useLang()
   const me = getCurrentUser()
 
-  const [nickname, setNickname] = useState(me?.nickname || '')
+  // 소셜에서 가져온 임시 닉네임으로 채우지 않고 빈칸으로 시작(사용자가 직접 입력).
+  const [nickname, setNickname] = useState('')
   const [gender, setGender] = useState(me?.gender || '')
   const [ageGroup, setAgeGroup] = useState(me?.ageGroup || '')
   const [error, setError] = useState('')

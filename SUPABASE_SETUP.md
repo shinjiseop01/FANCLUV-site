@@ -152,3 +152,35 @@ select club_id, period, sentiment_positive, sentiment_neutral, sentiment_negativ
 
 > API Key 가 아예 없을 때: 프론트는 **Supabase 미설정이면 로컬 간이 분석**으로 폴백하고,
 > **Supabase 는 설정됐지만 OPENAI_API_KEY 만 없으면** 관리자 화면에 `openai_not_configured` 안내를 표시합니다.
+
+---
+
+## 회원 완전 탈퇴 (delete-account Edge Function)
+설정 → 회원탈퇴 모달에서 "탈퇴합니다" 입력 시 `delete-account` 함수가 **본인 계정만** 완전 삭제합니다.
+
+- 스키마: `supabase/migrations/0010_account_hardening.sql` 적용
+  (`profiles.deactivated_at`, `email_codes`; `email_codes` 는 email PK 인덱스 보유).
+- 배포(로그인 사용자만 호출 → 기본 verify_jwt=true 유지):
+  ```bash
+  supabase functions deploy delete-account
+  ```
+- 시크릿: **불필요**. `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` 는 자동 주입됩니다.
+  (service_role 키는 이 함수 안에서만 사용 — 프론트 노출 금지)
+
+### 동작
+1. 요청자 JWT 검증(비로그인 차단). 삭제 대상은 **검증된 JWT 의 user.id 로 고정** → 타인 계정 삭제 불가.
+2. profiles 를 익명화(닉네임 '탈퇴한 사용자', email/avatar 등 제거)한 뒤
+   `auth.admin.deleteUser(user.id)` 로 완전 삭제.
+3. FK `ON DELETE CASCADE` 로 opinions/comments/likes/survey_responses/notifications 삭제,
+   team_news/surveys 의 author 는 NULL 로 익명화(콘텐츠는 보존).
+4. 클라이언트는 세션 제거 후 로그인 페이지로 이동.
+
+> 함수 미배포/실패 시 앱은 폴백으로 프로필을 비활성화(`deactivated_at`)하고 로그아웃하여
+> 로그인은 즉시 차단됩니다.
+
+### 검증 체크리스트
+- [ ] 본인 계정으로 탈퇴 → auth.users/profiles 행 삭제 확인
+      `select count(*) from auth.users where id='<uid>';` → 0
+- [ ] 삭제 후 같은 계정 로그인 불가
+- [ ] 함수는 JWT 의 user.id 만 삭제 → 다른 사용자 삭제 불가(입력 id 없음)
+- [ ] Mock 모드: 로컬 사용자 레코드 삭제 + 세션 제거

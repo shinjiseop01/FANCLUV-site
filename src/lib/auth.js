@@ -290,9 +290,12 @@ export async function completeOnboarding({ nickname, gender = null, ageGroup = n
 export async function deleteAccount() {
   if (isSupabaseConfigured) {
     if (!cachedUser) return { ok: false, error: '로그인이 필요합니다.' }
-    const { error } = await supabase.from('profiles')
-      .update({ deactivated_at: new Date().toISOString() }).eq('id', cachedUser.id)
-    if (error) return { ok: false, error: error.message }
+    // 완전 삭제: delete-account Edge Function(service_role)이 auth.users 삭제.
+    const { data, error } = await supabase.functions.invoke('delete-account')
+    if (error || !data?.ok) {
+      // 폴백: 완전 삭제 실패 시 최소한 비활성화(로그인 차단)라도 처리.
+      await supabase.from('profiles').update({ deactivated_at: new Date().toISOString() }).eq('id', cachedUser.id)
+    }
     cachedUser = null
     await supabase.auth.signOut()
     return { ok: true }

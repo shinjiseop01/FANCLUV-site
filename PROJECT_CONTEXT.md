@@ -118,7 +118,8 @@ npm run lint     # oxlint
 - **온보딩(9차)**: 소셜 신규 사용자(닉네임/나이대 미입력, 관리자 제외)는 `needsOnboarding()` → `/onboarding`(OnboardingPage, signup 디자인). 닉네임(필수·중복불가)·성별(선택)·나이대(필수) 입력 + 소셜 프로필 이미지 표시 → `completeOnboarding()` → 팀 선택. 기존 정보 있으면 건너뜀.
 - **닉네임 중복 방지**: `isNicknameTaken(name,{exceptId,exceptEmail})` — 회원가입/온보딩/닉네임변경 공통. 본인 것은 허용, 중복 시 "이미 사용 중인 닉네임입니다.".
 - **이메일 인증번호**: `issueEmailCode`/`confirmEmailCode`(async). Supabase는 Edge Function `send-email-code`(Resend, 미설정 시 devCode 폴백) + `email_codes` 테이블, Mock은 클라이언트 코드. **양 모드 모두 인증 완료해야 회원가입**. 미인증/탈퇴 계정 로그인 차단.
-- **회원탈퇴**: 설정 페이지 버튼 → 확인 모달(‘탈퇴합니다’ 입력) → `deleteAccount()`. Supabase는 `profiles.deactivated_at` 비활성화 후 로그아웃(로그인 차단), Mock은 사용자 레코드 삭제 → 로그인 페이지 이동. 스키마: `0010_account_hardening.sql`.
+- **회원탈퇴(10차 — 완전 삭제)**: 설정 버튼 → 확인 모달(‘탈퇴합니다’ 입력) → `deleteAccount()`. Supabase는 **Edge Function `delete-account`**(service_role)가 profiles 익명화 후 `auth.admin.deleteUser(본인 JWT의 user.id)` → FK CASCADE로 개인 데이터 삭제, 콘텐츠 author는 NULL 익명화. 실패 시 비활성화 폴백. Mock은 레코드 삭제. → 세션 제거 후 로그인 이동. **본인 계정만 삭제**(삭제 id = 검증된 JWT). 스키마: `0010_account_hardening.sql`. 배포: `supabase functions deploy delete-account`(시크릿 불필요, 자동 주입).
+- **온보딩 닉네임**: 소셜 임시 닉네임으로 채우지 않고 **빈칸으로 시작**(사용자가 직접 입력).
 - localStorage 키(Mock 모드): `fancluv_users`(가입자 배열), `fancluv_session`(현재 로그인 email).
 - 데모 시드 계정(Mock 모드 전용): **`fan@fancluv.kr` / `1234`** (닉네임 `민준`), `admin@fancluv.kr` / `admin123`.
 - export 함수: `signup`, `login`, `logout`, `getCurrentUser`, `isAuthenticated`, `setSelectedTeam` 등 + `isAdmin()`(관리자 판정).
