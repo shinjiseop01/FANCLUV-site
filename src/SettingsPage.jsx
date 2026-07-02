@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { useTheme } from './contexts/ThemeContext.jsx'
-import { logout, getCurrentUser } from './lib/auth.js'
+import { logout, getCurrentUser, deleteAccount } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
 import './SettingsPage.css'
@@ -36,6 +36,10 @@ export default function SettingsPage() {
   // notifications (mock — ON/OFF only)
   const [noti, setNoti] = useState({ survey: true, news: true, comment: true, empathy: false })
   const [toast, setToast] = useState('')
+  // 회원탈퇴
+  const [showWithdraw, setShowWithdraw] = useState(false)
+  const [withdrawText, setWithdrawText] = useState('')
+  const [withdrawing, setWithdrawing] = useState(false)
 
   if (!team) {
     return (
@@ -50,6 +54,15 @@ export default function SettingsPage() {
   const toggle = key => setNoti(p => ({ ...p, [key]: !p[key] }))
   function flash(msg) { setToast(msg); setTimeout(() => setToast(''), 1800) }
   function handleLogout() { logout(); navigate('/') }
+
+  const withdrawPhrase = t('set.withdrawPhrase')
+  async function handleWithdraw() {
+    if (withdrawText.trim() !== withdrawPhrase) return
+    setWithdrawing(true)
+    await deleteAccount()
+    setWithdrawing(false)
+    navigate('/', { replace: true })
+  }
 
   return (
     <div className="ch-root" style={themeStyle}>
@@ -234,7 +247,41 @@ export default function SettingsPage() {
 
         {/* Logout */}
         <button className="st-logout" onClick={handleLogout}>{t('set.logout')}</button>
+
+        {/* Withdraw */}
+        <button className="st-withdraw" onClick={() => { setWithdrawText(''); setShowWithdraw(true) }}>
+          {t('set.withdraw')}
+        </button>
       </main>
+
+      {/* 회원탈퇴 확인 모달 */}
+      {showWithdraw && (
+        <div className="st-modal-overlay" role="dialog" aria-modal="true" aria-label={t('set.withdrawTitle')}
+          onClick={e => { if (e.target === e.currentTarget) setShowWithdraw(false) }}>
+          <div className="st-modal">
+            <h3 className="st-modal-title">{t('set.withdrawTitle')}</h3>
+            <p className="st-modal-desc">{t('set.withdrawDesc')}</p>
+            <p className="st-modal-phrase">{t('set.withdrawPrompt', { phrase: withdrawPhrase })}</p>
+            <input
+              type="text"
+              className="st-modal-input"
+              placeholder={withdrawPhrase}
+              value={withdrawText}
+              onChange={e => setWithdrawText(e.target.value)}
+              autoFocus
+            />
+            <div className="st-modal-actions">
+              <button className="st-modal-cancel" onClick={() => setShowWithdraw(false)}>{t('common.cancel')}</button>
+              <button
+                className="st-modal-confirm"
+                disabled={withdrawText.trim() !== withdrawPhrase || withdrawing}
+                onClick={handleWithdraw}>
+                {withdrawing ? t('set.withdrawing') : t('set.withdrawConfirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && <div className="st-toast" role="status">{toast}</div>}
     </div>

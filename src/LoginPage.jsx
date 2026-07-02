@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { login, ADMIN_ROLES } from './lib/auth.js'
+import { login, ADMIN_ROLES, needsOnboarding } from './lib/auth.js'
 import { isSupabaseConfigured } from './lib/supabase.js'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { useLang } from './contexts/LanguageContext.jsx'
@@ -29,9 +29,11 @@ export default function LoginPage() {
     return map[errCode] || t('login.conflictGeneric')
   }
 
-  // 로그인 성공 후 이동 경로: 운영자 → 관리자 콘솔, 팀 선택 완료 → 구단 홈, 그 외 → 팀 선택.
+  // 로그인 성공 후 이동 경로: 온보딩 필요(소셜 신규) → 온보딩, 운영자 → 관리자 콘솔,
+  // 팀 선택 완료 → 구단 홈, 그 외 → 팀 선택.
   function routeAfterAuth(user) {
-    if (ADMIN_ROLES.includes(user.role)) navigate('/admin')
+    if (needsOnboarding(user)) navigate('/onboarding')
+    else if (ADMIN_ROLES.includes(user.role)) navigate('/admin')
     else if (user.selectedTeam) navigate(`/club/${user.selectedTeam}`)
     else navigate('/team-select')
   }

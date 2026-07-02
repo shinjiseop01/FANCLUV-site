@@ -14,6 +14,7 @@ import SignupPage from './SignupPage.jsx'
 import FindIdPage from './FindIdPage.jsx'
 import FindPasswordPage from './FindPasswordPage.jsx'
 import VerifyEmailPage from './VerifyEmailPage.jsx'
+import OnboardingPage from './OnboardingPage.jsx'
 import ProfileEditPage from './ProfileEditPage.jsx'
 import ChangePasswordPage from './ChangePasswordPage.jsx'
 import InfoPage from './InfoPage.jsx'
@@ -81,6 +82,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/find-id" element={<FindIdPage />} />
         <Route path="/find-password" element={<FindPasswordPage />} />
         <Route path="/verify-email" element={<RequireAuth><VerifyEmailPage /></RequireAuth>} />
+        <Route path="/onboarding" element={<RequireAuth><OnboardingPage /></RequireAuth>} />
         <Route path="/team-select" element={<RequireAuth><TeamSelectPage /></RequireAuth>} />
         <Route path="/club/:teamId" element={<RequireAuth><ClubHomePage /></RequireAuth>} />
         <Route path="/club/:teamId/opinions" element={<RequireAuth><OpinionsPage /></RequireAuth>} />

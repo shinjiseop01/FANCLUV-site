@@ -74,6 +74,8 @@ export async function loadCurrentSupabaseUser() {
   const authUser = session.user
   const { data: profile } = await supabase
     .from('profiles').select('*').eq('id', authUser.id).maybeSingle()
+  // 탈퇴(비활성화)된 계정은 로그인 차단.
+  if (profile?.deactivated_at) { cachedUser = null; await supabase.auth.signOut(); return null }
   cachedUser = mapSupabaseUser(authUser, profile)
   return cachedUser
 }
@@ -228,10 +230,13 @@ function mockSocialLogin(profile, isNewRef) {
 
 // ── 회원가입 ──
 export async function signup({ nickname, email, password, gender = null, ageGroup = null }) {
+  const name = (nickname || '').trim()
+  // 닉네임 중복 방지 (회원가입/온보딩/프로필수정 공통 규칙)
+  if (await isNicknameTaken(name)) return { ok: false, error: '이미 사용 중인 닉네임입니다.', code: 'nickname_taken' }
   if (isSupabaseConfigured) {
     const { data, error } = await supabase.auth.signUp({
       email, password,
-      options: { data: { nickname, gender, age_group: ageGroup, provider: 'email' } },
+      options: { data: { nickname: name, gender, age_group: ageGroup, provider: 'email' } },
     })
     if (error) return { ok: false, error: translateAuthError(error) }
     // 이메일 확인 설정이 켜져 있으면 세션이 없다(메일 확인 후 로그인).
@@ -239,7 +244,63 @@ export async function signup({ nickname, email, password, gender = null, ageGrou
     if (data.session) await loadCurrentSupabaseUser()
     return { ok: true, needsConfirm, user: cachedUser }
   }
-  return mockSignup({ nickname, email, password, gender, ageGroup })
+  return mockSignup({ nickname: name, email, password, gender, ageGroup })
+}
+
+// ── 닉네임 중복 확인 ── 본인(exceptId/exceptEmail)은 제외.
+export async function isNicknameTaken(nickname, opts = {}) {
+  const name = (nickname || '').trim()
+  if (!name) return false
+  if (isSupabaseConfigured) {
+    let q = supabase.from('profiles').select('id').ilike('nickname', name)
+    if (opts.exceptId) q = q.neq('id', opts.exceptId)
+    const { data } = await q.limit(1)
+    return !!(data && data.length)
+  }
+  const lc = name.toLowerCase()
+  return readUsers().some(u =>
+    u.nickname && u.nickname.toLowerCase() === lc &&
+    (opts.exceptEmail ? u.email.toLowerCase() !== opts.exceptEmail.toLowerCase() : true))
+}
+
+// ── 온보딩 필요 여부 ── 소셜 신규 사용자(닉네임/나이대 미입력)만 대상. 관리자는 제외.
+export function needsOnboarding(user) {
+  if (!user) return false
+  if (ADMIN_ROLES.includes(user.role)) return false
+  return !user.nickname || !user.ageGroup
+}
+
+// ── 온보딩 완료 (닉네임/성별/나이대 저장) ──
+export async function completeOnboarding({ nickname, gender = null, ageGroup = null }) {
+  const name = (nickname || '').trim()
+  if (!name) return { ok: false, error: '닉네임을 입력해 주세요.' }
+  if (!ageGroup) return { ok: false, error: '나이대를 선택해 주세요.' }
+  const me = getCurrentUser()
+  if (await isNicknameTaken(name, { exceptId: me?.id, exceptEmail: me?.email }))
+    return { ok: false, error: '이미 사용 중인 닉네임입니다.', code: 'nickname_taken' }
+  if (isSupabaseConfigured) {
+    if (cachedUser) cachedUser = { ...cachedUser, nickname: name, gender, ageGroup }
+    return patchSupabaseProfile({ nickname: name, gender, age_group: ageGroup })
+  }
+  return mockPatchSessionUser({ nickname: name, gender, ageGroup })
+}
+
+// ── 회원탈퇴 ── Supabase: 프로필 비활성화(deactivated_at) 후 로그아웃(로그인 차단).
+//                Mock: 사용자 레코드 삭제 후 세션 제거.
+export async function deleteAccount() {
+  if (isSupabaseConfigured) {
+    if (!cachedUser) return { ok: false, error: '로그인이 필요합니다.' }
+    const { error } = await supabase.from('profiles')
+      .update({ deactivated_at: new Date().toISOString() }).eq('id', cachedUser.id)
+    if (error) return { ok: false, error: error.message }
+    cachedUser = null
+    await supabase.auth.signOut()
+    return { ok: true }
+  }
+  const email = localStorage.getItem(SESSION_KEY)
+  if (email) writeUsers(readUsers().filter(u => u.email.toLowerCase() !== email.toLowerCase()))
+  mockLogout()
+  return { ok: true }
 }
 
 // ── 로그인 ──
@@ -251,6 +312,7 @@ export async function login({ email, password }) {
       return { ok: false, error: translateAuthError(error), code }
     }
     const user = await loadCurrentSupabaseUser()
+    if (!user) return { ok: false, error: '탈퇴했거나 사용할 수 없는 계정입니다.' }
     return { ok: true, user }
   }
   return mockLogin({ email, password })
@@ -349,14 +411,32 @@ export function verifyPhone(email) {
   })
 }
 
-// 이메일 인증번호 발급 (Mock 전용 — Supabase 는 확인 메일을 사용).
-export function issueEmailCode(email) {
+// 이메일 인증번호 발급.
+// Supabase: Edge Function `send-email-code`(action:'send')로 코드 발송(이메일). 이메일 provider
+//   미설정 시 devCode 를 돌려받아 화면에 표시(Mock fallback). Mock: 클라이언트 코드 생성.
+export async function issueEmailCode(email) {
   const q = (email || '').trim()
   if (!q) return { ok: false, error: '이메일을 입력해 주세요.' }
-  if (isSupabaseConfigured) return { ok: true, code: null } // Supabase 모드에선 미사용
+  if (isSupabaseConfigured) {
+    const { data: exists } = await supabase.from('profiles').select('id').ilike('email', q).limit(1)
+    if (exists && exists.length) return { ok: false, error: '이미 가입된 이메일입니다.' }
+    const { data, error } = await supabase.functions.invoke('send-email-code', { body: { action: 'send', email: q } })
+    if (error || !data?.ok) return { ok: false, error: '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.' }
+    return { ok: true, code: data.devCode || null, sent: true } // devCode: 이메일 미설정 시 폴백
+  }
   const dup = readUsers().some(u => u.email.toLowerCase() === q.toLowerCase())
   if (dup) return { ok: false, error: '이미 가입된 이메일입니다.' }
-  return { ok: true, code: String(Math.floor(100000 + Math.random() * 900000)) }
+  return { ok: true, code: String(Math.floor(100000 + Math.random() * 900000)), sent: false }
+}
+
+// 이메일 인증번호 확인. Supabase: Edge Function 으로 검증. Mock: 화면이 보관한 코드와 비교.
+export async function confirmEmailCode(email, code) {
+  if (!isSupabaseConfigured) return { ok: true } // Mock 은 SignupPage 에서 로컬 비교
+  const { data, error } = await supabase.functions.invoke('send-email-code', {
+    body: { action: 'verify', email: (email || '').trim(), code: (code || '').trim() },
+  })
+  if (error || !data?.ok) return { ok: false, error: '인증번호가 올바르지 않거나 만료되었습니다.' }
+  return { ok: true }
 }
 
 // ── 프로필 수정 ──
@@ -384,6 +464,9 @@ export async function changeNickname(nickname) {
   const info = nicknameChangeInfo()
   if (!info.canChange)
     return { ok: false, error: '닉네임은 3개월에 한 번만 변경할 수 있습니다.', nextChangeAt: info.nextChangeAt }
+  const me = getCurrentUser()
+  if (await isNicknameTaken(name, { exceptId: me?.id, exceptEmail: me?.email }))
+    return { ok: false, error: '이미 사용 중인 닉네임입니다.', code: 'nickname_taken' }
   if (isSupabaseConfigured) {
     const now = new Date().toISOString()
     const res = await patchSupabaseProfile({ nickname: name, nickname_updated_at: now })

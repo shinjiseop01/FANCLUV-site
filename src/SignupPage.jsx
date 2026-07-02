@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { signup, issueEmailCode } from './lib/auth.js'
+import { signup, issueEmailCode, confirmEmailCode, needsOnboarding } from './lib/auth.js'
 import { isSupabaseConfigured } from './lib/supabase.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import SocialAuth from './components/SocialAuth.jsx'
@@ -40,26 +40,33 @@ export default function SignupPage() {
     setEmailVerified(false)
   }
 
-  function handleSendCode() {
+  async function handleSendCode() {
     setError('')
     if (!EMAIL_RE.test(email.trim())) { setError(t('signup.errEmailFormat')); return }
-    const res = issueEmailCode(email.trim())
+    const res = await issueEmailCode(email.trim())
     if (!res.ok) { setError(res.error); return }
-    setSentCode(res.code)
+    setSentCode(res.code || '')   // code 있으면(Mock/dev) 화면 힌트, 없으면 이메일 발송
     setCodeSent(true)
     setEmailVerified(false)
     setCodeInput('')
   }
 
-  function handleConfirmCode() {
+  async function handleConfirmCode() {
     setError('')
-    if (codeInput.trim() !== sentCode) { setError(t('signup.errCode')); return }
+    if (!codeInput.trim()) { setError(t('signup.errCode')); return }
+    if (isSupabaseConfigured) {
+      const res = await confirmEmailCode(email.trim(), codeInput.trim())
+      if (!res.ok) { setError(res.error || t('signup.errCode')); return }
+    } else if (codeInput.trim() !== sentCode) {
+      setError(t('signup.errCode')); return
+    }
     setEmailVerified(true)
   }
 
-  // 소셜 회원가입/로그인 성공 → 기존 팀 있으면 구단 홈, 아니면 팀 선택으로.
+  // 소셜 회원가입/로그인 성공 → 온보딩 필요 시 온보딩, 팀 있으면 구단 홈, 아니면 팀 선택.
   function handleSocialSuccess(res) {
-    if (res.user.selectedTeam) navigate(`/club/${res.user.selectedTeam}`)
+    if (needsOnboarding(res.user)) navigate('/onboarding')
+    else if (res.user.selectedTeam) navigate(`/club/${res.user.selectedTeam}`)
     else navigate('/team-select')
   }
 
@@ -70,8 +77,8 @@ export default function SignupPage() {
     if (!nickname.trim()) { setError(t('signup.errNickname')); return }
     if (!email.trim()) { setError(t('signup.errEmail')); return }
     if (!EMAIL_RE.test(email)) { setError(t('signup.errEmailFormat')); return }
-    // Mock 모드에서만 인증번호 확인을 강제(Supabase 모드는 확인 메일 링크 사용).
-    if (!isSupabaseConfigured && !emailVerified) { setError(t('signup.errEmailVerify')); return }
+    // 이메일 인증번호 확인은 양 모드 모두 필수(실제 존재하는 이메일만 가입).
+    if (!emailVerified) { setError(t('signup.errEmailVerify')); return }
     if (!ageGroup) { setError(t('signup.errAge')); return }
     if (!password) { setError(t('signup.errPw')); return }
     if (password.length < 4) { setError(t('signup.errPwLen')); return }
@@ -84,7 +91,7 @@ export default function SignupPage() {
     })
     setLoading(false)
     if (!result.ok) { setError(result.error); return }
-    // Supabase: 이메일 확인이 필요하면 세션이 없다 → 안내 후 로그인 대기.
+    // Supabase 에서 (프로젝트 설정상) 확인 메일이 추가로 필요하면 안내 후 대기.
     if (result.needsConfirm) { setConfirmSent(true); return }
     navigate('/team-select')
   }
@@ -113,7 +120,7 @@ export default function SignupPage() {
             />
           </div>
 
-          {/* Email + 인증번호 (인증번호는 Mock 전용, Supabase 모드는 확인 메일 사용) */}
+          {/* Email + 인증번호 (실제 존재하는 이메일 확인 — 양 모드 공통) */}
           <div className="su-field">
             <label className="su-label">{t('signup.email')}</label>
             <div className="su-inline">
@@ -124,18 +131,16 @@ export default function SignupPage() {
                 value={email}
                 onChange={e => onEmailChange(e.target.value)}
                 autoComplete="email"
-                disabled={!isSupabaseConfigured && emailVerified}
+                disabled={emailVerified}
               />
-              {!isSupabaseConfigured && (
-                <button type="button" className="su-side-btn" onClick={handleSendCode} disabled={emailVerified}>
-                  {codeSent ? t('signup.resendCode') : t('signup.sendCode')}
-                </button>
-              )}
+              <button type="button" className="su-side-btn" onClick={handleSendCode} disabled={emailVerified}>
+                {codeSent ? t('signup.resendCode') : t('signup.sendCode')}
+              </button>
             </div>
 
             {codeSent && !emailVerified && (
               <>
-                <p className="su-code-hint">{t('signup.codeHint', { code: sentCode })}</p>
+                <p className="su-code-hint">{sentCode ? t('signup.codeHint', { code: sentCode }) : t('signup.codeSentMail')}</p>
                 <div className="su-inline">
                   <input
                     type="text"

@@ -260,3 +260,6 @@
   .signup-card { padding: 36px 24px 28px; border-radius: 14px; }
   .su-input, .su-btn { height: 56px; font-size: 16px; }
 }
+
+/* 온보딩 아바타 */
+.ob-avatar-row { display: flex; justify-content: center; margin-bottom: 22px; }
