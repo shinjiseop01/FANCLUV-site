@@ -16,6 +16,18 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  // 소셜 로그인 안내(에러/성공) — 로그인 폼 상단 Alert 로 표시
+  const [notice, setNotice] = useState(null) // { kind: 'error' | 'success', text }
+
+  // 계정 충돌 안내를 provider 별 문구로 변환.
+  function conflictMessage(errCode) {
+    const map = {
+      account_exists_google: t('login.conflictGoogle'),
+      account_exists_kakao: t('login.conflictKakao'),
+      account_exists_naver: t('login.conflictNaver'),
+    }
+    return map[errCode] || t('login.conflictGeneric')
+  }
 
   // 로그인 성공 후 이동 경로: 운영자 → 관리자 콘솔, 팀 선택 완료 → 구단 홈, 그 외 → 팀 선택.
   function routeAfterAuth(user) {
@@ -24,11 +36,35 @@ export default function LoginPage() {
     else navigate('/team-select')
   }
 
-  // Supabase 모드: OAuth(구글) 리다이렉트 복귀 등으로 이미 세션이 있으면 자동 진입.
+  // 소셜 로그인 콜백의 ?error=account_exists_* 를 읽어 안내 후, 새로고침 반복을 막기 위해
+  // Query Parameter 를 제거한다(history.replaceState).
   useEffect(() => {
-    if (isSupabaseConfigured && sessionUser) routeAfterAuth(sessionUser)
+    const params = new URLSearchParams(window.location.search)
+    const err = params.get('error')
+    if (err && err.startsWith('account_exists')) {
+      setNotice({ kind: 'error', text: conflictMessage(err) })
+      params.delete('error')
+      const qs = params.toString()
+      window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Supabase 모드: OAuth 리다이렉트 복귀 등으로 세션이 생기면 환영 메시지 후 자동 진입.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !sessionUser) return
+    setNotice({ kind: 'success', text: t('login.welcome') })
+    const id = setTimeout(() => routeAfterAuth(sessionUser), 1000)
+    return () => clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionUser])
+
+  // 소셜 로그인(Mock) 성공 → 환영 메시지 짧게 표시 후 이동.
+  function handleSocialSuccess(res) {
+    setError('')
+    setNotice({ kind: 'success', text: t('login.welcome') })
+    setTimeout(() => routeAfterAuth(res.user), 1000)
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -102,6 +138,12 @@ export default function LoginPage() {
             <p className="form-subtitle">{t('login.formSubtitle')}</p>
           </div>
 
+          {notice && (
+            <div className={`auth-alert ${notice.kind}`} role="alert">
+              <span aria-hidden="true">{notice.kind === 'success' ? '✓' : '⚠'}</span> {notice.text}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} noValidate>
             <div className="field-group">
               <label className="field-label">{t('login.email')}</label>
@@ -154,7 +196,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <SocialAuth onSuccess={res => routeAfterAuth(res.user)} onError={setError} />
+          <SocialAuth onSuccess={handleSocialSuccess} onError={setError} />
 
           <div className="form-footer">
             <Link to="/find-id" className="form-link">{t('login.findId')}</Link>

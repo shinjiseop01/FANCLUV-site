@@ -23,9 +23,29 @@ Supabase 가 OAuth 콜백을 받는 주소입니다. 각 provider 콘솔의 Redi
 ```
 https://<프로젝트-ref>.supabase.co/auth/v1/callback
 ```
-로그인 후 앱으로 되돌아오는 주소는 코드에서 `redirectTo: window.location.origin` 으로 지정되어 있습니다.
-Supabase 대시보드 → Authentication → URL Configuration 의 **Redirect URLs** 에
-앱 주소(예: `http://localhost:5173`, 배포 도메인)를 추가하세요.
+
+### ⚠️ 필수 — 앱 도메인을 Redirect URLs 에 등록
+로그인 후 앱으로 되돌아오는 주소(`redirectTo: window.location.origin` / NAVER 는 magic link)를
+Supabase 가 **허용 목록(allow list)** 과 대조합니다. 등록돼 있지 않으면 로그인 자체는 되어도
+**앱으로 복귀하지 못합니다.**
+
+경로: **Supabase Dashboard → Authentication → URL Configuration → Redirect URLs**
+아래 주소를 모두 추가하세요.
+
+| 환경 | 등록할 URL |
+|------|-----------|
+| Development | `http://localhost:5173` |
+| Production | `https://fancluv.com` |
+
+> 와일드카드도 가능: `http://localhost:5173/**`, `https://fancluv.com/**`
+> 같은 화면의 **Site URL** 에는 대표 주소(보통 Production)를 지정합니다.
+
+### 등록되지 않았을 때의 증상
+- 로그인(동의)은 끝났는데 앱으로 **안 돌아오고** Supabase 기본 페이지/빈 화면/`localhost` 거부에 머무름.
+- 주소창에 `?error=redirect_to_not_allowed` 또는 `otp_expired`/`access_denied` 류 파라미터가 붙음.
+- 콘솔에 `requested path is invalid` / redirect 관련 오류.
+- NAVER 의 경우 magic link `redirectTo` 가 거부되어 세션이 앱에 심어지지 않음.
+→ 위 표의 주소를 Redirect URLs 에 추가하면 해결됩니다.
 
 ---
 

@@ -137,6 +137,11 @@ npm run lint     # oxlint
 - **NAVER Edge Function(5차, 6차 강화)** — `supabase/functions/naver-callback/index.ts`(Deno): code→token 교환 → 프로필(email/nickname/profile_image/id) → **`profiles.email` 인덱스 조회**(`0008_profiles_email_index.sql`)로 기존 사용자 확인 → ①기존 naver/미설정 프로필이면 `provider_user_id` 연결(중복 프로필 미생성) ②다른 provider면 `?error=account_exists_<provider>` 안전 안내 ③없으면 `admin.createUser`(트리거가 profiles 생성) → `generateLink(magiclink)`로 세션 발급 후 앱 복귀(`state`에 origin 인코딩).
 - 배포: **`supabase functions deploy naver-callback --no-verify-jwt`**(외부 NAVER 콜백엔 JWT 없음 → 검증 끄고 service_role로 서버 처리). 시크릿(서버 전용, 프론트 노출 금지): `NAVER_CLIENT_ID/SECRET`, `NAVER_REDIRECT_URI`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. 프론트는 `VITE_NAVER_CLIENT_ID`/`VITE_NAVER_CALLBACK_URL`만(공개 안전).
 
+**소셜 로그인 UX(7차)** — `LoginPage`:
+- 계정 충돌 콜백 `?error=account_exists_<provider>` → provider별 안내 문구(`login.conflict*`)를 폼 상단 `.auth-alert`(error)로 표시 후 `history.replaceState`로 쿼리 제거(새로고침 반복 방지).
+- 소셜 로그인 성공(Mock onSuccess / Supabase 세션 감지) → `.auth-alert`(success) "환영합니다" 1초 표시 후 이동. Toast 미사용, 기존 로그인 디자인 유지.
+- Redirect URLs 등록 필수 안내(dev/prod 예시 + 미등록 증상)는 [SOCIAL_LOGIN_SETUP.md](SOCIAL_LOGIN_SETUP.md).
+
 ### 다국어 — `src/contexts/LanguageContext.jsx` + `src/locales/{ko,en}.js`
 - `useLang()` → `{ lang, setLang, t }`. `t(key, vars?)`는 `{token}` 보간 지원, 누락 시 ko 폴백 → raw key 폴백.
 - localStorage 키: `fancluv_lang` (기본 `ko`).

@@ -321,6 +321,26 @@ html, body, #root {
   margin-bottom: 16px;
 }
 
+/* Social login notice (error/success) — small alert above the form */
+.auth-alert {
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 18px;
+  line-height: 1.5;
+}
+.auth-alert.error {
+  background: rgba(224, 82, 82, 0.1);
+  border: 1px solid rgba(224, 82, 82, 0.3);
+  color: var(--error);
+}
+.auth-alert.success {
+  background: rgba(46, 160, 110, 0.12);
+  border: 1px solid rgba(46, 160, 110, 0.34);
+  color: #4ADE80;
+}
+
 /* Login button */
 .login-btn {
   width: 100%;

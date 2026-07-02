@@ -103,6 +103,12 @@ export default {
   'login.loading': 'Logging in...',
   'login.errEmail': 'Please enter your email.',
   'login.errPw': 'Please enter your password.',
+  // Social login notices
+  'login.welcome': 'Welcome! You are signed in.',
+  'login.conflictGoogle': 'This email is already registered with Google. Please sign in with your existing method.',
+  'login.conflictKakao': 'This email is already registered with Kakao. Please sign in with your existing method.',
+  'login.conflictNaver': 'This email is already registered with NAVER. Please sign in with your existing method.',
+  'login.conflictGeneric': 'An account with this email already exists. Sign in with your existing account, then link the provider.',
   'login.tagline1': 'Gathering the voices',
   'login.tagline2': 'of K League fans',
   'login.heroDesc': 'Share your opinions on matchday experience, club operations and fan services.',

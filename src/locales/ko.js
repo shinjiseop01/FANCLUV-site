@@ -103,6 +103,12 @@ export default {
   'login.loading': '로그인 중...',
   'login.errEmail': '이메일을 입력해주세요.',
   'login.errPw': '비밀번호를 입력해주세요.',
+  // 소셜 로그인 안내
+  'login.welcome': '환영합니다. 로그인이 완료되었습니다.',
+  'login.conflictGoogle': 'Google 계정으로 이미 가입되어 있습니다. 기존 방식으로 로그인해 주세요.',
+  'login.conflictKakao': 'Kakao 계정으로 이미 가입되어 있습니다. 기존 방식으로 로그인해 주세요.',
+  'login.conflictNaver': 'NAVER 계정으로 이미 가입되어 있습니다. 기존 방식으로 로그인해 주세요.',
+  'login.conflictGeneric': '이미 같은 이메일로 가입된 계정이 있습니다. 기존 계정으로 로그인한 후 계정을 연결해 주세요.',
   'login.tagline1': 'K리그 팬들의',
   'login.tagline2': '목소리를 모으다',
   'login.heroDesc': '경기장 경험, 구단 운영, 팬 서비스에 대한 의견을 남겨주세요.',
