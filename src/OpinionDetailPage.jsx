@@ -90,14 +90,26 @@ export default function OpinionDetailPage() {
     await toggleLikeApi(opinionId, next)
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault()
+  async function submitComment() {
     const text = draft.trim()
     if (!text) return
     const res = await addComment(opinionId, text)
     if (res.ok) {
       setComments(prev => [...prev, res.comment])
       setDraft('')
+    }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    submitComment()
+  }
+
+  // Enter = 작성 / Shift+Enter = 줄바꿈 (한글 IME 조합 중에는 무시)
+  function handleCommentKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+      e.preventDefault()
+      submitComment()
     }
   }
 
@@ -222,6 +234,7 @@ export default function OpinionDetailPage() {
                   placeholder={t('detail.commentPh')}
                   value={draft}
                   onChange={e => setDraft(e.target.value)}
+                  onKeyDown={handleCommentKeyDown}
                   rows={2}
                 />
                 <button type="submit" className="od-comment-submit" disabled={!draft.trim()}>{t('detail.commentSubmit')}</button>

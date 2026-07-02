@@ -95,7 +95,7 @@ export default function SurveyPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // 종료 후 7일 지난 설문은 repo(listSurveys)에서 이미 제외됨.
+  // 종료 후 3일 지난 설문은 repo(listSurveys)에서 이미 제외됨.
   const visibleSurveys = surveys
     .filter(s => (statusFilter === 'all' ? true : s.status === statusFilter))
 
@@ -135,8 +135,6 @@ export default function SurveyPage() {
       {selected === null ? (
         /* ── 설문 목록 ── */
         <main className="sv-main is-list">
-          <button className="sv-back" onClick={() => navigate(`/club/${team.id}`)}>{t('common.back')}</button>
-
           <header className="sv-head">
             <span className="sv-tag">{team.name}</span>
             <h1 className="sv-title">{t('survey.listTitle')}</h1>
@@ -218,6 +216,7 @@ export default function SurveyPage() {
           </div>
         ) : (
           <>
+            <button className="sv-back" onClick={backToList}>{t('common.back')}</button>
             <header className="sv-head">
               <span className="sv-tag">{t('survey.statusOpen')} · {selected.dday === 0 ? 'D-DAY' : `D-${selected.dday}`}</span>
               <h1 className="sv-title">{surveyTitle(selected)}</h1>

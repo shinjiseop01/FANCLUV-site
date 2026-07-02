@@ -1,7 +1,7 @@
 # FANCLUV — 프로젝트 컨텍스트 (핸드오프 문서)
 
 > 새 채팅에서 이 파일을 읽으면 바로 이어서 작업할 수 있도록 정리한 문서입니다.
-> 최종 정리: 2026-07-01 / `main` 브랜치 기준 (작업 트리 clean, 최신 커밋 `79fc2e7`)
+> 최종 정리: 2026-07-02 / `main` 브랜치 기준 (작업 트리 clean, 최신 커밋 `ea49ca8`)
 
 ## 1. 프로젝트 개요
 
@@ -80,11 +80,11 @@ npm run lint     # oxlint
 
 ### 설문 / 설문 응답 — `src/lib/surveysRepo.js` (Supabase-우선 + Mock 폴백)
 - **Supabase 이관 완료**. `SurveyPage`(팬) + `AdminSurveys`(관리자)의 단일 데이터 소스. Supabase 설정 시 `surveys`/`survey_responses` + `surveys_view`(응답수·현재 사용자 참여여부 집계) 사용, 아니면 Mock.
-- 팬 API: `listSurveys(teamId)`(대상 구단 team_id 또는 전체, **종료 7일 경과 자동 숨김**), `submitResponse(surveyId, teamId, answers)`(1인 1회, DB `unique(survey_id,user_id)`).
+- 팬 API: `listSurveys(teamId)`(대상 구단 team_id 또는 전체, **종료 3일 경과 시 팬 화면에서만 자동 숨김** — `SURVEY_HIDE_DAYS=3`, 데이터 삭제 아님·관리자/AI/통계엔 계속 포함), `submitResponse(surveyId, teamId, answers)`(1인 1회, DB `unique(survey_id,user_id)`).
 - 관리자 API: `adminListSurveys`/`createSurvey`/`updateSurvey`/`closeSurvey`/`deleteSurvey` → Supabase CRUD(관리자 RLS `is_admin()`), Mock은 세션 배열.
 - **중복 참여 방지**: 참여한 설문은 카드가 "참여 완료" 상태(비활성) 표시. Mock은 `fancluv_survey_participated` localStorage, Supabase는 `surveys_view.has_responded`.
 - `selectedId` 내부 상태로 **목록 → 상세 → 완료** 3단계 전환. 상세 폼(별점·객관식·주관식 Q1~Q4)은 고정 템플릿 유지(UI 불변), 응답은 `answers` jsonb로 저장. 제목/설명은 Supabase=DB값, Mock=locale 키 겸용.
-- 상태 필터(전체/진행 중/종료), 참여 화면 뒤로가기 없음, 완료 화면은 "목록으로 돌아가기"만 — 기존 UI 유지.
+- 상태 필터(전체/진행 중/종료). **뒤로가기 버튼은 상세/참여 화면에만 표시**(목록 화면엔 없음), 완료 화면은 "목록으로 돌아가기"만 — 2차 UX 수정.
 
 ### 상단 로고 동작 — 모든 `.ch-*` 헤더 공통
 - 로그인 상태에서 **FANCLUV 로고 클릭 시 항상 구단 홈(`/club/:teamId`)으로 이동**. 로고는 `role="button" tabIndex={0}` + Enter/Space 키 지원(키보드 접근 가능).
@@ -162,6 +162,7 @@ npm run lint     # oxlint
 - **Supabase 이관 완료(2차)**. `OpinionsPage`/`OpinionDetailPage`/`CreateOpinionPage`의 단일 데이터 소스. Supabase 설정 시 `opinions`/`comments`/`likes` 테이블 + `opinions_view`(작성자·공감수·댓글수 집계) 사용, 아니면 Mock(seeded 풀 + `opinionStore.js` localStorage).
 - API(모두 async): `listOpinions(teamId)`(구단 필터), `getOpinionDetail(teamId,id)`(+연관), `createOpinion`, `listComments`/`addComment`, `getLikeState`/`toggleLike`(1인 1회, 취소 가능).
 - 화면은 `useEffect`로 비동기 로드(로딩 상태 포함). **UI/디자인은 기존 그대로**. 작성 의견 상세 열람도 정상 동작.
+- **댓글 입력(OpinionDetailPage)**: Enter = 바로 작성, Shift+Enter = 줄바꿈(한글 IME 조합 중엔 `isComposing` 가드로 무시) — 2차 UX 수정. 관리자 콘솔엔 댓글 입력창이 없어(숨김/삭제 관리만) 해당 없음.
 - `src/opinionStore.js` = Mock 작성 의견 localStorage 백엔드(`fancluv_created_opinions`) — repo가 Mock 모드에서 사용.
 
 ### 팀 뉴스 — `src/lib/newsRepo.js` (Supabase-우선 + Mock 폴백)
@@ -195,6 +196,26 @@ npm run lint     # oxlint
 
 ## 4. 완료된 작업 (git 히스토리, 최신 → 과거)
 
+**Supabase 백엔드 연동 시리즈 (최신)**
+
+0. 안전한 회원탈퇴 Edge Function(`delete-account`, service_role) — 10차 (`ea49ca8`)
+0. 온보딩·본인인증·회원탈퇴 개선 — 9차 (`6724e90`)
+0. AI 인사이트 배포 흐름 검증 (`34cd414`)
+0. 실제 AI 팬 인사이트 분석(OpenAI Edge Function `analyze-insights`) — 8차 (`8efdbeb`)
+0. 소셜 로그인 UX·에러 처리 개선 — 7차 (`40f3b31`)
+0. NAVER OAuth 콜백 Edge Function 강화 — 6차 (`2aede23`)
+0. NAVER OAuth 콜백 Edge Function 구현 — 5차 (`872c793`)
+0. Kakao·Naver 소셜 로그인 Supabase 연동 — 4차 (`272ce0e`)
+0. 뉴스·알림·관리자 데이터 Supabase 이관 — 3차 (`3d66f16`)
+0. 설문·설문응답 Supabase 이관 (`36a5079`)
+0. 팬 의견·댓글·공감 Supabase 이관 — 2차 (`f46ad57`)
+0. 관리자 대시보드 고도화(KPI·차트·활동) (`7ae116e`)
+0. Supabase Auth + Profile 연동 — 1차 (Mock 폴백 유지) (`23113d5`)
+0. 소셜 로그인 아키텍처 추가 (`ba4ee4a`)
+0. 전반 UI 일관성·UX 개선 (`8cbf3f4`)
+
+**기능 골격 구축 (이전)**
+
 1. 앱 정보 페이지(소개/개인정보/약관) 추가 + 설정 UI 개선 (`79fc2e7`)
 2. 계정 인증·프로필 설정 개선 (`01b0205`)
 3. Mock 이메일 인증 구조 추가 (`77f13a4`)
@@ -220,15 +241,16 @@ npm run lint     # oxlint
 23. Vercel 404 수정: 클라이언트 라우팅 + SPA fallback (`d150b0e`)
 24. 초기 커밋 (`b22a591`)
 
-→ **팬 화면 8개 + 계정 복구/인증/정보 페이지 + 관리자 콘솔까지 구현 완료.** 기능 골격 완성 단계이며, 다음 마일스톤은 Supabase 백엔드 연동.
+→ **팬 화면 8개 + 계정 복구/인증/정보 페이지 + 관리자 콘솔 구현 완료 + Supabase 백엔드 1~10차 연동 완료(Auth/Profile·의견/댓글/공감·설문·뉴스/알림·소셜로그인·AI인사이트·온보딩·회원탈퇴).** 모든 데이터 레이어는 **Supabase-우선 + Mock 폴백** 어댑터 구조라 키 없이도 앱이 동작.
 
 ## 5. 알려진 특이사항 / TODO 후보
 
-- `src/App.jsx`는 **여전히 Vite 기본 템플릿** (실제 앱은 `main.jsx`가 진입점). 라우트에 미연결 — 정리/삭제 가능.
-- `README.md`도 Vite 기본 템플릿 그대로.
-- 백엔드/DB 없음 → **Supabase 연동**이 다음 큰 마일스톤 (auth.js부터 교체 지점 마련됨). 권한(`ROLES`)·본인인증(`VERIFICATION`) 데이터 구조는 이미 확장 대비해 선반영됨.
-- 이메일 인증은 **Mock만 동작**, 휴대폰 본인인증(PASS/NICE/KCB)은 구조만 준비된 상태 → 실제 연동 필요.
-- 비밀번호 평문 저장 (목업 한정).
+- **Supabase 핵심 이관 완료.** 남은 잔여: 관리자 대시보드의 구단별/최근활동/차트·신고(Reports)는 아직 Mock, KPI만 실집계 연동됨.
+- **소셜 로그인 잔여**: Google·Kakao는 Supabase native, NAVER는 커스텀 Edge Function(`naver-callback`). 프로필 이미지가 아직 placeholder(SVG data URI)인 provider 존재 → 실 사진 URL 매핑 확인 필요. 배포/시크릿은 [SOCIAL_LOGIN_SETUP.md](SOCIAL_LOGIN_SETUP.md).
+- **Edge Function 배포 필요 항목**: `send-email-code`(Resend), `naver-callback`(`--no-verify-jwt`), `analyze-insights`(OpenAI, verify_jwt 유지), `delete-account`. 검증 체크리스트는 [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
+- 이메일 인증은 Supabase(`send-email-code`)/Mock 양쪽 동작, **휴대폰 본인인증(PASS/NICE/KCB)은 구조만 준비**된 상태 → 실제 연동 필요.
+- 비밀번호는 Supabase Auth가 관리(실서비스 안전). **Mock 모드 한정 평문 저장** — 데모 전용.
+- `src/App.jsx`·`README.md`는 **여전히 Vite 기본 템플릿** (실제 진입점은 `main.jsx`) — 정리/삭제 가능.
 - 루트에 `log-in page.docx`, `tmp/`, `.DS_Store` 존재.
 
 ## 6. 작업 시 참고

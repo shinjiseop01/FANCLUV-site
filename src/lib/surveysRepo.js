@@ -8,8 +8,9 @@ import { getCurrentUser } from './auth.js'
 import { MOCK_SURVEYS } from '../admin/adminData.js'
 import { pushMockNotification } from './notificationsRepo.js'
 
-// 종료 후 이 일수가 지나면 목록에서 자동으로 숨긴다.
-export const SURVEY_HIDE_DAYS = 7
+// 종료 후 이 일수가 지나면 팬 목록 화면에서만 자동으로 숨긴다.
+// (실제 데이터는 삭제하지 않으며 관리자/AI/통계에는 계속 포함된다.)
+export const SURVEY_HIDE_DAYS = 3
 
 function daysUntil(dateStr) {
   if (!dateStr) return 0
@@ -76,7 +77,7 @@ function mapAdminSurvey(row) {
 //  팬 API
 // ════════════════════════════════════════════════════════════════════════
 
-// 구단 설문 목록 (대상 구단 = team_id 또는 전체(null)). 종료 후 7일 지난 것은 제외.
+// 구단 설문 목록 (대상 구단 = team_id 또는 전체(null)). 종료 후 3일 지난 것은 팬 화면에서 제외.
 export async function listSurveys(teamId) {
   if (isSupabaseConfigured) {
     const { data, error } = await supabase
