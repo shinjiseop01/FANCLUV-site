@@ -168,6 +168,12 @@ npm run lint     # oxlint
 - **알림 생성은 DB 트리거**(`0006`, SECURITY DEFINER): 댓글/공감(의견 작성자에게), 새 설문/새 뉴스(대상 구단 팬에게). Mock 모드는 각 repo가 `pushMockNotification`으로 데모 생성.
 - 클라이언트는 조회 + 읽음 처리만: `listNotifications`/`unreadCount`/`markRead`/`markAllRead`. 본인 알림만 RLS로 노출.
 
+### AI 팬 인사이트 — `src/lib/ai/analyzeFanInsights.js` + Edge Function
+- **OpenAI 기반 실제 분석(8차)**. OpenAI 호출/키는 **Edge Function `analyze-insights`**(서버)에서만 — 프론트 미노출. 클라이언트 `analyzeFanInsights.js`는 함수 호출(`runAnalysis`)·결과 조회(`getLatestInsight`)만.
+- 분석 항목: 감정(긍/중/부%)·키워드·카테고리별 불만·만족도 요약·핵심 이슈·우선 개선 추천 → `ai_insights` 테이블(`0009_ai_insights.sql`)에 저장(core 컬럼 + `details` jsonb).
+- **관리자 대시보드**에 "AI 팬 인사이트 분석" 패널(구단 선택 + 실행). 의견 30개 미만이면 부족 안내. Edge Function은 요청자 admin role 재확인(verify_jwt 유지).
+- **AIInsightsPage**: 최신 `ai_insights` 로드 → 표시. 결과 없으면(Supabase) "의견 30개 이상 모이면 분석 시작" Empty State. **Mock 모드**는 별점/카테고리 기반 로컬 간이 분석으로 폴백(앱 유지). UI 기존 그대로.
+
 ### 관리자 콘솔 — `src/admin/`
 - `RequireAdmin` 가드로 보호. `AdminLayout` + 중첩 라우트(대시보드/회원/의견/설문/뉴스/신고/설정).
 - 데이터는 `adminData.js`의 Mock. 댓글 관리 기능 포함, 토스트 없이 인라인 피드백.

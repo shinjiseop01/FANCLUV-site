@@ -1,17 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
+import { isSupabaseConfigured } from './lib/supabase.js'
+import { getLatestInsight } from './lib/ai/analyzeFanInsights.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
-import { useFakeLoading } from './lib/useFakeLoading.js'
 import './ClubHomePage.css'
 import './AIInsightsPage.css'
-
-// Mock data is always present; flip to false to preview the empty state.
-const HAS_INSIGHTS = true
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
@@ -51,13 +49,61 @@ const TOP_OPINIONS = [
 const STAFF_MEMO =
   '팬들은 경기 결과보다 경기장 경험과 MD 상품에 대한 개선을 가장 많이 요구하고 있습니다. 우선적으로 MD 상품 다양성과 경기장 편의시설 개선을 검토하는 것을 추천합니다.'
 
+// Mock 모드(또는 아직 분석 전) 기본 뷰 — 기존 화면과 동일하게 표시.
+const DEFAULT_MOCK_VIEW = {
+  summary: SUMMARY, sentiment: SENTIMENT, keywords: KEYWORDS, aiSummary: AI_SUMMARY,
+  recommendations: RECOMMENDATIONS, categorySat: CATEGORY_SAT, trend: TREND,
+  topOpinions: TOP_OPINIONS, staffMemo: STAFF_MEMO,
+}
+
+// 저장된 인사이트(ai_insights row / 로컬 mock) → 화면 뷰로 매핑.
+function insightToView(ins) {
+  const d = ins.details || {}
+  const kw = (ins.keywords || []).map((k, i) => {
+    if (typeof k === 'string') return { tag: k.startsWith('#') ? k : `#${k}`, weight: i < 2 ? 3 : i < 5 ? 2 : 1 }
+    return { tag: (k.tag || '').startsWith('#') ? k.tag : `#${k.tag || ''}`, weight: k.weight || 2 }
+  })
+  const trend = (d.trend && d.trend.length >= 2) ? d.trend : [{ label: 'W1', value: ins.sentiment_positive || 0 }, { label: 'W2', value: ins.sentiment_positive || 0 }]
+  return {
+    summary: { opinions: d.opinionsCount || 0, surveys: d.surveysCount || 0, progress: 100 },
+    sentiment: [
+      { key: 'pos', emoji: '😊', label: '긍정', value: ins.sentiment_positive || 0, color: '#0E9F6E' },
+      { key: 'neu', emoji: '😐', label: '중립', value: ins.sentiment_neutral || 0, color: '#9AA0AA' },
+      { key: 'neg', emoji: '😡', label: '부정', value: ins.sentiment_negative || 0, color: '#E05252' },
+    ],
+    keywords: kw.length ? kw : KEYWORDS,
+    aiSummary: ins.summary || AI_SUMMARY,
+    recommendations: (ins.recommendations || []).map((r, i) => ({ rank: r.rank || i + 1, title: r.title || String(r), desc: r.desc || '' })),
+    categorySat: d.categorySat && d.categorySat.length ? d.categorySat : CATEGORY_SAT,
+    trend,
+    topOpinions: d.topOpinions && d.topOpinions.length ? d.topOpinions : TOP_OPINIONS,
+    staffMemo: d.staffMemo || ins.summary || STAFF_MEMO,
+  }
+}
+
 export default function AIInsightsPage() {
   const NICKNAME = getCurrentUser()?.nickname || '팬'
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { t } = useLang()
-  const loading = useFakeLoading()
+  const [view, setView] = useState(null)
+  const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'empty'
+
+  // 최신 AI 인사이트 로드. Supabase 모드는 실제 결과, 없으면 Empty State.
+  // Mock 모드는 저장된 로컬 분석 or 기본 뷰(기존 화면)로 표시.
+  useEffect(() => {
+    if (!team) return
+    let active = true
+    setStatus('loading')
+    getLatestInsight(team.id).then(ins => {
+      if (!active) return
+      if (ins) { setView(insightToView(ins)); setStatus('ready') }
+      else if (!isSupabaseConfigured) { setView(DEFAULT_MOCK_VIEW); setStatus('ready') }
+      else { setStatus('empty') }
+    })
+    return () => { active = false }
+  }, [teamId, team])
 
   if (!team) {
     return (
@@ -104,9 +150,9 @@ export default function AIInsightsPage() {
 
       {/* ── Main ── */}
       <main className="ai-main">
-        {loading ? (
+        {status === 'loading' ? (
           <SkeletonList count={3} lines={4} />
-        ) : !HAS_INSIGHTS ? (
+        ) : status === 'empty' || !view ? (
           <EmptyState icon="🤖" title={t('empty.insightsTitle')} message={t('empty.insightsMsg')} />
         ) : (
         <>
@@ -125,15 +171,15 @@ export default function AIInsightsPage() {
               <span className="ai-summary-label">{t('ai.summaryLabel')}</span>
               <div className="ai-summary-stats">
                 <div className="ai-sum">
-                  <span className="ai-sum-value">{SUMMARY.opinions.toLocaleString()}<em>건</em></span>
+                  <span className="ai-sum-value">{view.summary.opinions.toLocaleString()}<em>건</em></span>
                   <span className="ai-sum-label">총 분석 의견</span>
                 </div>
                 <div className="ai-sum">
-                  <span className="ai-sum-value">{SUMMARY.surveys.toLocaleString()}<em>명</em></span>
+                  <span className="ai-sum-value">{view.summary.surveys.toLocaleString()}<em>명</em></span>
                   <span className="ai-sum-label">설문 참여</span>
                 </div>
                 <div className="ai-sum">
-                  <span className="ai-sum-value">{SUMMARY.progress}<em>%</em></span>
+                  <span className="ai-sum-value">{view.summary.progress}<em>%</em></span>
                   <span className="ai-sum-label">분석 완료</span>
                 </div>
               </div>
@@ -143,9 +189,9 @@ export default function AIInsightsPage() {
             <section className="ai-panel">
               <h2 className="ai-panel-title">{t('ai.sentiment')}</h2>
               <div className="ai-sentiment">
-                <DonutChart data={SENTIMENT} />
+                <DonutChart data={view.sentiment} />
                 <ul className="ai-sent-legend">
-                  {SENTIMENT.map(s => (
+                  {view.sentiment.map(s => (
                     <li key={s.key}>
                       <span className="ai-sent-emoji" aria-hidden="true">{s.emoji}</span>
                       <span className="ai-sent-name">{s.label}</span>
@@ -161,7 +207,7 @@ export default function AIInsightsPage() {
             <section className="ai-panel">
               <h2 className="ai-panel-title">{t('ai.keywords')}</h2>
               <div className="ai-keywords">
-                {KEYWORDS.map(k => (
+                {view.keywords.map(k => (
                   <span key={k.tag} className={`ai-kw w${k.weight}`}>{k.tag}</span>
                 ))}
               </div>
@@ -170,14 +216,14 @@ export default function AIInsightsPage() {
             {/* AI summary */}
             <section className="ai-panel ai-aisummary">
               <h2 className="ai-panel-title"><span className="ai-spark" aria-hidden="true">✦</span> AI 요약</h2>
-              <p className="ai-aisummary-text">{AI_SUMMARY}</p>
+              <p className="ai-aisummary-text">{view.aiSummary}</p>
             </section>
 
             {/* Recommendations */}
             <section className="ai-panel">
               <h2 className="ai-panel-title">{t('ai.recommend')}</h2>
               <div className="ai-recs">
-                {RECOMMENDATIONS.map(r => (
+                {view.recommendations.map(r => (
                   <div key={r.rank} className="ai-rec">
                     <span className="ai-rec-rank">{r.rank}</span>
                     <div className="ai-rec-body">
@@ -196,14 +242,14 @@ export default function AIInsightsPage() {
             {/* Satisfaction trend */}
             <section className="ai-panel">
               <h2 className="ai-panel-title">만족도 변화 <span className="ai-trend-up">▲ +6</span></h2>
-              <LineChart data={TREND} color={team.colorDeep} />
+              <LineChart data={view.trend} color={team.colorDeep} />
             </section>
 
             {/* Category satisfaction */}
             <section className="ai-panel">
               <h2 className="ai-panel-title">{t('ai.catSat')}</h2>
               <ul className="ai-catsat">
-                {CATEGORY_SAT.map(c => (
+                {view.categorySat.map(c => (
                   <li key={c.name}>
                     <span className="ai-catsat-name">{c.name}</span>
                     <span className="ai-stars" aria-label={`${c.score}점`}>
@@ -222,7 +268,7 @@ export default function AIInsightsPage() {
             <section className="ai-panel">
               <h2 className="ai-panel-title">{t('ai.top5')}</h2>
               <ul className="ai-top">
-                {TOP_OPINIONS.map((o, i) => (
+                {view.topOpinions.map((o, i) => (
                   <li key={o.title}>
                     <span className="ai-top-rank">{i + 1}</span>
                     <span className="ai-top-title">{o.title}</span>
@@ -235,7 +281,7 @@ export default function AIInsightsPage() {
             {/* Staff memo */}
             <section className="ai-panel ai-memo">
               <h2 className="ai-panel-title">{t('ai.memo')}</h2>
-              <p className="ai-memo-text">{STAFF_MEMO}</p>
+              <p className="ai-memo-text">{view.staffMemo}</p>
             </section>
           </aside>
         </div>

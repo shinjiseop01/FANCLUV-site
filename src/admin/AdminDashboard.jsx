@@ -8,6 +8,8 @@ import {
   getDailySignups, getDailyOpinions, getTeamOpinionShare, getSentimentDistribution,
 } from './adminData.js'
 import { LineChart, BarChart, DonutChart, StackedBar } from './AdminCharts.jsx'
+import { TEAMS } from '../teams.jsx'
+import { runAnalysis } from '../lib/ai/analyzeFanInsights.js'
 
 // KPI 카드 정의 (값 key + 라벨 + 아이콘 + 표시형식)
 const KPI_CARDS = [
@@ -50,6 +52,19 @@ export default function AdminDashboard() {
   const teamName = id => teams.find(tm => tm.id === id)?.name || id
   const teamOf = id => teams.find(tm => tm.id === id)
 
+  // AI 팬 인사이트 분석 실행
+  const [aiClub, setAiClub] = useState('all')
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiMsg, setAiMsg] = useState('')
+  async function runAi() {
+    setAiBusy(true); setAiMsg('')
+    const res = await runAnalysis(aiClub)
+    setAiBusy(false)
+    if (res.ok) setAiMsg(t('admin.ai.done'))
+    else if (res.reason === 'insufficient') setAiMsg(t('admin.ai.insufficient', { count: res.count, min: res.min || 30 }))
+    else setAiMsg(t('admin.ai.failed'))
+  }
+
   return (
     <div className="adm-page">
       <header className="adm-page-head">
@@ -83,6 +98,21 @@ export default function AdminDashboard() {
           <button className="adm-quick-btn" onClick={() => navigate('/admin/members')}>👥 {t('admin.dash.qMembers')}</button>
           <button className="adm-quick-btn" onClick={() => navigate('/admin/reports')}>🚩 {t('admin.dash.qReports')}</button>
         </div>
+      </section>
+
+      {/* AI 팬 인사이트 분석 실행 */}
+      <section className="adm-panel adm-dash-section">
+        <div className="adm-panel-head"><h2 className="adm-panel-title">✦ {t('admin.ai.title')}</h2></div>
+        <div className="adm-ai-run">
+          <select className="adm-input" value={aiClub} onChange={e => setAiClub(e.target.value)} aria-label={t('admin.ai.title')}>
+            <option value="all">{t('admin.ai.allClubs')}</option>
+            {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+          </select>
+          <button className="adm-btn-primary" onClick={runAi} disabled={aiBusy}>
+            {aiBusy ? t('admin.ai.running') : t('admin.ai.run')}
+          </button>
+        </div>
+        {aiMsg && <p className="adm-ai-msg" role="status">{aiMsg}</p>}
       </section>
 
       {/* 4) 차트 */}

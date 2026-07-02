@@ -75,3 +75,26 @@ Supabase 대시보드 → **SQL Editor** 에서 아래 파일 내용을 실행:
 ## 이번 단계 범위 / 다음 단계
 - ✅ 이번: 이메일 회원가입·로그인·로그아웃·세션유지·이메일 인증 구조·프로필 테이블·role(user/admin)·Google(OAuth 구조)
 - ⏭️ 다음: 팬 의견/댓글/공감/설문/설문응답/팀 뉴스/알림/관리자 데이터의 Supabase 완전 이관, Kakao·NAVER 실제 연동, 아이디 찾기 서버 함수, 닉네임 변경 쿨다운 컬럼
+
+---
+
+## AI 팬 인사이트 분석 (OpenAI)
+팬 의견/설문을 OpenAI 로 분석해 `ai_insights` 에 저장하고, AI 인사이트 화면에 표시합니다.
+**OpenAI 키는 Edge Function 에서만 사용**하며 프론트엔드에 노출하지 않습니다.
+
+1. 스키마 적용: `supabase/migrations/0009_ai_insights.sql` 실행.
+2. Edge Function 시크릿:
+   ```bash
+   supabase secrets set OPENAI_API_KEY=sk-... OPENAI_MODEL=gpt-4o-mini
+   ```
+3. 배포(기본 verify_jwt=true — 로그인 사용자만 호출, 함수 내부에서 관리자 role 재확인):
+   ```bash
+   supabase functions deploy analyze-insights
+   ```
+4. 사용: 관리자 대시보드 → **AI 팬 인사이트 분석** → 구단 선택 → "AI 분석 실행".
+   - 의견이 30개 미만이면 분석하지 않고 부족 안내를 반환합니다.
+   - 성공 시 `ai_insights` 에 저장되고, 팬 **AI 인사이트** 화면에 반영됩니다.
+   - 결과가 없으면 팬 화면은 "의견 30개 이상 모이면 분석 시작" Empty State 를 표시합니다.
+5. 구조: 클라이언트 `src/lib/ai/analyzeFanInsights.js` 는 Edge Function 호출/결과 조회만 담당하고,
+   실제 OpenAI 호출·프롬프트는 `supabase/functions/analyze-insights/index.ts` 에 있습니다.
+   (Supabase 미설정 시엔 별점/카테고리 기반 로컬 간이 분석으로 폴백)
