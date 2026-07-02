@@ -118,6 +118,30 @@ supabase functions serve naver-callback --no-verify-jwt --env-file ./supabase/.e
 
 > `VITE_NAVER_CLIENT_ID` 가 비어 있으면 앱은 "NAVER 로그인 설정이 필요합니다" 안내를 표시합니다.
 
+### 3-6. 왜 `--no-verify-jwt` 인가
+`naver-callback` 은 **외부 NAVER OAuth 서버**가 브라우저 리다이렉트로 직접 호출하는 공개 콜백입니다.
+이 요청에는 Supabase JWT(`Authorization` 헤더)가 없으므로, 기본값(`verify_jwt=true`)으로 배포하면
+401 로 차단되어 콜백을 처리할 수 없습니다. 따라서 `--no-verify-jwt` 로 배포하고, 대신 함수 내부에서
+`code`/`state` 검증 + `service_role` 로 안전하게 사용자/세션을 처리합니다.
+
+### 3-7. 기존 사용자 조회 & 중복 처리
+- 콜백은 `profiles.email` **인덱스**(`0008_profiles_email_index.sql`)로 기존 사용자를 조회합니다
+  (전체 스캔 아님).
+- **기존 프로필이 있고 `provider = 'naver'`(또는 미설정)** → 신규 프로필을 만들지 않고 기존 프로필에
+  `provider_user_id` 를 저장해 연결한 뒤 로그인합니다.
+- **기존 프로필이 있고 다른 방식(email/google/kakao)** → 충돌로 보고 자동 병합하지 않습니다.
+  앱으로 `?error=account_exists_<provider>` 를 반환하여 안전 안내를 표시합니다.
+- **기존 프로필이 없으면** → `admin.createUser` 로 생성(트리거가 `profiles` 자동 생성).
+
+### 3-8. 테스트 방법
+1. `.env` 에 `VITE_NAVER_CLIENT_ID`, `VITE_NAVER_CALLBACK_URL` 설정 후 `npm run dev`.
+2. 로그인 화면 → **NAVER로 계속하기** 클릭 → `nid.naver.com/oauth2.0/authorize` 로 이동하는지 확인.
+3. NAVER 동의 → `naver-callback` 으로 돌아오는지 확인
+   (로컬은 `supabase functions serve naver-callback --no-verify-jwt` 로 함수 로그 관찰).
+4. 함수 로그에서 token 교환·프로필 조회 성공 확인 → magic link 로 앱 복귀 → 세션 생성 확인.
+5. 같은 이메일로 이메일 가입 계정이 있는 경우, 앱 URL 에 `?error=account_exists_email` 이 붙는지 확인.
+6. `profiles` 에 `provider='naver'`, `provider_user_id` 가 저장됐는지 확인(중복 프로필 미생성).
+
 ---
 
 ## 4. 소셜 로그인 → 프로필 매핑
@@ -135,9 +159,11 @@ supabase functions serve naver-callback --no-verify-jwt --env-file ./supabase/.e
 | `selected_team` · `role` · `gender` · `age_group` | 이후 앱에서 설정(팀 선택/기본값) |
 
 ## 5. 같은 이메일 중복 처리
-- Supabase 대시보드 → Authentication → Providers → **"Allow linking accounts with the same email"** 활성화 시,
-  같은 이메일의 기존(이메일 가입) 계정과 소셜 계정이 자동 연결됩니다.
-- MVP 기본값에서는 별도 identity 로 처리되며, 앱은 Supabase 가 반환하는 안내/오류 메시지를 표시합니다.
+- **NAVER(커스텀 콜백)**: `naver-callback` 이 `profiles.email` 로 조회하여
+  - 기존 프로필이 `naver`(또는 미설정)면 → 기존 프로필에 `provider_user_id` 를 연결하고 로그인(중복 프로필 미생성).
+  - 기존 프로필이 다른 방식(email/google/kakao)이면 → 자동 병합하지 않고 `?error=account_exists_<provider>` 안전 안내.
+- **Google/Kakao(Supabase native)**: 대시보드 → Authentication → Providers → **"Allow linking accounts with the same email"**
+  활성화 시 같은 이메일 계정이 자동 연결됩니다. 기본값에서는 별도 identity 로 처리되며 Supabase 오류/안내가 표시됩니다.
 - (Mock 모드에서는 `auth.socialLogin` 이 같은 이메일 계정을 자동 연결합니다.)
 
 ## 6. 이메일 로그인
