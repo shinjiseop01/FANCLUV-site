@@ -287,8 +287,10 @@ export async function socialLogin(providerId) {
         return { ok: false, error: 'NAVER 로그인 설정이 필요합니다. SOCIAL_LOGIN_SETUP.md 를 참고해 주세요.' }
       }
       const redirectUri = import.meta.env.VITE_NAVER_CALLBACK_URL || `${window.location.origin}/auth/naver/callback`
-      const state = Math.random().toString(36).slice(2)
-      try { sessionStorage.setItem('naver_oauth_state', state) } catch { /* noop */ }
+      // state 에 nonce + 앱 복귀 주소(origin)를 담아 Edge Function 이 로그인 후 앱으로 되돌린다.
+      const nonce = Math.random().toString(36).slice(2)
+      const state = btoa(JSON.stringify({ n: nonce, r: window.location.origin }))
+      try { sessionStorage.setItem('naver_oauth_state', nonce) } catch { /* noop */ }
       const authorizeUrl =
         'https://nid.naver.com/oauth2.0/authorize?response_type=code' +
         `&client_id=${encodeURIComponent(clientId)}` +

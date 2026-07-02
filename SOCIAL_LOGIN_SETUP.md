@@ -68,14 +68,55 @@ supabase secrets set NAVER_CLIENT_SECRET=<secret> NAVER_CLIENT_ID=<id>
 
 ### 3-3. 흐름
 1. 버튼 클릭 → `socialLogin('naver')` 가 NAVER authorize 로 리다이렉트(`VITE_NAVER_CLIENT_ID` 필요).
-2. 사용자가 동의 → NAVER 가 `VITE_NAVER_CALLBACK_URL`(Edge Function)로 `code` 전달.
-3. **Edge Function**(`naver-callback`)이:
-   - `code` → NAVER 토큰 교환 → 프로필(email/nickname/profile_image) 조회
-   - Supabase Admin API 로 사용자 생성/조회 후 세션 발급 → 앱으로 리다이렉트
+   `state` 에 앱 복귀 주소(origin)를 담아 보냅니다.
+2. 사용자가 동의 → NAVER 가 `VITE_NAVER_CALLBACK_URL`(Edge Function)로 `code`·`state` 전달.
+3. **Edge Function**(`supabase/functions/naver-callback/index.ts`)이:
+   - `code` → NAVER **token endpoint** 로 access token 교환
+   - **profile API**(`/v1/nid/me`) 호출 → email·nickname·profile_image·id(provider_user_id) 추출
+   - **service_role** 로 사용자 조회: 없으면 `admin.createUser`(트리거가 profiles 자동 생성),
+     같은 이메일이 이미 있으면 profiles 에 NAVER 정보 연결
+   - `admin.generateLink({ type:'magiclink' })` 의 `action_link` 로 브라우저 리다이렉트 → 세션 발급
 4. 앱은 세션을 감지(`detectSessionInUrl`)해 로그인 완료.
 
+### 3-4. Edge Function 배포 (Supabase CLI)
+```bash
+# 1) CLI 설치 & 로그인 & 프로젝트 연결
+npm i -g supabase        # 또는 brew install supabase/tap/supabase
+supabase login
+supabase link --project-ref <ref>
+
+# 2) 시크릿 설정 (프론트엔드에 절대 넣지 않는 값)
+supabase secrets set \
+  NAVER_CLIENT_ID=<naver-client-id> \
+  NAVER_CLIENT_SECRET=<naver-client-secret> \
+  NAVER_REDIRECT_URI=https://<ref>.supabase.co/functions/v1/naver-callback \
+  SITE_URL=http://localhost:5173
+# SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 는 배포 환경에 자동 주입됩니다.
+
+# 3) 배포 — NAVER 가 JWT 없이 호출하므로 --no-verify-jwt 필수
+supabase functions deploy naver-callback --no-verify-jwt
+
+# 로컬 테스트
+supabase functions serve naver-callback --no-verify-jwt --env-file ./supabase/.env.local
+```
+
+### 3-5. 필요한 환경변수 (Edge Function 시크릿)
+| 변수 | 설명 |
+|---|---|
+| `NAVER_CLIENT_ID` | NAVER 애플리케이션 Client ID |
+| `NAVER_CLIENT_SECRET` | NAVER 애플리케이션 Client Secret (**서버 전용**) |
+| `NAVER_REDIRECT_URI` | `https://<ref>.supabase.co/functions/v1/naver-callback` (NAVER 콘솔 Callback 과 동일) |
+| `SUPABASE_URL` | 프로젝트 URL (플랫폼 자동 주입) |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role 키 (**Edge Function 에서만**, 자동 주입) |
+| `SITE_URL` | (선택) 로그인 후 복귀 앱 주소 폴백 |
+
+프론트엔드 `.env` 에는 `VITE_NAVER_CLIENT_ID` 와 `VITE_NAVER_CALLBACK_URL` 만 둡니다(공개 안전).
+
+> Redirect/Callback URL 은 **세 곳이 정확히 일치**해야 합니다:
+> NAVER 콘솔 Callback = `VITE_NAVER_CALLBACK_URL`(프론트) = `NAVER_REDIRECT_URI`(Edge Function).
+> 예: `https://abcd1234.supabase.co/functions/v1/naver-callback`
+
 > `VITE_NAVER_CLIENT_ID` 가 비어 있으면 앱은 "NAVER 로그인 설정이 필요합니다" 안내를 표시합니다.
-> Edge Function 미배포 시 authorize 까지는 진행되지만 세션 발급은 완료되지 않습니다.
 
 ---
 

@@ -134,6 +134,7 @@ npm run lint     # oxlint
 - Supabase 모드 `socialLogin`: **Google·Kakao → `supabase.auth.signInWithOAuth({ provider })`**(native, ID/Secret은 Supabase 대시보드). **NAVER → Supabase 미지원 → 커스텀 OAuth**: `VITE_NAVER_CLIENT_ID` 있으면 NAVER authorize 로 리다이렉트(콜백 토큰교환은 Edge Function `naver-callback`), 없으면 설정 안내 메시지.
 - **프로필 매핑**: `0007_social_login.sql` — `profiles.provider_user_id` 컬럼 추가 + `handle_new_user` 트리거가 OAuth 메타데이터(provider/provider_user_id/nickname/avatar_url)를 profiles에 매핑.
 - **중복 이메일**: Supabase "Allow linking accounts with same email" 활성 시 자동 연결, 기본값은 안내/오류 표시(Mock은 자동 연결). 이메일 로그인/회원가입은 그대로 유지.
+- **NAVER Edge Function(5차)** — `supabase/functions/naver-callback/index.ts`(Deno): code→token 교환 → 프로필(email/nickname/profile_image/id) → service_role 로 사용자 생성(신규, 트리거가 profiles 생성) 또는 기존 이메일 계정에 연결 → `generateLink(magiclink)`로 세션 발급 후 앱 복귀(`state`에 origin 인코딩). 배포: `supabase functions deploy naver-callback --no-verify-jwt`. 시크릿: `NAVER_CLIENT_ID/SECRET`, `NAVER_REDIRECT_URI`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`(모두 서버 전용, 프론트 노출 금지).
 
 ### 다국어 — `src/contexts/LanguageContext.jsx` + `src/locales/{ko,en}.js`
 - `useLang()` → `{ lang, setLang, t }`. `t(key, vars?)`는 `{token}` 보간 지원, 누락 시 ko 폴백 → raw key 폴백.
