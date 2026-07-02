@@ -60,9 +60,15 @@ export default function AdminDashboard() {
     setAiBusy(true); setAiMsg('')
     const res = await runAnalysis(aiClub)
     setAiBusy(false)
-    if (res.ok) setAiMsg(t('admin.ai.done'))
-    else if (res.reason === 'insufficient') setAiMsg(t('admin.ai.insufficient', { count: res.count, min: res.min || 30 }))
-    else setAiMsg(t('admin.ai.failed'))
+    if (res.ok) { setAiMsg(t('admin.ai.done')); return }
+    if (res.code === 'insufficient') { setAiMsg(t('admin.ai.insufficient', { count: res.count ?? 0, min: res.min || 30 })); return }
+    const map = {
+      openai_not_configured: 'admin.ai.errNoKey',
+      forbidden: 'admin.ai.errForbidden',
+      unauthorized: 'admin.ai.errForbidden',
+      network: 'admin.ai.errNetwork',
+    }
+    setAiMsg(t(map[res.code] || 'admin.ai.failed'))
   }
 
   return (

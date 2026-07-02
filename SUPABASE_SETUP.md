@@ -98,3 +98,57 @@ Supabase 대시보드 → **SQL Editor** 에서 아래 파일 내용을 실행:
 5. 구조: 클라이언트 `src/lib/ai/analyzeFanInsights.js` 는 Edge Function 호출/결과 조회만 담당하고,
    실제 OpenAI 호출·프롬프트는 `supabase/functions/analyze-insights/index.ts` 에 있습니다.
    (Supabase 미설정 시엔 별점/카테고리 기반 로컬 간이 분석으로 폴백)
+
+### 배포 검증 절차 (analyze-insights)
+
+**A. 시크릿 확인**
+```bash
+supabase secrets list      # OPENAI_API_KEY 존재 확인
+# 없으면:
+supabase secrets set OPENAI_API_KEY=sk-... OPENAI_MODEL=gpt-4o-mini
+```
+> `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` 는 배포 시 자동 주입됩니다(직접 set 불필요).
+
+**B. 배포**
+```bash
+supabase functions deploy analyze-insights
+supabase functions list                 # analyze-insights 가 목록에 있는지
+supabase functions logs analyze-insights # 실행 로그 관찰(문제 진단)
+```
+
+**C. ai_insights 테이블 확인 (SQL Editor)**
+```sql
+-- 존재/컬럼 확인
+select column_name, data_type from information_schema.columns
+ where table_schema='public' and table_name='ai_insights' order by ordinal_position;
+-- RLS 정책 확인
+select policyname, cmd from pg_policies where tablename='ai_insights';
+-- 저장 결과 확인(분석 실행 후)
+select club_id, period, sentiment_positive, sentiment_neutral, sentiment_negative,
+       jsonb_array_length(keywords) as kw, created_at
+  from public.ai_insights order by created_at desc limit 5;
+```
+
+**D. 기능 검증 체크리스트**
+- [ ] 관리자 계정으로 로그인 (profiles.role = 'admin')
+- [ ] 관리자 대시보드 → **AI 팬 인사이트 분석** 패널 표시
+- [ ] 구단 선택 → **AI 분석 실행** 클릭
+- [ ] 의견 30개 이상: "AI 분석이 완료되어 저장되었습니다." + ai_insights 에 row 추가
+- [ ] 의견 30개 미만: "의견이 부족합니다 (n/30)…" 안내
+- [ ] 팬 **AI 인사이트** 화면에서 저장된 결과(감정/키워드/요약/추천) 표시
+- [ ] 결과 없는 구단: "의견 30개 이상 모이면 분석 시작" Empty State
+- [ ] 일반 사용자로 함수 호출 시 차단(관리자 role 확인)
+
+### 오류 해결 (Troubleshooting)
+| 증상 / code | 원인 | 해결 |
+|---|---|---|
+| `openai_not_configured` | OPENAI_API_KEY 미설정 | `supabase secrets set OPENAI_API_KEY=...` 후 재배포 |
+| `forbidden` | 호출자가 admin 아님 | `update profiles set role='admin' where email='...'` |
+| `insufficient` | 의견 30개 미만 | 의견이 더 쌓인 뒤 실행(임계값은 함수 `MIN_OPINIONS`) |
+| `openai_failed` | OpenAI 호출/파싱 실패 | `functions logs` 확인, 키/모델/쿼터 점검 |
+| `save_failed` | ai_insights insert 실패 | 0009 마이그레이션 실행 여부·컬럼 확인 |
+| `network` / 호출 자체 실패 | 함수 미배포/CORS | `functions list` 로 배포 확인, 재배포 |
+| 함수는 되는데 화면 반영 안 됨 | ai_insights read RLS | select 정책(authenticated) 확인, 재로그인 |
+
+> API Key 가 아예 없을 때: 프론트는 **Supabase 미설정이면 로컬 간이 분석**으로 폴백하고,
+> **Supabase 는 설정됐지만 OPENAI_API_KEY 만 없으면** 관리자 화면에 `openai_not_configured` 안내를 표시합니다.

@@ -74,8 +74,10 @@ function buildLocalInsight(clubId, ops) {
 export async function runAnalysis(clubId = 'all') {
   if (isSupabaseConfigured) {
     const { data, error } = await supabase.functions.invoke('analyze-insights', { body: { clubId } })
-    if (error) return { ok: false, error: error.message }
-    return data // { ok, insight } | { ok:false, reason:'insufficient', count }
+    // 처리된 실패는 함수가 200 + { ok:false, code } 로 반환 → data 로 전달됨.
+    // error 는 네트워크/함수 미배포 등 예외 상황.
+    if (error) return { ok: false, code: 'network' }
+    return data || { ok: false, code: 'failed' } // { ok, insight } | { ok:false, code, count, min }
   }
   // Mock: 로컬 간이 분석 후 저장
   const ops = await listOpinions(clubId === 'all' ? 'seoul' : clubId)

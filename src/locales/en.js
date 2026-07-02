@@ -506,6 +506,9 @@ export default {
   'admin.ai.done': 'AI analysis complete and saved.',
   'admin.ai.insufficient': 'Not enough opinions ({count}/{min}). Need at least 30 to analyze.',
   'admin.ai.failed': 'AI analysis failed. Please try again shortly.',
+  'admin.ai.errNoKey': 'OpenAI API key is not set. Check the Edge Function secret (OPENAI_API_KEY).',
+  'admin.ai.errForbidden': 'Not allowed. Only admins can run AI analysis.',
+  'admin.ai.errNetwork': 'Could not call the AI function. Check that the Edge Function is deployed.',
   // Members
   'admin.mem.sub': '{n} members total',
   'admin.mem.searchPh': 'Search by nickname or email',

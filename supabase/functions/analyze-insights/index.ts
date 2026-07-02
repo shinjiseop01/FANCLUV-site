@@ -34,14 +34,17 @@ Deno.serve(async (req) => {
   // 1) 호출자 인증 + 관리자 확인
   const authHeader = req.headers.get('Authorization') || ''
   const caller = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: authHeader } } })
+  // 처리된 실패는 HTTP 200 + { ok:false, code } 로 반환한다.
+  // (supabase-js functions.invoke 가 non-2xx 를 error 로 감싸 body 를 잃지 않도록 →
+  //  클라이언트가 code 를 읽어 구체 메시지를 표시할 수 있게 함)
   const { data: { user } } = await caller.auth.getUser()
-  if (!user) return json({ ok: false, error: 'unauthorized' }, 401)
+  if (!user) return json({ ok: false, code: 'unauthorized' })
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } })
   const { data: prof } = await admin.from('profiles').select('role').eq('id', user.id).single()
-  if (prof?.role !== 'admin') return json({ ok: false, error: 'forbidden' }, 403)
+  if (prof?.role !== 'admin') return json({ ok: false, code: 'forbidden' })
 
-  if (!OPENAI_API_KEY) return json({ ok: false, error: 'openai_not_configured' }, 500)
+  if (!OPENAI_API_KEY) return json({ ok: false, code: 'openai_not_configured' })
 
   // 2) 분석 대상 데이터 로드 (clubId 지정 시 해당 구단, 아니면 전체)
   const { clubId } = await req.json().catch(() => ({ clubId: null }))
@@ -51,7 +54,7 @@ Deno.serve(async (req) => {
   const { data: opinions = [] } = await oq.order('created_at', { ascending: false }).limit(300)
 
   if (!opinions || opinions.length < MIN_OPINIONS) {
-    return json({ ok: false, reason: 'insufficient', count: opinions?.length || 0, min: MIN_OPINIONS })
+    return json({ ok: false, code: 'insufficient', count: opinions?.length || 0, min: MIN_OPINIONS })
   }
 
   let rq = admin.from('survey_responses').select('answers, team_id')
@@ -98,10 +101,10 @@ Deno.serve(async (req) => {
     })
     const aiJson = await aiRes.json()
     const content = aiJson?.choices?.[0]?.message?.content
-    if (!content) return json({ ok: false, error: 'openai_no_content' }, 502)
+    if (!content) return json({ ok: false, code: 'openai_failed' })
     parsed = JSON.parse(content)
   } catch (_e) {
-    return json({ ok: false, error: 'openai_failed' }, 502)
+    return json({ ok: false, code: 'openai_failed' })
   }
 
   // 5) 결과 저장
@@ -133,7 +136,7 @@ Deno.serve(async (req) => {
   }
 
   const { data: saved, error: insErr } = await admin.from('ai_insights').insert(record).select().single()
-  if (insErr) return json({ ok: false, error: insErr.message }, 500)
+  if (insErr) return json({ ok: false, code: 'save_failed', error: insErr.message })
 
   return json({ ok: true, insight: saved })
 })

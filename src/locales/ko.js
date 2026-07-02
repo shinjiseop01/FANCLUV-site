@@ -506,6 +506,9 @@ export default {
   'admin.ai.done': 'AI 분석이 완료되어 저장되었습니다.',
   'admin.ai.insufficient': '의견이 부족합니다 ({count}/{min}). 30개 이상 모이면 분석할 수 있습니다.',
   'admin.ai.failed': 'AI 분석에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+  'admin.ai.errNoKey': 'OpenAI API 키가 설정되지 않았습니다. Edge Function 시크릿(OPENAI_API_KEY)을 확인해 주세요.',
+  'admin.ai.errForbidden': '권한이 없습니다. 관리자만 AI 분석을 실행할 수 있습니다.',
+  'admin.ai.errNetwork': 'AI 분석 함수를 호출하지 못했습니다. Edge Function 배포 상태를 확인해 주세요.',
   // 회원 관리
   'admin.mem.sub': '총 {n}명의 회원',
   'admin.mem.searchPh': '닉네임 또는 이메일로 검색',
