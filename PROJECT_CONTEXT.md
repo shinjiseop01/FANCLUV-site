@@ -38,7 +38,8 @@ npm run lint     # oxlint
 | `/club/:teamId` | ClubHomePage (구단 홈) | ✓ |
 | `/club/:teamId/opinions` | OpinionsPage (팬 의견 목록) | ✓ |
 | `/club/:teamId/opinions/:opinionId` | OpinionDetailPage (의견 상세 + 댓글) | ✓ |
-| `/club/:teamId/survey` | SurveyPage (설문) | ✓ |
+| `/club/:teamId/survey` | SurveyPage (설문 목록) | ✓ |
+| `/club/:teamId/survey/:surveyId` | SurveyDetailPage (설문 상세/참여) | ✓ |
 | `/club/:teamId/write` | CreateOpinionPage (의견 작성) | ✓ |
 | `/club/:teamId/activity` | MyActivityPage (내 활동 대시보드) | ✓ |
 | `/club/:teamId/matches` | MatchCenterPage (경기센터) | ✓ |
@@ -83,8 +84,9 @@ npm run lint     # oxlint
 - 팬 API: `listSurveys(teamId)`(대상 구단 team_id 또는 전체, **종료 3일 경과 시 팬 화면에서만 자동 숨김** — `SURVEY_HIDE_DAYS=3`, 데이터 삭제 아님·관리자/AI/통계엔 계속 포함), `submitResponse(surveyId, teamId, answers)`(1인 1회, DB `unique(survey_id,user_id)`).
 - 관리자 API: `adminListSurveys`/`createSurvey`/`updateSurvey`/`closeSurvey`/`deleteSurvey` → Supabase CRUD(관리자 RLS `is_admin()`), Mock은 세션 배열.
 - **중복 참여 방지**: 참여한 설문은 카드가 "참여 완료" 상태(비활성) 표시. Mock은 `fancluv_survey_participated` localStorage, Supabase는 `surveys_view.has_responded`.
-- `selectedId` 내부 상태로 **목록 → 상세 → 완료** 3단계 전환. 상세 폼(별점·객관식·주관식 Q1~Q4)은 고정 템플릿 유지(UI 불변), 응답은 `answers` jsonb로 저장. 제목/설명은 Supabase=DB값, Mock=locale 키 겸용.
-- 상태 필터(전체/진행 중/종료). **뒤로가기 버튼은 상세/참여 화면에만 표시**(목록 화면엔 없음), 완료 화면은 "목록으로 돌아가기"만 — 2차 UX 수정.
+- **목록/상세 라우트 분리(12차)**: 내부 `selectedId` state 폐기 → `SurveyPage`(목록, `/survey`) + **`SurveyDetailPage`(상세/참여, `/survey/:surveyId`)** 별도 컴포넌트·Route. 목록 카드 클릭·알림 "새 설문" 클릭 모두 `/survey/:surveyId`로 이동. 상세는 `getSurvey(teamId, surveyId)`로 단건 로드. 상세 폼(별점·객관식·주관식 Q1~Q4)은 고정 템플릿 유지(UI 불변), 응답은 `answers` jsonb로 저장. 제목/설명은 Supabase=DB값, Mock=locale 키 겸용.
+- 상세 진입 시 상태 처리: 없거나 종료 → `survey.notFound`, 이미 참여 → "이미 참여" 안내, 제출 완료 → 완료 화면(모두 "목록으로 돌아가기"). **뒤로가기 버튼은 상세/참여 화면에만 표시**(목록 화면엔 없음) — 2차 UX 수정.
+- 상태 필터(전체/진행 중/종료). 새 설문 알림 URL은 `/survey/:id`(DB 트리거 `0006`·Mock 동일).
 
 ### 상단 로고 동작 — 모든 `.ch-*` 헤더 공통
 - 로그인 상태에서 **FANCLUV 로고 클릭 시 항상 구단 홈(`/club/:teamId`)으로 이동**. 로고는 `role="button" tabIndex={0}` + Enter/Space 키 지원(키보드 접근 가능).
@@ -204,7 +206,8 @@ npm run lint     # oxlint
 
 **Supabase 백엔드 연동 시리즈 (최신)**
 
-0. 알림 실동작 + 관리자 공지 + 신고 접수/관리 완성 — 11차 (`reports`·`notices` = `0011`)
+0. 설문 상세를 별도 Route(`/survey/:surveyId`)로 분리 — 12차 (`SurveyDetailPage`)
+0. 알림 실동작 + 관리자 공지 + 신고 접수/관리 완성 — 11차 (`reports`·`notices` = `0011`, `749276d`)
 0. 설문/댓글/랭킹 2차 UX 개선 (`c349434`)
 0. 안전한 회원탈퇴 Edge Function(`delete-account`, service_role) — 10차 (`ea49ca8`)
 0. 온보딩·본인인증·회원탈퇴 개선 — 9차 (`6724e90`)

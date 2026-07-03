@@ -23,6 +23,7 @@ import ClubHomePage from './ClubHomePage.jsx'
 import OpinionsPage from './OpinionsPage.jsx'
 import OpinionDetailPage from './OpinionDetailPage.jsx'
 import SurveyPage from './SurveyPage.jsx'
+import SurveyDetailPage from './SurveyDetailPage.jsx'
 import CreateOpinionPage from './CreateOpinionPage.jsx'
 import MyActivityPage from './MyActivityPage.jsx'
 import MatchCenterPage from './MatchCenterPage.jsx'
@@ -88,6 +89,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/opinions" element={<RequireAuth><OpinionsPage /></RequireAuth>} />
         <Route path="/club/:teamId/opinions/:opinionId" element={<RequireAuth><OpinionDetailPage /></RequireAuth>} />
         <Route path="/club/:teamId/survey" element={<RequireAuth><SurveyPage /></RequireAuth>} />
+        <Route path="/club/:teamId/survey/:surveyId" element={<RequireAuth><SurveyDetailPage /></RequireAuth>} />
         <Route path="/club/:teamId/write" element={<RequireAuth><CreateOpinionPage /></RequireAuth>} />
         <Route path="/club/:teamId/activity" element={<RequireAuth><MyActivityPage /></RequireAuth>} />
         <Route path="/club/:teamId/matches" element={<RequireAuth><MatchCenterPage /></RequireAuth>} />

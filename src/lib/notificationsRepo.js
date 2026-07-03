@@ -24,7 +24,7 @@ function seedMock() {
   return [
     { id: 'seed4', type: 'notice', title: '관리자 공지', body: 'FANCLUV 서비스 점검 안내: 7월 5일 02:00~04:00 사이 일시적으로 접속이 제한될 수 있습니다.', url: null, is_read: false, created_at: new Date(now - 1 * 3600e3).toISOString() },
     { id: 'seed3', type: 'news', title: '새 팀 뉴스', body: '구단, 2026 시즌 하반기 멤버십 혜택 개편 발표', url: club('/news/1'), is_read: false, created_at: new Date(now - 2 * 3600e3).toISOString() },
-    { id: 'seed2', type: 'survey', title: '새 설문', body: '2026 시즌 홈 경기장 시설 만족도 조사', url: club('/survey'), is_read: false, created_at: new Date(now - 5 * 3600e3).toISOString() },
+    { id: 'seed2', type: 'survey', title: '새 설문', body: '2026 시즌 홈 경기장 시설 만족도 조사', url: club('/survey/home'), is_read: false, created_at: new Date(now - 5 * 3600e3).toISOString() },
     { id: 'seed1', type: 'comment', title: '새 댓글', body: '내 의견에 새 댓글이 달렸습니다.', url: club('/opinions/1'), is_read: true, created_at: new Date(now - 26 * 3600e3).toISOString() },
   ]
 }

@@ -93,6 +93,19 @@ export async function listSurveys(teamId) {
     .filter(s => !isExpired(s.closedAt))
 }
 
+// 단일 설문 조회 (상세 페이지용). 없으면 null.
+export async function getSurvey(teamId, surveyId) {
+  if (isSupabaseConfigured) {
+    const { data, error } = await supabase
+      .from('surveys_view').select('*').eq('id', surveyId).maybeSingle()
+    if (error || !data) return null
+    return mapFanSurvey(data)
+  }
+  const s = MOCK_FAN_SURVEYS.find(x => String(x.id) === String(surveyId))
+  if (!s) return null
+  return { ...s, participated: new Set(getParticipated()).has(String(s.id)) }
+}
+
 // 설문 응답 제출 (1인 1회). answers = { satisfaction, improve, revisit, comment }
 export async function submitResponse(surveyId, teamId, answers) {
   if (isSupabaseConfigured) {
@@ -139,7 +152,7 @@ export async function createSurvey({ title, desc = '', question = '', endDate = 
   }
   const survey = { id: 's' + Date.now(), title, desc, question, endDate, status: 'open', responses: 0 }
   mockAdminSurveys = [survey, ...mockAdminSurveys]
-  pushMockNotification({ type: 'survey', title: '새 설문', body: title, url: teamId ? `/club/${teamId}/survey` : null })
+  pushMockNotification({ type: 'survey', title: '새 설문', body: title, url: teamId ? `/club/${teamId}/survey/${survey.id}` : null })
   return { ok: true, survey }
 }
 

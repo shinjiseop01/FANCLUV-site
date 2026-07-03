@@ -99,7 +99,7 @@ returns trigger language plpgsql security definer set search_path = public as $$
 begin
   insert into public.notifications (user_id, type, title, body, url)
   select p.id, 'survey', '새 설문', NEW.title,
-         case when NEW.team_id is not null then '/club/' || NEW.team_id || '/survey' else null end
+         case when NEW.team_id is not null then '/club/' || NEW.team_id || '/survey/' || NEW.id else null end
   from public.profiles p
   where NEW.team_id is null or p.selected_team = NEW.team_id;
   return NEW;
