@@ -1,30 +1,16 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
-import { getTeam, TEAMS, TeamEmblem, menuPath } from './teams.jsx'
+import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
-import { useFakeLoading } from './lib/useFakeLoading.js'
+import { loadStandings, loadMatchData, refreshMatch } from './lib/matchRepo.js'
 import './ClubHomePage.css'
 import './MatchCenterPage.css'
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
-
-const STADIUMS = {
-  seoul: '서울월드컵경기장', ulsan: '울산문수경기장', jeonbuk: '전주월드컵경기장',
-  pohang: '포항스틸야드', daejeon: '대전월드컵경기장', gwangju: '광주축구전용구장',
-  gangwon: '강릉종합운동장', gimcheon: '김천종합스포츠타운', jeju: '제주월드컵경기장',
-  anyang: '안양종합운동장', incheon: '인천축구전용경기장', bucheon: '부천종합운동장',
-}
-
-// pick a few distinct opponents (deterministic) from the other clubs
-function opponentsFor(teamId) {
-  const others = TEAMS.filter(t => t.id !== teamId)
-  const seed = teamId.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-  const pick = n => others[(seed * (n + 1)) % others.length]
-  return [pick(0), pick(2), pick(4), pick(6), pick(8), pick(1), pick(3)]
-}
 
 export default function MatchCenterPage() {
   const NICKNAME = getCurrentUser()?.nickname || '팬'
@@ -32,36 +18,36 @@ export default function MatchCenterPage() {
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { t } = useLang()
-  const loading = useFakeLoading()
 
-  const data = useMemo(() => {
-    if (!team) return null
-    const opp = opponentsFor(team.id)
-    const next = { home: team, away: opp[0], date: '2026.07.02', time: '19:30',
-      stadium: STADIUMS[team.id], dday: 'D-3' }
-    const live = { home: team, away: opp[5], homeScore: 1, awayScore: 1, minute: "67'",
-      stadium: STADIUMS[team.id] }
-    const upcoming = [
-      { id: 'u1', date: '2026.07.06', time: '19:00', home: opp[1], away: team, stadium: STADIUMS[opp[1].id] },
-      { id: 'u2', date: '2026.07.13', time: '18:30', home: team, away: opp[2], stadium: STADIUMS[team.id] },
-      { id: 'u3', date: '2026.07.20', time: '20:00', home: opp[3], away: team, stadium: STADIUMS[opp[3].id] },
-    ]
-    const recent = [
-      { id: 'r1', date: '2026.06.24', home: team, away: opp[0], homeScore: 2, awayScore: 1, stadium: STADIUMS[team.id] },
-      { id: 'r2', date: '2026.06.18', home: opp[4], away: team, homeScore: 0, awayScore: 0, stadium: STADIUMS[opp[4].id] },
-      { id: 'r3', date: '2026.06.11', home: opp[6], away: team, homeScore: 3, awayScore: 2, stadium: STADIUMS[opp[6].id] },
-    ]
-    // mock standings: put current team near the top, fill the rest
-    const standings = [
-      { team, pts: 47 },
-      { team: opp[0], pts: 45 },
-      { team: opp[1], pts: 42 },
-      { team: opp[2], pts: 38 },
-      { team: opp[3], pts: 35 },
-      { team: opp[4], pts: 31 },
-    ]
-    return { next, live, upcoming, recent, standings }
+  const [data, setData] = useState(null)         // { next, live, upcoming, recent }
+  const [standings, setStandings] = useState([]) // [{ rank, team, played, win, draw, loss, gd, points }]
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  // 순위표 + 경기 일정 로드 (Provider→Mock fallback, 30초 캐시 — matchRepo)
+  const load = useCallback(() => {
+    if (!team) return
+    let active = true
+    setLoading(true)
+    setError(false)
+    Promise.all([loadMatchData(team.id), loadStandings()])
+      .then(([md, st]) => {
+        if (!active) return
+        setData(md)
+        setStandings(st?.rows || [])
+        setLoading(false)
+        if (!md) setError(true)
+      })
+      .catch(() => { if (active) { setError(true); setLoading(false) } })
+    return () => { active = false }
   }, [team])
+
+  useEffect(() => load(), [load])
+
+  function refresh() {
+    refreshMatch(team?.id)
+    load()
+  }
 
   if (!team) {
     return (
@@ -76,7 +62,7 @@ export default function MatchCenterPage() {
   const goSurvey = () => navigate(`/club/${team.id}/survey`)
   const goOpinions = () => navigate(`/club/${team.id}/opinions`)
 
-  const { next, live, upcoming, recent, standings } = data
+  const { next, live, upcoming, recent } = data || {}
 
   function outcome(m) {
     const my = m.home.id === team.id ? m.homeScore : m.awayScore
@@ -120,10 +106,24 @@ export default function MatchCenterPage() {
 
       {/* ── Main ── */}
       <main className="mc-main">
-        {loading ? <SkeletonList count={4} lines={2} /> : <>
+        {loading ? <SkeletonList count={4} lines={2} /> : (error || !data) ? (
+          <EmptyState
+            icon="⚽"
+            title={t('match.emptyTitle')}
+            message={t('match.emptyMsg')}
+            ctaLabel={t('common.refresh')}
+            onCta={refresh}
+          />
+        ) : <>
         <section className="mc-pagehead">
-          <h1>{t('match.title')}</h1>
-          <p>{t('match.subtitle')}</p>
+          <div className="mc-pagehead-text">
+            <h1>{t('match.title')}</h1>
+            <p>{t('match.subtitle')}</p>
+          </div>
+          <button className="mc-refresh" onClick={refresh} aria-label={t('common.refresh')}>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v5h-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span>{t('common.refresh')}</span>
+          </button>
         </section>
 
         <div className="mc-grid">
@@ -246,23 +246,39 @@ export default function MatchCenterPage() {
               <p className="mc-live-stadium">📍 {live.stadium}</p>
             </section>
 
-            {/* Standings */}
+            {/* Standings (실시간 순위표 — API 미연결 시 Mock) */}
             <section className="mc-panel">
               <h2 className="mc-panel-title">{t('match.standings')}</h2>
-              <table className="mc-table">
-                <thead>
-                  <tr><th>순위</th><th>팀</th><th>승점</th></tr>
-                </thead>
-                <tbody>
-                  {standings.map((s, i) => (
-                    <tr key={s.team.id} className={s.team.id === team.id ? 'me' : ''}>
-                      <td className="mc-rank">{i + 1}</td>
-                      <td className="mc-tname"><TeamEmblem color={s.team.color} size={11} /> {s.team.name}</td>
-                      <td className="mc-pts">{s.pts}</td>
+              <div className="mc-table-wrap">
+                <table className="mc-table">
+                  <thead>
+                    <tr>
+                      <th>{t('match.stRank')}</th>
+                      <th className="mc-th-team">{t('match.stTeam')}</th>
+                      <th>{t('match.stPlayed')}</th>
+                      <th>{t('match.stWin')}</th>
+                      <th>{t('match.stDraw')}</th>
+                      <th>{t('match.stLoss')}</th>
+                      <th>{t('match.stGd')}</th>
+                      <th>{t('match.stPoints')}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {standings.map(s => (
+                      <tr key={s.team.id} className={s.team.id === team.id ? 'me' : ''}>
+                        <td className="mc-rank">{s.rank}</td>
+                        <td className="mc-tname"><TeamEmblem color={s.team.color} size={14} /> <span>{s.team.name}</span></td>
+                        <td>{s.played}</td>
+                        <td>{s.win}</td>
+                        <td>{s.draw}</td>
+                        <td>{s.loss}</td>
+                        <td className="mc-gd">{s.gd > 0 ? `+${s.gd}` : s.gd}</td>
+                        <td className="mc-pts">{s.points}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </section>
 
             {/* Quick links */}

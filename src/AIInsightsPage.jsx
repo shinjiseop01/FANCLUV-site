@@ -89,6 +89,7 @@ export default function AIInsightsPage() {
   const { t } = useLang()
   const [view, setView] = useState(null)
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'empty'
+  const [kwChoice, setKwChoice] = useState(null)  // 키워드 클릭 시 이동 대상 선택 모달
 
   // 최신 AI 인사이트 로드. Supabase 모드는 실제 결과, 없으면 Empty State.
   // Mock 모드는 저장된 로컬 분석 or 기본 뷰(기존 화면)로 표시.
@@ -203,7 +204,7 @@ export default function AIInsightsPage() {
               </div>
             </section>
 
-            {/* Keywords — 클릭 시 해당 키워드 관련 팀 뉴스로 이동 */}
+            {/* Keywords — 클릭 시 팬 의견/뉴스 중 어디서 볼지 선택 */}
             <section className="ai-panel">
               <h2 className="ai-panel-title">{t('ai.keywords')}</h2>
               <div className="ai-keywords">
@@ -212,8 +213,8 @@ export default function AIInsightsPage() {
                   return (
                     <button key={k.tag} type="button"
                       className={`ai-kw w${k.weight}`}
-                      title={t('ai.keywordGoNews', { kw })}
-                      onClick={() => navigate(`/club/${team.id}/news?keyword=${encodeURIComponent(kw)}`)}>
+                      title={t('ai.keywordChoose', { kw })}
+                      onClick={() => setKwChoice(kw)}>
                       {k.tag}
                     </button>
                   )
@@ -296,6 +297,31 @@ export default function AIInsightsPage() {
         </>
         )}
       </main>
+
+      {/* 키워드 이동 대상 선택 모달 (팬 의견 / 뉴스) */}
+      {kwChoice && (
+        <div
+          className="ai-kwmenu-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('ai.keywordChoose', { kw: kwChoice })}
+          onMouseDown={e => { if (e.target === e.currentTarget) setKwChoice(null) }}
+        >
+          <div className="ai-kwmenu">
+            <span className="ai-kwmenu-tag">#{kwChoice}</span>
+            <p className="ai-kwmenu-title">{t('ai.keywordChooseTitle')}</p>
+            <div className="ai-kwmenu-actions">
+              <button type="button" className="ai-kwmenu-btn" onClick={() => navigate(`/club/${team.id}/opinions?keyword=${encodeURIComponent(kwChoice)}`)}>
+                <span aria-hidden="true">💬</span> {t('ai.keywordGoOpinions')}
+              </button>
+              <button type="button" className="ai-kwmenu-btn" onClick={() => navigate(`/club/${team.id}/news?keyword=${encodeURIComponent(kwChoice)}`)}>
+                <span aria-hidden="true">📰</span> {t('ai.keywordGoNews')}
+              </button>
+            </div>
+            <button type="button" className="ai-kwmenu-cancel" onClick={() => setKwChoice(null)}>{t('common.cancel')}</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

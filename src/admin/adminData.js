@@ -6,6 +6,7 @@
 import { ROLES } from '../lib/auth.js'
 import { TEAMS } from '../teams.jsx'
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js'
+import { withCache } from '../lib/cache.js'
 
 // Left navigation. `roles` lets future Super Admin / staff / club-admin builds
 // filter items per role from a single source of truth.
@@ -107,13 +108,19 @@ async function sbCount(table, build) {
   return count || 0
 }
 
-// ── KPI 카드 ── (async)
+// ── KPI 카드 ── (async, 30초 캐시)
 // Supabase 설정 시 실제 count 집계, 아니면 Mock 값.
-export async function getDashboardStats() {
+export function getDashboardStats() {
+  return withCache('admin:stats', computeDashboardStats)
+}
+
+async function computeDashboardStats() {
   if (isSupabaseConfigured) {
     const start = new Date(); start.setHours(0, 0, 0, 0)
     const iso = start.toISOString()
-    const [members, opinions, comments, openSurveys, opinionsToday, likes, responses] = await Promise.all([
+    // 최근 7일 이내 활동(의견 작성) 사용자 = 활성 사용자 근사치
+    const week = new Date(Date.now() - 7 * 86400e3).toISOString()
+    const [members, opinions, comments, openSurveys, opinionsToday, likes, responses, pendingReports, activeMembers] = await Promise.all([
       sbCount('profiles'),
       sbCount('opinions'),
       sbCount('comments'),
@@ -121,17 +128,19 @@ export async function getDashboardStats() {
       sbCount('opinions', q => q.gte('created_at', iso)),
       sbCount('likes'),
       sbCount('survey_responses'),
+      sbCount('reports', q => q.eq('status', 'pending')),
+      sbCount('opinions', q => q.gte('created_at', week)),
     ])
     return {
       totalMembers: members,
-      activeMembers: members,               // 활동 추적 전이라 전체와 동일(추후 세분화)
+      activeMembers: Math.min(members, activeMembers || members),
       totalOpinions: opinions,
       opinionsToday,
       activeSurveys: openSurveys,
       surveyParticipation: members ? Math.min(100, Math.round((responses / members) * 100)) : 0,
       totalComments: comments,
       totalLikes: likes,
-      pendingReports: MOCK_REPORTS.filter(r => r.status === 'pending').length, // 신고는 아직 Mock
+      pendingReports,
       teamCount: getTeamBreakdown().length,
     }
   }

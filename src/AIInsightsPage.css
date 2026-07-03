@@ -148,3 +148,39 @@
   .ai-sent-legend { width: 100%; }
   .ai-recs { grid-template-columns: 1fr; }
 }
+
+/* ── Keyword choice modal (팬 의견 / 뉴스) ── */
+.ai-kwmenu-overlay {
+  position: fixed; inset: 0; z-index: 320;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.ai-kwmenu {
+  width: 100%; max-width: 360px; text-align: center;
+  background: var(--canvas); border: 1px solid var(--border); border-radius: 16px;
+  padding: 26px 24px; box-shadow: 0 20px 48px rgba(0, 0, 0, 0.28);
+}
+.ai-kwmenu-tag {
+  display: inline-block; font-size: 15px; font-weight: 800; color: var(--team-deep);
+  background: color-mix(in srgb, var(--team) 12%, var(--mix-base));
+  padding: 5px 14px; border-radius: 100px; margin-bottom: 12px;
+}
+.ai-kwmenu-title { font-size: 14.5px; color: var(--body); margin-bottom: 18px; }
+.ai-kwmenu-actions { display: flex; flex-direction: column; gap: 10px; }
+.ai-kwmenu-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  height: 48px; border-radius: 10px; font-size: 14.5px; font-weight: 700;
+  background: var(--team-deep); color: #fff; border: none; cursor: pointer;
+  font-family: inherit; transition: filter 0.15s;
+}
+.ai-kwmenu-btn:hover { filter: brightness(1.08); }
+.ai-kwmenu-btn:last-child {
+  background: var(--canvas); color: var(--team-deep);
+  border: 1px solid color-mix(in srgb, var(--team) 32%, var(--mix-base));
+}
+.ai-kwmenu-btn:last-child:hover { background: color-mix(in srgb, var(--team) 8%, var(--mix-base)); filter: none; }
+.ai-kwmenu-cancel {
+  margin-top: 14px; background: none; border: none; color: var(--muted);
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.ai-kwmenu-cancel:hover { color: var(--body); }

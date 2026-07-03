@@ -1,7 +1,7 @@
 # FANCLUV — 프로젝트 컨텍스트 (핸드오프 문서)
 
 > 새 채팅에서 이 파일을 읽으면 바로 이어서 작업할 수 있도록 정리한 문서입니다.
-> 최종 정리: 2026-07-03 / `main` 브랜치 기준 (알림·신고 완성 11차)
+> 최종 정리: 2026-07-04 / `main` 브랜치 기준 (실시간 데이터 Provider·캐시 14차)
 
 ## 1. 프로젝트 개요
 
@@ -197,8 +197,14 @@ npm run lint     # oxlint
 - `RequireAdmin` 가드로 보호. `AdminLayout` + 중첩 라우트(대시보드/회원/의견/설문/뉴스/신고/설정).
 - 데이터는 `adminData.js`의 Mock. 댓글 관리 기능 포함, 토스트 없이 인라인 피드백.
 - **대시보드 고도화**(`AdminDashboard.jsx` + `AdminCharts.jsx`): KPI 8종, 구단별 현황 테이블(만족도·참여율 미니바), 최근 활동(가입/의견/댓글/신고), 차트(라인·바·도넛·감정 누적바 — 순수 SVG, 라이브러리 없음), 빠른 작업 4종.
-- **KPI는 Supabase 집계 연동**: `getDashboardStats()`(async)가 Supabase 설정 시 `count(*)` 쿼리(회원/의견/댓글/오늘 의견/진행 설문/좋아요/응답)로 계산, 아니면 Mock. 나머지 대시보드 데이터(구단별/최근/차트)와 신고는 아직 Mock.
+- **KPI는 Supabase 집계 연동(13차 강화)**: `getDashboardStats()`가 Supabase 설정 시 `count(*)` 쿼리(회원/의견/댓글/오늘 의견/진행 설문/좋아요/응답/**미처리 신고**/**7일 내 활성**)로 계산, 아니면 Mock. **`withCache('admin:stats')` 30초 캐시**. 나머지 대시보드 데이터(구단별/최근/차트)는 아직 Mock.
 - **관리자 CRUD가 Supabase에 반영**: 설문(`surveysRepo`)·뉴스(`newsRepo`)는 관리자 RLS(`is_admin()`)로 서버 반영. `/admin` 접근은 `RequireAdmin`+`isAdmin()`(profiles.role) → 일반 사용자 차단.
+
+### 실시간 데이터 아키텍처 / 캐시 (13차)
+- **캐시** — `src/lib/cache.js`: `withCache(key, fetcher, ttl=30000)` 인메모리 TTL 캐시(기본 30초). 진행 중 Promise 재사용, 실패 시 캐시 미저장. `invalidate(prefix)`/`clearCache()`. 순위/일정/홈 인기/관리자 KPI에 사용.
+- **경기센터** — `src/lib/matchRepo.js` + `src/lib/providers/leagueProvider.js`: K리그1 순위표(순위·팀·경기·승·무·패·득실·승점 12개 구단)와 경기 일정을 **Provider 우선 + Mock fallback**로 제공. `leagueProvider`는 `VITE_LEAGUE_API_BASE` 설정 시 실 API(`/standings`,`/fixtures/:teamId`) 호출, 미설정이면 null → Mock. `loadStandings()`/`loadMatchData(teamId)`(캐시 30초), `refreshMatch(teamId)`. **MatchCenterPage**: 스켈레톤 로딩 + 실패 시 EmptyState+새로고침 버튼, 순위표 전체 컬럼.
+- **홈 인기 콘텐츠** — `src/lib/homeRepo.js`: `getHomeContent(teamId)`가 Supabase `opinions_view` 1회 조회로 **인기 의견(공감순)·인기 카테고리(집계)·트렌딩 키워드(사전 매칭)** 계산, 실패/미설정 시 Mock. 캐시 30초. **ClubHomePage**가 비동기 로드(스켈레톤) — 클릭 네비게이션(의견 상세/카테고리·키워드 필터)은 유지.
+- **AI 키워드 선택** — `AIInsightsPage`: 키워드 클릭 시 **팬 의견 / 뉴스 선택 모달**(`.ai-kwmenu`) → `/opinions?keyword=` 또는 `/news?keyword=`로 이동(두 페이지 모두 query param 필터 적용).
 
 ### 계정 복구 / 프로필 / 정보 페이지
 - **FindIdPage / FindPasswordPage** (`RecoveryPages.css`) — 아이디·비밀번호 찾기 (Mock).
@@ -210,7 +216,8 @@ npm run lint     # oxlint
 
 **Supabase 백엔드 연동 시리즈 (최신)**
 
-0. 링크/탐색 개선 — 13차 (구단 공식 링크 `clubLinks.js`·키워드/카테고리 query 필터·홈 카드 이동)
+0. 실시간 데이터 Provider 구조 + 캐시 — 14차 (`cache.js`·`matchRepo`·`leagueProvider`·`homeRepo`·AI 키워드 선택)
+0. 링크/탐색 개선 — 13차 (구단 공식 링크 `clubLinks.js`·키워드/카테고리 query 필터·홈 카드 이동, `6e114e3`)
 0. 설문 상세를 별도 Route(`/survey/:surveyId`)로 분리 — 12차 (`SurveyDetailPage`, `a6e1aeb`)
 0. 알림 실동작 + 관리자 공지 + 신고 접수/관리 완성 — 11차 (`reports`·`notices` = `0011`, `749276d`)
 0. 설문/댓글/랭킹 2차 UX 개선 (`c349434`)

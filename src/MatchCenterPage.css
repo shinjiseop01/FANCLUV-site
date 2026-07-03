@@ -8,7 +8,10 @@
   padding: 36px 24px 80px;
 }
 
-.mc-pagehead { margin-bottom: 28px; }
+.mc-pagehead {
+  margin-bottom: 28px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
 .mc-pagehead h1 {
   font-size: 28px;
   font-weight: 800;
@@ -17,6 +20,14 @@
   margin-bottom: 8px;
 }
 .mc-pagehead p { font-size: 15px; color: var(--muted); }
+.mc-refresh {
+  display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+  font-size: 13px; font-weight: 700; color: var(--body); font-family: inherit;
+  background: var(--canvas); border: 1px solid var(--border); border-radius: 100px;
+  padding: 8px 15px; cursor: pointer; transition: border-color 0.14s, color 0.14s;
+}
+.mc-refresh:hover { border-color: var(--team); color: var(--team-deep); }
+.mc-refresh svg { width: 15px; height: 15px; }
 
 .mc-grid {
   display: grid;
@@ -184,18 +195,25 @@
 .mc-live-stadium { font-size: 12px; color: var(--muted); text-align: center; }
 
 /* ── Standings table ── */
-.mc-table { width: 100%; border-collapse: collapse; }
+.mc-table-wrap { overflow-x: auto; }
+.mc-table { width: 100%; border-collapse: collapse; min-width: 460px; }
 .mc-table th {
-  font-size: 11.5px; font-weight: 600; color: var(--muted); text-align: left;
-  padding: 0 0 10px; border-bottom: 1px solid var(--border-soft);
+  font-size: 11.5px; font-weight: 600; color: var(--muted); text-align: center;
+  padding: 0 6px 10px; border-bottom: 1px solid var(--border-soft); white-space: nowrap;
 }
-.mc-table th:last-child { text-align: right; }
-.mc-table td { padding: 10px 0; border-bottom: 1px solid var(--border-soft); font-size: 13.5px; }
+.mc-table th.mc-th-team { text-align: left; }
+.mc-table td {
+  padding: 10px 6px; border-bottom: 1px solid var(--border-soft); font-size: 13px;
+  text-align: center; color: var(--body);
+}
 .mc-table tr:last-child td { border-bottom: none; }
-.mc-rank { font-weight: 800; color: var(--muted); width: 36px; }
-.mc-tname { display: flex; align-items: center; gap: 7px; font-weight: 600; color: var(--ink); }
-.mc-tname svg { width: 18px !important; height: 18px !important; flex-shrink: 0; }
-.mc-pts { text-align: right; font-weight: 800; color: var(--ink); }
+.mc-rank { font-weight: 800; color: var(--muted); width: 34px; }
+.mc-tname { text-align: left !important; }
+.mc-tname { display: flex; align-items: center; gap: 7px; font-weight: 600; color: var(--ink); min-width: 120px; }
+.mc-tname svg { width: 16px !important; height: 16px !important; flex-shrink: 0; }
+.mc-tname span { white-space: nowrap; }
+.mc-gd { color: var(--muted); }
+.mc-pts { font-weight: 800; color: var(--ink); }
 .mc-table tr.me td { background: color-mix(in srgb, var(--team) 8%, var(--mix-base)); }
 .mc-table tr.me .mc-rank, .mc-table tr.me .mc-pts { color: var(--team-deep); }
 

@@ -1,50 +1,21 @@
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
-import { useFakeLoading } from './lib/useFakeLoading.js'
+import { relativeTime } from './lib/relativeTime.js'
+import { getHomeContent } from './lib/homeRepo.js'
 import './ClubHomePage.css'
 
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
-// id 는 실제 팬 의견(opinionsRepo)과 연결 — 클릭 시 해당 의견 상세로 이동.
-const POPULAR_OPINIONS = [
-  { id: '1', author: '블루윙', time: '2시간 전', category: '경기장', likes: 142, comments: 28,
-    text: '홈 경기장 좌석 시야 개선이 필요합니다. 광고판에 가려 골대가 잘 보이지 않아요.' },
-  { id: '5', author: '응원단장', time: '5시간 전', category: '선수', likes: 119, comments: 17,
-    text: '유소년 출신 선수들에게 출전 기회가 더 많아졌으면 합니다. 미래를 위한 투자가 필요해요.' },
-  { id: '8', author: '평일직관', time: '어제', category: '경기장', likes: 96, comments: 11,
-    text: '경기장 먹거리 줄이 너무 깁니다. 키오스크나 모바일 주문을 도입하면 좋겠어요.' },
-  { id: '3', author: '시즌권홀더', time: '2일 전', category: '티켓', likes: 73, comments: 9,
-    text: '티켓 예매 페이지가 경기 직전에 가끔 느려집니다. 서버 안정성 개선 부탁드려요.' },
-]
-
 const ONGOING_SURVEYS = [
   { title: '2026 홈 유니폼 디자인 선호도', deadline: 'D-3', count: 1284 },
   { title: '응원가 리뉴얼 의견 수렴', deadline: 'D-7', count: 842 },
   { title: '경기 시작 시간 선호 조사', deadline: 'D-12', count: 1567 },
-]
-
-// name 은 팬 의견 페이지의 카테고리와 일치 → 클릭 시 ?category= 로 필터 적용.
-const CATEGORIES = [
-  { name: '경기장', count: 320 },
-  { name: '응원문화', count: 254 },
-  { name: '티켓', count: 188 },
-  { name: 'MD', count: 142 },
-  { name: '선수', count: 121 },
-  { name: '이벤트', count: 87 },
-]
-
-// tag 는 의견 본문에 등장하는 키워드 → 클릭 시 ?keyword= 로 검색 필터 적용.
-const TOPICS = [
-  { tag: '유니폼', mentions: 412 },
-  { tag: '티켓', mentions: 287 },
-  { tag: '응원', mentions: 231 },
-  { tag: '유소년', mentions: 176 },
-  { tag: '좌석', mentions: 134 },
 ]
 
 // deterministic per-club stats so each page differs but stays stable
@@ -63,8 +34,25 @@ export default function ClubHomePage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const { t } = useLang()
-  const loading = useFakeLoading()
+  const { lang, t } = useLang()
+
+  // 홈 인기 콘텐츠(인기 의견/카테고리/키워드)를 Supabase 로 계산, 아니면 Mock — homeRepo.
+  const [home, setHome] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(() => {
+    if (!team) return
+    let active = true
+    setLoading(true)
+    getHomeContent(team.id).then(c => {
+      if (!active) return
+      setHome(c)
+      setLoading(false)
+    })
+    return () => { active = false }
+  }, [team])
+
+  useEffect(() => load(), [load])
 
   if (!team) {
     return (
@@ -150,7 +138,7 @@ export default function ClubHomePage() {
             <Panel title={t('home.popularOpinions')} action={t('home.viewMore')}
               onAction={() => navigate(`/club/${team.id}/opinions`)}>
               <ul className="ch-opinions">
-                {POPULAR_OPINIONS.map(o => (
+                {(home?.popularOpinions || []).map(o => (
                   <li
                     key={o.id}
                     className="ch-opinion is-link"
@@ -162,7 +150,7 @@ export default function ClubHomePage() {
                     <div className="ch-opinion-head">
                       <span className="ch-avatar" aria-hidden="true">{o.author[0]}</span>
                       <span className="ch-opinion-author">{o.author}</span>
-                      <span className="ch-opinion-time">{o.time}</span>
+                      <span className="ch-opinion-time">{relativeTime(o.hours, lang)}</span>
                       <span className="ch-cat-pill">{o.category}</span>
                     </div>
                     <p className="ch-opinion-text">{o.text}</p>
@@ -195,7 +183,7 @@ export default function ClubHomePage() {
 
             <Panel title={t('home.popularCategories')}>
               <div className="ch-cats">
-                {CATEGORIES.map(c => (
+                {(home?.popularCategories || []).map(c => (
                   <button
                     key={c.name}
                     type="button"
@@ -211,7 +199,7 @@ export default function ClubHomePage() {
 
             <Panel title={t('home.trendingTopics')}>
               <ul className="ch-topics">
-                {TOPICS.map((topic, i) => (
+                {(home?.trendingKeywords || []).map((topic, i) => (
                   <li key={topic.tag}>
                     <button
                       type="button"
