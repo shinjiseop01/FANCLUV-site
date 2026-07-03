@@ -166,10 +166,14 @@ npm run lint     # oxlint
 - 화면은 `useEffect`로 비동기 로드(로딩 상태 포함). **UI/디자인은 기존 그대로**. 작성 의견 상세 열람도 정상 동작.
 - **댓글 입력(OpinionDetailPage)**: Enter = 바로 작성, Shift+Enter = 줄바꿈(한글 IME 조합 중엔 `isComposing` 가드로 무시) — 2차 UX 수정. 관리자 콘솔엔 댓글 입력창이 없어(숨김/삭제 관리만) 해당 없음.
 - `src/opinionStore.js` = Mock 작성 의견 localStorage 백엔드(`fancluv_created_opinions`) — repo가 Mock 모드에서 사용.
+- **URL query 필터(4차 탐색)**: `?category=<카테고리>` / `?keyword=<검색어>`를 `useSearchParams`로 읽어 카테고리 선택·검색어를 자동 적용(직접 접속/새로고침 대응). 홈의 인기 카테고리·주제, 사이드바 인기 카테고리·키워드 클릭이 이 필터로 연결됨. 기존 검색/카테고리/정렬 UI는 그대로.
+- **홈(ClubHomePage) 탐색 링크(4차)**: 인기 의견 카드 클릭 → 해당 의견 상세(`/opinions/:id`), 인기 카테고리 → `/opinions?category=`, 인기 주제(키워드) → `/opinions?keyword=`, "전체 보기/더 보기" → 목록. 홈 데이터의 카테고리/키워드를 의견 페이지 분류와 일치시킴.
 
 ### 팀 뉴스 — `src/lib/newsRepo.js` (Supabase-우선 + Mock 폴백)
 - **Supabase 이관 완료(3차)**. `TeamNewsPage`(팬) + `AdminNews`(관리자)의 단일 데이터 소스. Supabase 설정 시 `team_news` 테이블(제목·내용·team_id·category·image_url·author·status·is_important), 아니면 Mock.
 - 팬 API: `listNews(teamId)`(구단 필터, 최신순/중요 뉴스 정렬). 관리자 API: `adminListNews`/`createNews`/`updateNews`/`deleteNews`(관리자 RLS `is_admin()`). SQL: `0006_news_notifications.sql`.
+- **키워드 필터(4차 탐색)**: 키워드 칩 클릭 → `?keyword=` query 로 제목·요약·본문에 해당 키워드가 포함된 뉴스만 표시(활성 칩 ✕로 해제). AI 인사이트 키워드 클릭도 `/club/:id/news?keyword=<kw>`로 이동. 직접 URL 접속/새로고침 대응(`useSearchParams`).
+- **구단 바로가기(`src/clubLinks.js`)**: 12개 구단별 공식 홈페이지/티켓/Instagram/YouTube 실제 링크(`CLUB_LINK_CHANNELS`). **X(Twitter) 제거**, 모두 새 창(`target=_blank rel=noopener`). 특정 채널 미지정 시 `getClubLinks()`가 공식 홈페이지로 fallback. 라벨은 locale(`news.link*`).
 
 ### 알림 — `src/lib/notificationsRepo.js` + `components/NotificationBell.jsx`
 - **Supabase 이관 완료(3차) + 실동작 완성(11차)**. 벨에 안읽음 배지 + 목록 + 개별/전체 읽음. Supabase 설정 시 `notifications` 테이블, 아니면 Mock(localStorage, 시드 포함).
@@ -206,7 +210,8 @@ npm run lint     # oxlint
 
 **Supabase 백엔드 연동 시리즈 (최신)**
 
-0. 설문 상세를 별도 Route(`/survey/:surveyId`)로 분리 — 12차 (`SurveyDetailPage`)
+0. 링크/탐색 개선 — 13차 (구단 공식 링크 `clubLinks.js`·키워드/카테고리 query 필터·홈 카드 이동)
+0. 설문 상세를 별도 Route(`/survey/:surveyId`)로 분리 — 12차 (`SurveyDetailPage`, `a6e1aeb`)
 0. 알림 실동작 + 관리자 공지 + 신고 접수/관리 완성 — 11차 (`reports`·`notices` = `0011`, `749276d`)
 0. 설문/댓글/랭킹 2차 UX 개선 (`c349434`)
 0. 안전한 회원탈퇴 Edge Function(`delete-account`, service_role) — 10차 (`ea49ca8`)

@@ -203,13 +203,21 @@ export default function AIInsightsPage() {
               </div>
             </section>
 
-            {/* Keywords */}
+            {/* Keywords — 클릭 시 해당 키워드 관련 팀 뉴스로 이동 */}
             <section className="ai-panel">
               <h2 className="ai-panel-title">{t('ai.keywords')}</h2>
               <div className="ai-keywords">
-                {view.keywords.map(k => (
-                  <span key={k.tag} className={`ai-kw w${k.weight}`}>{k.tag}</span>
-                ))}
+                {view.keywords.map(k => {
+                  const kw = k.tag.replace(/^#/, '')
+                  return (
+                    <button key={k.tag} type="button"
+                      className={`ai-kw w${k.weight}`}
+                      title={t('ai.keywordGoNews', { kw })}
+                      onClick={() => navigate(`/club/${team.id}/news?keyword=${encodeURIComponent(kw)}`)}>
+                      {k.tag}
+                    </button>
+                  )
+                })}
               </div>
             </section>
 

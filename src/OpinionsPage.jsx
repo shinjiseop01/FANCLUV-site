@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
@@ -24,12 +24,24 @@ export default function OpinionsPage() {
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, t } = useLang()
-  const [query, setQuery] = useState('')
-  const [category, setCategory] = useState('전체')
+  const [searchParams] = useSearchParams()
+  // URL query(?category=, ?keyword=)로 초기 필터 적용 (직접 접속/새로고침 대응)
+  const [query, setQuery] = useState(() => searchParams.get('keyword') || '')
+  const [category, setCategory] = useState(() => {
+    const c = searchParams.get('category')
+    return c && CATEGORIES.includes(c) ? c : '전체'
+  })
   const [sort, setSort] = useState('최신순')
   const [page, setPage] = useState(1)
   const [opinions, setOpinions] = useState([])
   const [loading, setLoading] = useState(true)
+
+  // 홈 등에서 필터 링크로 재진입 시 URL query 변화를 필터에 반영.
+  useEffect(() => {
+    const c = searchParams.get('category')
+    setCategory(c && CATEGORIES.includes(c) ? c : '전체')
+    setQuery(searchParams.get('keyword') || '')
+  }, [searchParams])
 
   // Reset pagination whenever the active filter/search/sort changes.
   useEffect(() => { setPage(1) }, [category, query, sort])
@@ -101,7 +113,6 @@ export default function OpinionsPage() {
         <nav className="ch-nav" aria-label="메인 메뉴">
           {MENU.map(item => {
             const active = item === '팬 의견'
-            const isHome = item === '홈'
             return (
               <a key={item} href="#" className={`ch-nav-item${active ? ' on' : ''}`}
                 aria-current={active ? 'page' : undefined}
@@ -239,20 +250,25 @@ export default function OpinionsPage() {
             <section className="op-panel">
               <h2 className="op-panel-title">{t('op.sidePopularCat')}</h2>
               <ul className="op-side-cats">
-                <li><span className="op-dot" />경기장<em>320</em></li>
-                <li><span className="op-dot" />응원문화<em>254</em></li>
-                <li><span className="op-dot" />티켓<em>188</em></li>
-                <li><span className="op-dot" />선수<em>142</em></li>
-                <li><span className="op-dot" />구단 운영<em>121</em></li>
+                {[['경기장', 320], ['응원문화', 254], ['티켓', 188], ['선수', 142], ['구단 운영', 121]].map(([name, n]) => (
+                  <li key={name}>
+                    <button type="button" className={`op-side-cat${category === name ? ' on' : ''}`} onClick={() => setCategory(name)}>
+                      <span className="op-dot" />{name}<em>{n}</em>
+                    </button>
+                  </li>
+                ))}
               </ul>
             </section>
 
             <section className="op-panel">
               <h2 className="op-panel-title">{t('op.sideKeywords')}</h2>
               <div className="op-tags">
-                {['#티켓', '#응원가', '#MD', '#경기장', '#유니폼', '#선수', '#원정', '#시즌권'].map(t => (
-                  <span key={t} className="op-tag">{t}</span>
-                ))}
+                {['#티켓', '#응원가', '#MD', '#경기장', '#유니폼', '#선수', '#원정', '#시즌권'].map(tag => {
+                  const kw = tag.replace(/^#/, '')
+                  return (
+                    <button key={tag} type="button" className={`op-tag${query === kw ? ' on' : ''}`} onClick={() => setQuery(kw)}>{tag}</button>
+                  )
+                })}
               </div>
             </section>
           </aside>

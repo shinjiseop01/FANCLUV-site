@@ -280,6 +280,9 @@
 .ch-opinions { list-style: none; display: flex; flex-direction: column; }
 .ch-opinion { padding: 16px 0; border-top: 1px solid var(--border-soft); }
 .ch-opinion:first-child { padding-top: 0; border-top: none; }
+.ch-opinion.is-link { cursor: pointer; transition: background 0.14s; border-radius: 10px; }
+.ch-opinion.is-link:hover { background: color-mix(in srgb, var(--team) 6%, var(--mix-base)); }
+.ch-opinion.is-link:hover .ch-opinion-text { color: var(--ink); }
 
 .ch-opinion-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .ch-avatar {
@@ -330,17 +333,25 @@
   background: var(--page-bg);
   border: 1px solid var(--border);
   padding: 7px 12px; border-radius: 100px;
+  cursor: pointer; font-family: inherit;
+  transition: border-color 0.14s, color 0.14s, background 0.14s;
 }
+.ch-cat-chip:hover { border-color: var(--team); color: var(--team-deep); background: color-mix(in srgb, var(--team) 8%, var(--mix-base)); }
 .ch-cat-chip em { font-style: normal; color: var(--muted); font-size: 12px; }
 .ch-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--team); }
 
 /* Topics */
 .ch-topics { list-style: none; display: flex; flex-direction: column; }
-.ch-topics li {
-  display: flex; align-items: center; gap: 10px;
-  padding: 11px 0; border-top: 1px solid var(--border-soft);
+.ch-topics li { border-top: 1px solid var(--border-soft); }
+.ch-topics li:first-child { border-top: none; }
+.ch-topic-link {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 11px 0; border: none; background: none; cursor: pointer; font-family: inherit;
+  text-align: left; border-radius: 8px; transition: background 0.14s;
 }
-.ch-topics li:first-child { padding-top: 0; border-top: none; }
+.ch-topics li:first-child .ch-topic-link { padding-top: 0; }
+.ch-topic-link:hover { background: color-mix(in srgb, var(--team) 6%, var(--mix-base)); }
+.ch-topic-link:hover .ch-topic-tag { color: var(--team-deep); }
 .ch-topic-rank {
   width: 20px; height: 20px; flex-shrink: 0;
   font-size: 12px; font-weight: 800;

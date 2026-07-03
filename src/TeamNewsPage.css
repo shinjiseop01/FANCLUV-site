@@ -142,8 +142,20 @@
   font-size: 13px; font-weight: 600; color: var(--team-deep);
   background: color-mix(in srgb, var(--team) 10%, var(--mix-base));
   border: 1px solid color-mix(in srgb, var(--team) 24%, var(--mix-base));
-  padding: 6px 12px; border-radius: 100px; cursor: default;
+  padding: 6px 12px; border-radius: 100px; cursor: pointer; font-family: inherit;
+  transition: background 0.14s, border-color 0.14s;
 }
+.tn-tag:hover { background: color-mix(in srgb, var(--team) 18%, var(--mix-base)); }
+.tn-tag.on { background: var(--team-deep); border-color: var(--team-deep); color: #fff; }
+
+/* Active keyword filter chip (above the news list) */
+.tn-active-filter { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: 13.5px; color: var(--muted); }
+.tn-keyword-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 700; color: #fff; background: var(--team-deep);
+  border: none; border-radius: 100px; padding: 6px 13px; cursor: pointer; font-family: inherit;
+}
+.tn-keyword-chip:hover { filter: brightness(1.08); }
 
 /* Shortcuts */
 .tn-shortcuts { display: flex; flex-direction: column; gap: 8px; }

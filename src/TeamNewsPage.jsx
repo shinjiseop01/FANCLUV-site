@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import { getClubLinks, CLUB_LINK_CHANNELS } from './clubLinks.js'
 import { listNews } from './lib/newsRepo.js'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
@@ -15,24 +16,25 @@ const CATEGORIES = ['전체', '구단 공지', '경기', '선수', '인터뷰', 
 
 const KEYWORDS = ['#감독', '#이적', '#티켓', '#MD', '#응원가', '#유니폼', '#주장', '#멤버십']
 
-const SHORTCUTS = [
-  { key: 'home', icon: '🌐', label: '공식 홈페이지', url: 'https://www.kleague.com' },
-  { key: 'ticket', icon: '🎫', label: '티켓 예매', url: 'https://www.ticketlink.co.kr' },
-  { key: 'instagram', icon: '📸', label: 'Instagram', url: 'https://www.instagram.com' },
-  { key: 'youtube', icon: '▶', label: 'YouTube', url: 'https://www.youtube.com' },
-  { key: 'x', icon: '𝕏', label: 'X (Twitter)', url: 'https://x.com' },
-]
-
 export default function TeamNewsPage() {
   const NICKNAME = getCurrentUser()?.nickname || '팬'
   const { teamId, newsId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { t } = useLang()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const keyword = searchParams.get('keyword') || '' // 키워드 클릭/직접 접속 시 필터
   const [news, setNews] = useState([])
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState('전체')
   const [sort, setSort] = useState('latest') // 'latest' | 'important'
+
+  // 키워드 칩 클릭 → URL query 로 관련 뉴스만 필터 (다시 누르면 해제)
+  const setKeyword = kw => {
+    const clean = kw.replace(/^#/, '')
+    if (clean === keyword) setSearchParams({}, { replace: true })
+    else setSearchParams({ keyword: clean }, { replace: true })
+  }
 
   // 구단 뉴스 로드 (Supabase 우선, 아니면 Mock — newsRepo)
   useEffect(() => {
@@ -44,12 +46,18 @@ export default function TeamNewsPage() {
   }, [teamId, team])
 
   const list = useMemo(() => {
-    const filtered = category === '전체' ? news : news.filter(n => n.category === category)
+    let filtered = category === '전체' ? news : news.filter(n => n.category === category)
+    const kw = keyword.trim().toLowerCase()
+    if (kw) {
+      filtered = filtered.filter(n =>
+        (n.title + ' ' + (n.summary || '') + ' ' + (Array.isArray(n.body) ? n.body.join(' ') : n.body || '')).toLowerCase().includes(kw),
+      )
+    }
     const sorted = [...filtered]
     if (sort === 'important') sorted.sort((a, b) => (b.important ? 1 : 0) - (a.important ? 1 : 0) || b.date.localeCompare(a.date))
     else sorted.sort((a, b) => b.date.localeCompare(a.date))
     return sorted
-  }, [news, category, sort])
+  }, [news, category, sort, keyword])
 
   const popular = useMemo(() => [...news].sort((a, b) => b.views - a.views).slice(0, 5), [news])
 
@@ -63,6 +71,7 @@ export default function TeamNewsPage() {
   }
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
+  const clubLinks = getClubLinks(team.id)
   const detail = newsId ? news.find(n => String(n.id) === String(newsId)) : null
   const goWrite = () => navigate(`/club/${team.id}/write`)
   const goSurvey = () => navigate(`/club/${team.id}/survey`)
@@ -129,13 +138,26 @@ export default function TeamNewsPage() {
               </div>
             </div>
 
+            {keyword && (
+              <div className="tn-active-filter">
+                <span>{t('news.filteredBy')}</span>
+                <button type="button" className="tn-keyword-chip" onClick={() => setKeyword(keyword)}>
+                  #{keyword} <span aria-hidden="true">✕</span>
+                </button>
+              </div>
+            )}
+
             <div className="tn-grid">
               {/* Left */}
               <div className="tn-col-main">
                 {loading ? (
                   <SkeletonList count={3} lines={2} />
                 ) : list.length === 0 ? (
-                  <EmptyState icon="📰" title={t('empty.newsTitle')} message={t('empty.newsMsg')} />
+                  keyword ? (
+                    <EmptyState icon="🔍" title={t('empty.searchTitle')} message={t('empty.searchMsg')} />
+                  ) : (
+                    <EmptyState icon="📰" title={t('empty.newsTitle')} message={t('empty.newsMsg')} />
+                  )
                 ) : (
                 <>
                 {hero && (
@@ -209,17 +231,25 @@ export default function TeamNewsPage() {
                 <section className="tn-panel">
                   <h2 className="tn-panel-title">{t('news.keywords')}</h2>
                   <div className="tn-tags">
-                    {KEYWORDS.map(k => <span key={k} className="tn-tag">{k}</span>)}
+                    {KEYWORDS.map(k => {
+                      const active = k.replace(/^#/, '') === keyword
+                      return (
+                        <button key={k} type="button"
+                          className={`tn-tag${active ? ' on' : ''}`}
+                          aria-pressed={active}
+                          onClick={() => setKeyword(k)}>{k}</button>
+                      )
+                    })}
                   </div>
                 </section>
 
                 <section className="tn-panel">
                   <h2 className="tn-panel-title">{t('news.shortcuts')}</h2>
                   <div className="tn-shortcuts">
-                    {SHORTCUTS.map(s => (
-                      <a key={s.key} href={s.url} target="_blank" rel="noopener noreferrer" className="tn-shortcut">
-                        <span className="tn-shortcut-icon" aria-hidden="true">{s.icon}</span>
-                        <span>{s.label}</span>
+                    {CLUB_LINK_CHANNELS.map(ch => (
+                      <a key={ch.key} href={clubLinks[ch.key]} target="_blank" rel="noopener noreferrer" className="tn-shortcut">
+                        <span className="tn-shortcut-icon" aria-hidden="true">{ch.icon}</span>
+                        <span>{t(ch.labelKey)}</span>
                         <span className="tn-shortcut-arrow" aria-hidden="true">↗</span>
                       </a>
                     ))}
