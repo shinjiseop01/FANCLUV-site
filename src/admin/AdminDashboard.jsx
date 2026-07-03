@@ -10,6 +10,7 @@ import {
 import { LineChart, BarChart, DonutChart, StackedBar } from './AdminCharts.jsx'
 import { TEAMS } from '../teams.jsx'
 import { runAnalysis } from '../lib/ai/analyzeFanInsights.js'
+import { createNotice } from '../lib/notificationsRepo.js'
 
 // KPI 카드 정의 (값 key + 라벨 + 아이콘 + 표시형식)
 const KPI_CARDS = [
@@ -71,6 +72,25 @@ export default function AdminDashboard() {
     setAiMsg(t(map[res.code] || 'admin.ai.failed'))
   }
 
+  // 관리자 공지 발송 → 대상 팬에게 'notice' 알림 생성
+  const [noticeTitle, setNoticeTitle] = useState('')
+  const [noticeBody, setNoticeBody] = useState('')
+  const [noticeTeam, setNoticeTeam] = useState('all')
+  const [noticeBusy, setNoticeBusy] = useState(false)
+  const [noticeMsg, setNoticeMsg] = useState('')
+  async function sendNotice() {
+    setNoticeBusy(true); setNoticeMsg('')
+    const res = await createNotice({ title: noticeTitle, body: noticeBody, teamId: noticeTeam === 'all' ? null : noticeTeam })
+    setNoticeBusy(false)
+    if (res.ok) {
+      setNoticeTitle(''); setNoticeBody(''); setNoticeTeam('all')
+      setNoticeMsg(t('admin.notice.sent'))
+    } else {
+      setNoticeMsg(res.error || t('admin.notice.fail'))
+    }
+  }
+  const noticeReady = noticeTitle.trim() && noticeBody.trim()
+
   return (
     <div className="adm-page">
       <header className="adm-page-head">
@@ -119,6 +139,43 @@ export default function AdminDashboard() {
           </button>
         </div>
         {aiMsg && <p className="adm-ai-msg" role="status">{aiMsg}</p>}
+      </section>
+
+      {/* 관리자 공지 발송 */}
+      <section className="adm-panel adm-dash-section">
+        <div className="adm-panel-head"><h2 className="adm-panel-title">📢 {t('admin.notice.title')}</h2></div>
+        <p className="adm-sub adm-notice-sub">{t('admin.notice.desc')}</p>
+        <div className="adm-notice-form">
+          <div className="adm-notice-row">
+            <input
+              className="adm-input"
+              value={noticeTitle}
+              onChange={e => setNoticeTitle(e.target.value)}
+              placeholder={t('admin.notice.titlePh')}
+              maxLength={80}
+              aria-label={t('admin.notice.titlePh')}
+            />
+            <select className="adm-input adm-notice-team" value={noticeTeam} onChange={e => setNoticeTeam(e.target.value)} aria-label={t('admin.notice.target')}>
+              <option value="all">{t('admin.notice.allTeams')}</option>
+              {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+            </select>
+          </div>
+          <textarea
+            className="adm-input"
+            rows={3}
+            value={noticeBody}
+            onChange={e => setNoticeBody(e.target.value)}
+            placeholder={t('admin.notice.bodyPh')}
+            maxLength={500}
+            aria-label={t('admin.notice.bodyPh')}
+          />
+          <div className="adm-notice-foot">
+            {noticeMsg && <span className="adm-ai-msg" role="status">{noticeMsg}</span>}
+            <button className="adm-btn-primary" onClick={sendNotice} disabled={noticeBusy || !noticeReady}>
+              {noticeBusy ? t('admin.notice.sending') : t('admin.notice.send')}
+            </button>
+          </div>
+        </div>
       </section>
 
       {/* 4) 차트 */}
@@ -252,7 +309,7 @@ export default function AdminDashboard() {
           <ul className="adm-recent">
             {recentReports.map(r => (
               <li key={r.id} className="adm-recent-item">
-                <span className="adm-badge reason">{r.reason}</span>
+                <span className="adm-badge reason">{t(`report.reason.${r.reason}`)}</span>
                 <div className="adm-recent-body">
                   <span className="adm-recent-title">{trim(r.target)}</span>
                   <span className="adm-recent-meta">{r.reporter}</span>

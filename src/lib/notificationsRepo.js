@@ -16,12 +16,16 @@ function writeMock(list) {
 }
 
 // Mock 초기 시드 (알림 기능 데모용). 한 번만 생성.
+// 클릭 시 이동을 보여주기 위해 현재 사용자의 응원 구단 기준 URL 을 넣는다.
 function seedMock() {
   const now = Date.now()
+  const team = getCurrentUser()?.selectedTeam || null
+  const club = p => (team ? `/club/${team}${p}` : null)
   return [
-    { id: 'seed3', type: 'news', title: '새 팀 뉴스', body: '구단, 2026 시즌 하반기 멤버십 혜택 개편 발표', url: null, is_read: false, created_at: new Date(now - 2 * 3600e3).toISOString() },
-    { id: 'seed2', type: 'survey', title: '새 설문', body: '2026 시즌 홈 경기장 시설 만족도 조사', url: null, is_read: false, created_at: new Date(now - 5 * 3600e3).toISOString() },
-    { id: 'seed1', type: 'comment', title: '새 댓글', body: '내 의견에 새 댓글이 달렸습니다.', url: null, is_read: true, created_at: new Date(now - 26 * 3600e3).toISOString() },
+    { id: 'seed4', type: 'notice', title: '관리자 공지', body: 'FANCLUV 서비스 점검 안내: 7월 5일 02:00~04:00 사이 일시적으로 접속이 제한될 수 있습니다.', url: null, is_read: false, created_at: new Date(now - 1 * 3600e3).toISOString() },
+    { id: 'seed3', type: 'news', title: '새 팀 뉴스', body: '구단, 2026 시즌 하반기 멤버십 혜택 개편 발표', url: club('/news/1'), is_read: false, created_at: new Date(now - 2 * 3600e3).toISOString() },
+    { id: 'seed2', type: 'survey', title: '새 설문', body: '2026 시즌 홈 경기장 시설 만족도 조사', url: club('/survey'), is_read: false, created_at: new Date(now - 5 * 3600e3).toISOString() },
+    { id: 'seed1', type: 'comment', title: '새 댓글', body: '내 의견에 새 댓글이 달렸습니다.', url: club('/opinions/1'), is_read: true, created_at: new Date(now - 26 * 3600e3).toISOString() },
   ]
 }
 function getMockList() {
@@ -41,6 +45,24 @@ export function pushMockNotification({ type, title, body, url = null }) {
 
 function mapRow(r) {
   return { id: r.id, type: r.type, title: r.title, body: r.body, url: r.url, isRead: !!r.is_read, createdAt: r.created_at }
+}
+
+// ── 관리자 공지 등록 → 대상 팬에게 'notice' 알림 생성 ──
+// Supabase 는 notices 테이블 insert(트리거가 알림 broadcast), Mock 은 로컬 알림 추가.
+export async function createNotice({ title, body, teamId = null }) {
+  const t = (title || '').trim()
+  const b = (body || '').trim()
+  if (!t || !b) return { ok: false, error: '제목과 내용을 입력해 주세요.' }
+  if (isSupabaseConfigured) {
+    const me = getCurrentUser()
+    const { error } = await supabase.from('notices').insert({
+      title: t, body: b, team_id: teamId || null, created_by: me?.id || null,
+    })
+    if (error) return { ok: false, error: error.message }
+    return { ok: true }
+  }
+  pushMockNotification({ type: 'notice', title: t, body: b })
+  return { ok: true }
 }
 
 // ── 목록 ──

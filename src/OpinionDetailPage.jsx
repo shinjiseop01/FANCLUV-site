@@ -5,6 +5,8 @@ import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
 import { getOpinionDetail, listComments, addComment, getLikeState, toggleLike as toggleLikeApi } from './lib/opinionsRepo.js'
+import { submitReport } from './lib/reportsRepo.js'
+import ReportModal from './components/ReportModal.jsx'
 import { relativeTime } from './lib/relativeTime.js'
 import './ClubHomePage.css'
 import './OpinionDetailPage.css'
@@ -37,6 +39,8 @@ export default function OpinionDetailPage() {
   const [likeCount, setLikeCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState('')
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reporting, setReporting] = useState(false)
 
   // 의견 상세 + 댓글 + 공감 상태 로드 (Supabase 우선, 아니면 Mock — opinionsRepo)
   useEffect(() => {
@@ -87,13 +91,26 @@ export default function OpinionDetailPage() {
     const next = !liked
     setLiked(next)
     setLikeCount(c => c + (next ? 1 : -1))
-    await toggleLikeApi(opinionId, next)
+    await toggleLikeApi(opinionId, next, team.id)
+  }
+
+  async function handleReport(reason, detail) {
+    setReporting(true)
+    const res = await submitReport({
+      targetType: 'opinion',
+      targetId: opinionId,
+      targetExcerpt: base?.title || '',
+      reason, detail,
+    })
+    setReporting(false)
+    setReportOpen(false)
+    flash(res.ok ? t('detail.reported') : (res.error || t('detail.reportFail')))
   }
 
   async function submitComment() {
     const text = draft.trim()
     if (!text) return
-    const res = await addComment(opinionId, text)
+    const res = await addComment(opinionId, text, team.id)
     if (res.ok) {
       setComments(prev => [...prev, res.comment])
       setDraft('')
@@ -203,7 +220,7 @@ export default function OpinionDetailPage() {
                 <button className="od-act" onClick={handleShare}>
                   <span aria-hidden="true">🔗</span> {t('detail.share')}
                 </button>
-                <button className="od-act od-report" onClick={() => flash(t('detail.reported'))}>
+                <button className="od-act od-report" onClick={() => setReportOpen(true)}>
                   <span aria-hidden="true">🚩</span> {t('detail.report')}
                 </button>
               </div>
@@ -271,6 +288,13 @@ export default function OpinionDetailPage() {
       </main>
 
       {toast && <div className="od-toast" role="status">{toast}</div>}
+
+      <ReportModal
+        open={reportOpen}
+        submitting={reporting}
+        onClose={() => setReportOpen(false)}
+        onSubmit={handleReport}
+      />
     </div>
   )
 }

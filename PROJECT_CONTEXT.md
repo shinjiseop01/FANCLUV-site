@@ -1,7 +1,7 @@
 # FANCLUV — 프로젝트 컨텍스트 (핸드오프 문서)
 
 > 새 채팅에서 이 파일을 읽으면 바로 이어서 작업할 수 있도록 정리한 문서입니다.
-> 최종 정리: 2026-07-02 / `main` 브랜치 기준 (작업 트리 clean, 최신 커밋 `ea49ca8`)
+> 최종 정리: 2026-07-03 / `main` 브랜치 기준 (알림·신고 완성 11차)
 
 ## 1. 프로젝트 개요
 
@@ -170,9 +170,15 @@ npm run lint     # oxlint
 - 팬 API: `listNews(teamId)`(구단 필터, 최신순/중요 뉴스 정렬). 관리자 API: `adminListNews`/`createNews`/`updateNews`/`deleteNews`(관리자 RLS `is_admin()`). SQL: `0006_news_notifications.sql`.
 
 ### 알림 — `src/lib/notificationsRepo.js` + `components/NotificationBell.jsx`
-- **Supabase 이관 완료(3차)**. 벨에 안읽음 배지 + 목록 + 개별/전체 읽음. Supabase 설정 시 `notifications` 테이블, 아니면 Mock(localStorage, 시드 포함).
-- **알림 생성은 DB 트리거**(`0006`, SECURITY DEFINER): 댓글/공감(의견 작성자에게), 새 설문/새 뉴스(대상 구단 팬에게). Mock 모드는 각 repo가 `pushMockNotification`으로 데모 생성.
-- 클라이언트는 조회 + 읽음 처리만: `listNotifications`/`unreadCount`/`markRead`/`markAllRead`. 본인 알림만 RLS로 노출.
+- **Supabase 이관 완료(3차) + 실동작 완성(11차)**. 벨에 안읽음 배지 + 목록 + 개별/전체 읽음. Supabase 설정 시 `notifications` 테이블, 아니면 Mock(localStorage, 시드 포함).
+- **알림 생성은 DB 트리거**(`0006`·`0011`, SECURITY DEFINER): 댓글/공감(의견 작성자에게), 새 설문/새 뉴스(대상 구단 팬에게), **관리자 공지 `notice`**(`0011`의 `notices` 트리거 → 대상/전체 팬). Mock 모드는 각 repo가 `pushMockNotification`으로 데모 생성(모두 이동 URL 포함).
+- **알림 클릭 → 관련 페이지 이동 + 자동 읽음**: 댓글/공감 → 의견 상세(`/club/:id/opinions/:oid`), 새 설문 → 설문 목록, 새 뉴스 → 뉴스 상세(`/news/:nid`). **관리자 공지(`notice`)는 이동 페이지가 없어 벨에서 모달로 본문 표시**. 읽지 않은 알림은 왼쪽 강조 바 + 볼드 + 점으로 강조.
+- 클라이언트 조회/읽음: `listNotifications`/`unreadCount`/`markRead`/`markAllRead`(본인 알림만 RLS). **관리자 공지 발송**: `createNotice({title,body,teamId})`(Supabase=`notices` insert→트리거, Mock=로컬 알림) — 관리자 대시보드 "공지 발송" 패널에서 호출.
+
+### 신고 — `src/lib/reportsRepo.js` + `components/ReportModal.jsx` + `admin/AdminReports.jsx`
+- **신고 접수/관리 완성(11차)**. Supabase 설정 시 `reports` 테이블(`0011`, RLS: 로그인 사용자 본인 명의 insert / 관리자만 select·update·delete), 아니면 Mock(localStorage, `MOCK_REPORTS` 시드).
+- **신고 모달(ReportModal)**: 의견 상세 🚩버튼 → 사유 7종(욕설/광고/허위/음란/개인정보/도배/기타) 라디오, **기타 선택 시 직접 입력 textarea**. `submitReport({targetType,targetId,targetExcerpt,reason,detail})` → 저장 항목: 대상·신고자·사유·기타내용·시간·상태(pending). 사유 코드는 locale `report.reason.<code>`.
+- **관리자 신고 관리(AdminReports)**: 상태 필터(전체/미처리/처리됨), 목록 + **상세 보기 패널**(대상·신고자·사유·기타내용·신고일·상태), 조치 — 게시글/댓글 **숨김·삭제**(`moderateTarget`: Supabase는 opinions/comments status='hidden' 또는 delete), **처리 완료**(`resolveReport`), 신고 삭제(`deleteReport`). 대시보드 "최근 신고"도 사유 라벨 번역 반영.
 
 ### AI 팬 인사이트 — `src/lib/ai/analyzeFanInsights.js` + Edge Function
 - **OpenAI 기반 실제 분석(8차)**. OpenAI 호출/키는 **Edge Function `analyze-insights`**(서버)에서만 — 프론트 미노출. 클라이언트 `analyzeFanInsights.js`는 함수 호출(`runAnalysis`)·결과 조회(`getLatestInsight`)만.
@@ -198,6 +204,8 @@ npm run lint     # oxlint
 
 **Supabase 백엔드 연동 시리즈 (최신)**
 
+0. 알림 실동작 + 관리자 공지 + 신고 접수/관리 완성 — 11차 (`reports`·`notices` = `0011`)
+0. 설문/댓글/랭킹 2차 UX 개선 (`c349434`)
 0. 안전한 회원탈퇴 Edge Function(`delete-account`, service_role) — 10차 (`ea49ca8`)
 0. 온보딩·본인인증·회원탈퇴 개선 — 9차 (`6724e90`)
 0. AI 인사이트 배포 흐름 검증 (`34cd414`)
@@ -245,7 +253,7 @@ npm run lint     # oxlint
 
 ## 5. 알려진 특이사항 / TODO 후보
 
-- **Supabase 핵심 이관 완료.** 남은 잔여: 관리자 대시보드의 구단별/최근활동/차트·신고(Reports)는 아직 Mock, KPI만 실집계 연동됨.
+- **Supabase 핵심 이관 완료.** 신고(`reports`)·알림·공지(`notices`)까지 연동 완료(11차). 남은 잔여: 관리자 대시보드의 구단별/최근활동/차트는 아직 Mock, KPI만 실집계 연동됨.
 - **소셜 로그인 잔여**: Google·Kakao는 Supabase native, NAVER는 커스텀 Edge Function(`naver-callback`). 프로필 이미지가 아직 placeholder(SVG data URI)인 provider 존재 → 실 사진 URL 매핑 확인 필요. 배포/시크릿은 [SOCIAL_LOGIN_SETUP.md](SOCIAL_LOGIN_SETUP.md).
 - **Edge Function 배포 필요 항목**: `send-email-code`(Resend), `naver-callback`(`--no-verify-jwt`), `analyze-insights`(OpenAI, verify_jwt 유지), `delete-account`. 검증 체크리스트는 [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 - 이메일 인증은 Supabase(`send-email-code`)/Mock 양쪽 동작, **휴대폰 본인인증(PASS/NICE/KCB)은 구조만 준비**된 상태 → 실제 연동 필요.

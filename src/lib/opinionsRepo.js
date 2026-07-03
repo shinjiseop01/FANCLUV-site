@@ -196,8 +196,8 @@ export async function listComments(opinionId) {
   return INITIAL_COMMENTS.map((c, i) => ({ id: `ic${i}`, author: c.author, avatarUrl: null, hours: c.hours, text: c.text }))
 }
 
-// 댓글 작성
-export async function addComment(opinionId, content) {
+// 댓글 작성 (teamId 는 Mock 알림 URL 생성용 — 실제 Supabase 는 트리거가 URL 포함)
+export async function addComment(opinionId, content, teamId = null) {
   const me = getCurrentUser()
   const text = (content || '').trim()
   if (!text) return { ok: false }
@@ -210,7 +210,10 @@ export async function addComment(opinionId, content) {
     return { ok: true, comment: { id: data.id, author: me.nickname, avatarUrl: me.avatarUrl, hours: 0, text } }
   }
   // Mock: 알림 데모 (실제 Supabase 는 DB 트리거가 "의견 작성자"에게 생성)
-  pushMockNotification({ type: 'comment', title: '새 댓글', body: '내 의견에 새 댓글이 달렸습니다.' })
+  pushMockNotification({
+    type: 'comment', title: '새 댓글', body: '내 의견에 새 댓글이 달렸습니다.',
+    url: teamId ? `/club/${teamId}/opinions/${opinionId}` : null,
+  })
   return { ok: true, comment: { id: `c${Date.now()}`, author: me?.nickname || '팬', avatarUrl: me?.avatarUrl || null, hours: 0, text } }
 }
 
@@ -228,7 +231,8 @@ export async function getLikeState(opinionId) {
 }
 
 // 공감 토글 (1인 1회, 취소 가능). nextLiked = 토글 후 원하는 상태.
-export async function toggleLike(opinionId, nextLiked) {
+// teamId 는 Mock 알림 URL 생성용.
+export async function toggleLike(opinionId, nextLiked, teamId = null) {
   if (isSupabaseConfigured) {
     const me = getCurrentUser()
     if (!me) return { ok: false }
@@ -243,6 +247,9 @@ export async function toggleLike(opinionId, nextLiked) {
     return { ok: true }
   }
   // Mock: 공감 시 알림 데모 (실제 Supabase 는 DB 트리거가 담당)
-  if (nextLiked) pushMockNotification({ type: 'like', title: '새 공감', body: '내 의견에 공감이 추가되었습니다.' })
+  if (nextLiked) pushMockNotification({
+    type: 'like', title: '새 공감', body: '내 의견에 공감이 추가되었습니다.',
+    url: teamId ? `/club/${teamId}/opinions/${opinionId}` : null,
+  })
   return { ok: true } // Mock: 세션 내 상태만 유지
 }

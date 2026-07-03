@@ -13,6 +13,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState([])
   const [unread, setUnread] = useState(0)
+  const [notice, setNotice] = useState(null) // 공지 알림 클릭 시 표시할 모달 내용
   const ref = useRef(null)
 
   async function refresh() {
@@ -39,7 +40,14 @@ export default function NotificationBell() {
       setItems(prev => prev.map(x => (x.id === n.id ? { ...x, isRead: true } : x)))
       setUnread(c => Math.max(0, c - 1))
     }
-    if (n.url) { setOpen(false); navigate(n.url) }
+    // 관리자 공지는 이동할 상세 페이지가 없어 모달로 본문을 표시, 그 외는 관련 페이지로 이동
+    if (n.type === 'notice') {
+      setOpen(false)
+      setNotice(n)
+    } else if (n.url) {
+      setOpen(false)
+      navigate(n.url)
+    }
   }
 
   async function onMarkAll() {
@@ -95,6 +103,24 @@ export default function NotificationBell() {
               ))}
             </ul>
           )}
+        </div>
+      )}
+
+      {notice && (
+        <div
+          className="ntc-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label={notice.title}
+          onMouseDown={e => { if (e.target === e.currentTarget) setNotice(null) }}
+        >
+          <div className="ntc-modal">
+            <span className="ntc-tag">{t('notice.tag')}</span>
+            <h2 className="ntc-title">{notice.title}</h2>
+            <p className="ntc-body">{notice.body}</p>
+            <span className="ntc-time">{relativeTime(hoursSince(notice.createdAt), lang)}</span>
+            <button type="button" className="ntc-close" onClick={() => setNotice(null)}>{t('common.close')}</button>
+          </div>
         </div>
       )}
     </div>

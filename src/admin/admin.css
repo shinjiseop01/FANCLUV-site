@@ -212,6 +212,28 @@
   .adm-comment .adm-actions { width: 100%; justify-content: flex-start; }
 }
 
+/* Loading text */
+.adm-loading { padding: 40px 8px; text-align: center; color: var(--muted); font-size: 14px; }
+
+/* Primary small action button (처리 완료) */
+.adm-btn-sm.primary { background: var(--team-deep); border-color: var(--team-deep); color: #fff; }
+.adm-btn-sm.primary:hover:not(:disabled) { filter: brightness(1.08); border-color: var(--team-deep); color: #fff; }
+
+/* Report detail panel */
+.adm-report-dl { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.adm-report-dl > div { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: start; }
+.adm-report-dl dt { font-size: 12.5px; font-weight: 700; color: var(--muted); padding-top: 1px; }
+.adm-report-dl dd { font-size: 14px; color: var(--ink); line-height: 1.55; word-break: break-word; }
+.adm-report-detail-text {
+  background: var(--page-bg); border: 1px solid var(--border-soft); border-radius: 10px;
+  padding: 12px 14px; white-space: pre-wrap;
+}
+.adm-report-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border-soft); }
+
+@media (max-width: 640px) {
+  .adm-report-dl > div { grid-template-columns: 80px 1fr; }
+}
+
 /* ════════════════════════════════════════════════════════════
    Dashboard (enhanced) — KPI · charts · club status · recent
    All token-based → light & dark both work.
@@ -288,3 +310,16 @@
 .adm-ai-run { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .adm-ai-run .adm-input { max-width: 260px; }
 .adm-ai-msg { margin-top: 12px; font-size: 13.5px; color: var(--body); }
+
+/* 관리자 공지 발송 패널 */
+.adm-notice-sub { margin: -6px 0 14px; }
+.adm-notice-form { display: flex; flex-direction: column; gap: 10px; }
+.adm-notice-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.adm-notice-row .adm-input { flex: 1; min-width: 200px; }
+.adm-notice-team { flex: 0 0 auto !important; max-width: 220px; }
+.adm-notice-form textarea.adm-input { resize: vertical; line-height: 1.5; }
+.adm-notice-foot { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap; }
+.adm-notice-foot .adm-ai-msg { margin-top: 0; }
+@media (max-width: 560px) {
+  .adm-notice-team { max-width: none; width: 100%; }
+}

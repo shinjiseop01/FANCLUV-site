@@ -123,7 +123,7 @@ export async function createNews({ title, content, team, image = '', category = 
   const today = new Date().toISOString().slice(0, 10)
   const news = { id: 'n' + Date.now(), title, content, team, image, date: today }
   mockAdminNews = [news, ...mockAdminNews]
-  pushMockNotification({ type: 'news', title: '새 팀 뉴스', body: title, url: team ? `/club/${team}/news` : null })
+  pushMockNotification({ type: 'news', title: '새 팀 뉴스', body: title, url: team ? `/club/${team}/news/${news.id}` : null })
   return { ok: true, news }
 }
 

@@ -13,6 +13,8 @@ export default {
   'common.notifications': '알림',
   'common.noNotifications': '알림이 없습니다',
   'common.markAllRead': '전체 읽음',
+  'common.close': '닫기',
+  'common.loading': '불러오는 중…',
 
   // 네비게이션
   'nav.home': '홈',
@@ -227,8 +229,26 @@ export default {
   'detail.ongoing': '진행 중인 설문',
   'detail.shared': '링크가 복사되었습니다.',
   'detail.reported': '신고가 접수되었습니다. 검토 후 조치하겠습니다.',
+  'detail.reportFail': '신고 접수에 실패했습니다. 잠시 후 다시 시도해 주세요.',
   'detail.notFound': '존재하지 않는 의견입니다.',
   'detail.backToOpinions': '팬 의견으로 돌아가기',
+
+  // 신고 모달
+  'report.title': '신고하기',
+  'report.desc': '신고 사유를 선택해 주세요. 접수된 신고는 관리자가 검토합니다.',
+  'report.reasonLabel': '신고 사유',
+  'report.reason.abuse': '욕설 및 비방',
+  'report.reason.ad': '광고 및 홍보',
+  'report.reason.false': '허위 정보',
+  'report.reason.obscene': '음란성 콘텐츠',
+  'report.reason.privacy': '개인정보 노출',
+  'report.reason.spam': '도배',
+  'report.reason.other': '기타',
+  'report.detailPh': '신고 사유를 직접 입력해 주세요.',
+  'report.submit': '신고 접수',
+
+  // 관리자 공지 (팬 알림 모달)
+  'notice.tag': '관리자 공지',
 
   // 의견 작성
   'create.title': '의견 작성하기',
@@ -610,10 +630,29 @@ export default {
   'admin.rp.resolved': '처리됨',
   'admin.rp.hidePost': '게시글 숨기기',
   'admin.rp.deletePost': '게시글 삭제',
+  'admin.rp.hideComment': '댓글 숨기기',
+  'admin.rp.deleteComment': '댓글 삭제',
   'admin.rp.type.opinion': '의견',
   'admin.rp.type.comment': '댓글',
+  'admin.rp.filterAll': '전체',
+  'admin.rp.view': '상세 보기',
+  'admin.rp.detailTitle': '신고 상세',
+  'admin.rp.detailLabel': '기타 내용',
+  'admin.rp.resolve': '처리 완료',
+  'admin.rp.deleteReport': '신고 삭제',
   'admin.rp.emptyTitle': '처리할 신고가 없습니다',
   'admin.rp.emptyMsg': '새로운 신고가 접수되면 이곳에 표시됩니다.',
+  // 관리자 공지 발송
+  'admin.notice.title': '공지 발송',
+  'admin.notice.desc': '공지를 등록하면 대상 팬에게 알림이 발송됩니다.',
+  'admin.notice.titlePh': '공지 제목',
+  'admin.notice.bodyPh': '공지 내용을 입력하세요.',
+  'admin.notice.target': '대상',
+  'admin.notice.allTeams': '전체 팬',
+  'admin.notice.send': '공지 발송',
+  'admin.notice.sending': '발송 중…',
+  'admin.notice.sent': '공지가 발송되었습니다.',
+  'admin.notice.fail': '공지 발송에 실패했습니다.',
   // 설정
   'admin.set.sub': '관리자 계정 및 권한 정보를 확인합니다.',
   'admin.set.account': '관리자 계정',

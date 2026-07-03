@@ -76,11 +76,12 @@ export const MOCK_NEWS = [
 ]
 
 // ── Reports (신고) ──
+// reason 은 코드값(라벨은 locale report.reason.<code>). detail 은 '기타' 직접 입력.
 export const MOCK_REPORTS = [
-  { id: 'r1', targetType: 'opinion', target: '경기 후 상대팀 비방성 댓글', reporter: '익명', reason: '욕설/비방', date: '2026-06-30', status: 'pending' },
-  { id: 'r2', targetType: 'comment', target: '도배성 광고 댓글이 반복 게시됩니다.', reporter: '직관러', reason: '스팸/광고', date: '2026-06-29', status: 'pending' },
-  { id: 'r3', targetType: 'opinion', target: '근거 없는 허위 이적설 유포', reporter: '시즌권홀더', reason: '허위사실', date: '2026-06-28', status: 'resolved' },
-  { id: 'r4', targetType: 'comment', target: '특정 선수 인신공격성 발언', reporter: '익명', reason: '욕설/비방', date: '2026-06-27', status: 'pending' },
+  { id: 'r1', targetType: 'opinion', targetId: 'o1', target: '경기 후 상대팀 비방성 댓글', reporter: '익명',       reason: 'abuse', detail: '', date: '2026-06-30', status: 'pending' },
+  { id: 'r2', targetType: 'comment', targetId: 'c3', target: '도배성 광고 댓글이 반복 게시됩니다.', reporter: '직관러',   reason: 'ad',    detail: '', date: '2026-06-29', status: 'pending' },
+  { id: 'r3', targetType: 'opinion', targetId: 'o5', target: '근거 없는 허위 이적설 유포', reporter: '시즌권홀더', reason: 'false', detail: '', date: '2026-06-28', status: 'resolved' },
+  { id: 'r4', targetType: 'comment', targetId: 'c7', target: '특정 선수 인신공격성 발언', reporter: '익명',       reason: 'other', detail: '선수 가족까지 언급하며 도를 넘는 인신공격을 합니다.', date: '2026-06-27', status: 'pending' },
 ]
 
 // ════════════════════════════════════════════════════════════════════════

@@ -13,6 +13,8 @@ export default {
   'common.notifications': 'Notifications',
   'common.noNotifications': 'No notifications',
   'common.markAllRead': 'Mark all read',
+  'common.close': 'Close',
+  'common.loading': 'Loading…',
 
   // nav
   'nav.home': 'Home',
@@ -227,8 +229,26 @@ export default {
   'detail.ongoing': 'Ongoing Survey',
   'detail.shared': 'Link copied to clipboard.',
   'detail.reported': 'Your report has been received. We will review it.',
+  'detail.reportFail': 'Failed to submit the report. Please try again later.',
   'detail.notFound': 'This opinion does not exist.',
   'detail.backToOpinions': 'Back to Fan Opinions',
+
+  // report modal
+  'report.title': 'Report',
+  'report.desc': 'Please choose a reason. Submitted reports are reviewed by an admin.',
+  'report.reasonLabel': 'Reason',
+  'report.reason.abuse': 'Abuse or harassment',
+  'report.reason.ad': 'Advertising or promotion',
+  'report.reason.false': 'False information',
+  'report.reason.obscene': 'Obscene content',
+  'report.reason.privacy': 'Personal information exposure',
+  'report.reason.spam': 'Spam / flooding',
+  'report.reason.other': 'Other',
+  'report.detailPh': 'Please describe the reason.',
+  'report.submit': 'Submit report',
+
+  // admin announcement (fan notification modal)
+  'notice.tag': 'Announcement',
 
   // create opinion
   'create.title': 'Write Opinion',
@@ -610,10 +630,29 @@ export default {
   'admin.rp.resolved': 'Resolved',
   'admin.rp.hidePost': 'Hide post',
   'admin.rp.deletePost': 'Delete post',
+  'admin.rp.hideComment': 'Hide comment',
+  'admin.rp.deleteComment': 'Delete comment',
   'admin.rp.type.opinion': 'Opinion',
   'admin.rp.type.comment': 'Comment',
+  'admin.rp.filterAll': 'All',
+  'admin.rp.view': 'View',
+  'admin.rp.detailTitle': 'Report detail',
+  'admin.rp.detailLabel': 'Detail',
+  'admin.rp.resolve': 'Mark resolved',
+  'admin.rp.deleteReport': 'Delete report',
   'admin.rp.emptyTitle': 'No reports to handle',
   'admin.rp.emptyMsg': 'New reports will appear here as they come in.',
+  // Admin announcement
+  'admin.notice.title': 'Send Announcement',
+  'admin.notice.desc': 'Publishing an announcement sends a notification to the target fans.',
+  'admin.notice.titlePh': 'Announcement title',
+  'admin.notice.bodyPh': 'Write the announcement...',
+  'admin.notice.target': 'Target',
+  'admin.notice.allTeams': 'All fans',
+  'admin.notice.send': 'Send',
+  'admin.notice.sending': 'Sending…',
+  'admin.notice.sent': 'Announcement sent.',
+  'admin.notice.fail': 'Failed to send announcement.',
   // Settings
   'admin.set.sub': 'View admin account and permission details.',
   'admin.set.account': 'Admin account',
