@@ -142,8 +142,11 @@ export default function SurveyDetailPage() {
 
             <form className="sv-form" onSubmit={handleSubmit}>
               {/* Q1 */}
-              <fieldset className="sv-q">
-                <legend><span className="sv-qnum">Q1.</span> 홈 경기장 전반에 대한 만족도는 어떠신가요?</legend>
+              <div className="sv-q">
+                <div className="sv-q-head">
+                  <span className="sv-qnum">Q1.</span>
+                  <span className="sv-q-title">홈 경기장 전반에 대한 만족도는 어떠신가요?</span>
+                </div>
                 <div className="sv-stars" role="radiogroup" aria-label="만족도 별점">
                   {[1, 2, 3, 4, 5].map(n => (
                     <button type="button" key={n}
@@ -156,11 +159,14 @@ export default function SurveyDetailPage() {
                   ))}
                   <span className="sv-stars-label">{satisfaction ? `${satisfaction}점` : '선택해 주세요'}</span>
                 </div>
-              </fieldset>
+              </div>
 
               {/* Q2 */}
-              <fieldset className="sv-q">
-                <legend><span className="sv-qnum">Q2.</span> 가장 개선이 필요한 부분은 무엇인가요?</legend>
+              <div className="sv-q">
+                <div className="sv-q-head">
+                  <span className="sv-qnum">Q2.</span>
+                  <span className="sv-q-title">가장 개선이 필요한 부분은 무엇인가요?</span>
+                </div>
                 <div className="sv-options">
                   {IMPROVE_OPTIONS.map(opt => (
                     <label key={opt} className={`sv-option${improve === opt ? ' on' : ''}`}>
@@ -170,11 +176,14 @@ export default function SurveyDetailPage() {
                     </label>
                   ))}
                 </div>
-              </fieldset>
+              </div>
 
               {/* Q3 */}
-              <fieldset className="sv-q">
-                <legend><span className="sv-qnum">Q3.</span> 다음 홈 경기에 다시 방문할 의향이 있으신가요?</legend>
+              <div className="sv-q">
+                <div className="sv-q-head">
+                  <span className="sv-qnum">Q3.</span>
+                  <span className="sv-q-title">다음 홈 경기에 다시 방문할 의향이 있으신가요?</span>
+                </div>
                 <div className="sv-options">
                   {REVISIT_OPTIONS.map(opt => (
                     <label key={opt} className={`sv-option${revisit === opt ? ' on' : ''}`}>
@@ -184,11 +193,14 @@ export default function SurveyDetailPage() {
                     </label>
                   ))}
                 </div>
-              </fieldset>
+              </div>
 
               {/* Q4 */}
-              <fieldset className="sv-q">
-                <legend><span className="sv-qnum">Q4.</span> 구단에 전하고 싶은 의견을 자유롭게 남겨 주세요. <em>(선택)</em></legend>
+              <div className="sv-q">
+                <div className="sv-q-head">
+                  <span className="sv-qnum">Q4.</span>
+                  <span className="sv-q-title">구단에 전하고 싶은 의견을 자유롭게 남겨 주세요. <em>(선택)</em></span>
+                </div>
                 <textarea
                   className="sv-textarea"
                   placeholder="경기장, 응원 환경, 팬 서비스 등 자유롭게 작성해 주세요."
@@ -196,7 +208,7 @@ export default function SurveyDetailPage() {
                   onChange={e => setComment(e.target.value)}
                   rows={4}
                 />
-              </fieldset>
+              </div>
 
               <button type="submit" className="sv-submit">{t('survey.submit')}</button>
             </form>

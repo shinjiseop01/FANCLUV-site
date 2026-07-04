@@ -128,7 +128,9 @@
 /* ── Panels ── */
 .fr-panel { background: var(--canvas); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; }
 .fr-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.fr-panel-title { font-size: 16px; font-weight: 700; color: var(--ink); }
+.fr-panel-title { font-size: 16px; font-weight: 700; color: var(--ink); line-height: 1.2; }
+/* 오른쪽 사이드 카드: 제목 바로 아래 콘텐츠가 붙지 않도록 제목-내용 간격 통일 */
+.fr-col-side .fr-panel > .fr-panel-title { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
 .fr-week {
   font-size: 11.5px; font-weight: 700; color: var(--team-deep);
   background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); padding: 3px 10px; border-radius: 100px;

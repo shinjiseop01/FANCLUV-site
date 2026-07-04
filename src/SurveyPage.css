@@ -61,23 +61,28 @@
   border-radius: 16px;
   padding: 24px 26px;
   margin: 0;
-  min-width: 0;              /* fieldset 기본 min-width 로 인한 넘침 방지 */
+  min-width: 0;
 }
-.sv-q legend {
-  display: block;
-  width: 100%;              /* legend 가 카드 폭을 넘지 않도록 */
-  box-sizing: border-box;
+/* 질문 헤더: Q번호 + 제목을 flex 로 정렬(같은 시작선·세로 기준). div 기반이라
+   fieldset/legend 의 padding 무시 문제 없이 카드 내부 padding(24px)을 그대로 따른다. */
+.sv-q-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.sv-q-title {
+  flex: 1;
+  min-width: 0;
   font-size: 16px;
   font-weight: 700;
   color: var(--ink);
-  line-height: 1.5;
-  padding: 0;
-  margin-bottom: 18px;
-  overflow-wrap: break-word;
+  line-height: 1.45;
   word-break: keep-all;
+  overflow-wrap: anywhere;
 }
-.sv-q legend em { font-style: normal; font-weight: 500; color: var(--muted); font-size: 13px; }
-.sv-qnum { color: var(--team-deep); margin-right: 6px; }
+.sv-q-title em { font-style: normal; font-weight: 500; color: var(--muted); font-size: 13px; }
+.sv-qnum { flex-shrink: 0; font-size: 16px; font-weight: 700; line-height: 1.45; color: var(--team-deep); }
 
 /* Stars */
 .sv-stars { display: flex; align-items: center; gap: 6px; }
