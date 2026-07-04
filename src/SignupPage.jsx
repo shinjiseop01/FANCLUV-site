@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { signup, issueEmailCode, confirmEmailCode, needsOnboarding } from './lib/auth.js'
 import { isSupabaseConfigured } from './lib/supabase.js'
 import { useLang } from './contexts/LanguageContext.jsx'
+import { useNicknameCheck } from './lib/useNicknameCheck.js'
+import NicknameStatus from './components/NicknameStatus.jsx'
 import SocialAuth from './components/SocialAuth.jsx'
 import './SignupPage.css'
 
@@ -14,6 +16,7 @@ export default function SignupPage() {
   const navigate = useNavigate()
   const { t } = useLang()
   const [nickname, setNickname] = useState('')
+  const nickCheck = useNicknameCheck(nickname)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
@@ -117,7 +120,9 @@ export default function SignupPage() {
               value={nickname}
               onChange={e => { setNickname(e.target.value); setError('') }}
               autoComplete="nickname"
+              maxLength={12}
             />
+            <NicknameStatus status={nickCheck} />
           </div>
 
           {/* Email + 인증번호 (실제 존재하는 이메일 확인 — 양 모드 공통) */}
@@ -223,7 +228,7 @@ export default function SignupPage() {
             <div className="su-verified" role="status">✓ {t('signup.confirmEmailSent')}</div>
           )}
 
-          <button type="submit" className="su-btn" disabled={loading}>
+          <button type="submit" className="su-btn" disabled={loading || nickCheck.state !== 'available'}>
             {loading ? (
               <span className="su-btn-loading"><span className="su-spinner" />{t('signup.loading')}</span>
             ) : (

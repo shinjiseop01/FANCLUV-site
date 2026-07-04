@@ -313,3 +313,15 @@ select:focus-visible {
 }
 .fc-404-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
 .fc-404-btn:active { transform: translateY(0); }
+
+/* ───────────── Nickname validation status ───────────── */
+.nick-status {
+  margin-top: 7px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
+.nick-status.hint { color: var(--muted); }
+.nick-status.err { color: #E0463C; }
+.nick-status.ok { color: #0E9F6E; }

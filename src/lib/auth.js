@@ -12,6 +12,7 @@
 import { supabase, isSupabaseConfigured } from './supabase.js'
 import { getProvider, SUPABASE_PROVIDER_CONFIG } from './oauth.js'
 import { sendWelcomeEmail } from './welcomeEmail.js'
+import { validateNicknameFormat } from './nicknameValidation.js'
 
 const USERS_KEY = 'fancluv_users'
 const SESSION_KEY = 'fancluv_session' // (Mock) 현재 로그인한 사용자의 email
@@ -232,8 +233,9 @@ function mockSocialLogin(profile, isNewRef) {
 // ── 회원가입 ──
 export async function signup({ nickname, email, password, gender = null, ageGroup = null }) {
   const name = (nickname || '').trim()
-  // 닉네임 형식 검증 (자음/모음만 등 불가)
-  if (!isValidNickname(name)) return { ok: false, error: NICKNAME_INVALID_MSG, code: 'nickname_invalid' }
+  // 닉네임 형식 검증 (예약어·금칙어·자음/모음·길이 등)
+  const fe = nicknameFormatError(name)
+  if (fe) return fe
   // 닉네임 중복 방지 (회원가입/온보딩/프로필수정 공통 규칙)
   if (await isNicknameTaken(name)) return { ok: false, error: '이미 사용 중인 닉네임입니다.', code: 'nickname_taken' }
   if (isSupabaseConfigured) {
@@ -253,21 +255,24 @@ export async function signup({ nickname, email, password, gender = null, ageGrou
   return res
 }
 
-export const NICKNAME_INVALID_MSG = '닉네임은 완성된 한글, 영문, 숫자로 2자 이상 입력해 주세요. (예: 서울팬)'
-
-// ── 닉네임 형식 검증 ──
-// 허용: 한글 완성형(가-힣) / 영문 / 숫자 / 공백. 2자 이상.
-// 불가: 단독 자음·모음(호환 자모 ㄱ-ㆎ)이 포함된 닉네임(예: ㅁㄴㅇㄹ, ㄱㄱㄱ, ㅏㅏㅏ).
-// 최소 한 글자는 완성형 한글 또는 영문이어야 한다.
-export function isValidNickname(nickname) {
-  const s = (nickname || '').trim()
-  if (s.length < 2) return false
-  // 허용 문자: 완성형 한글(가-힣) / 영문 / 숫자 / 공백.
-  // → 단독 자음·모음(호환 자모)은 완성형 범위 밖이라 자동으로 거부된다.
-  if (!/^[가-힣a-zA-Z0-9 ]+$/.test(s)) return false
-  // 의미 있는 글자(완성형 한글/영문)가 최소 1개는 있어야 한다(숫자/공백만 불가).
-  if (!/[가-힣a-zA-Z]/.test(s)) return false
-  return true
+// 닉네임 형식 검증은 nicknameValidation.js 로 일원화(예약어·금칙어·길이 포함).
+// 코드별 서버측 안내 문구(폼은 실시간으로 locale 메시지를 별도 표시한다).
+const NICKNAME_ERR_MSG = {
+  empty: '닉네임을 입력해 주세요.',
+  too_short: '닉네임은 2자 이상 입력해 주세요.',
+  has_space: '닉네임에는 공백을 사용할 수 없습니다.',
+  has_jamo: '자음/모음 단독은 사용할 수 없습니다. 완성된 한글을 입력해 주세요.',
+  invalid_char: '완성된 한글, 영문, 숫자만 사용할 수 있습니다.',
+  too_long_ko: '닉네임은 한글 최대 8자까지 가능합니다.',
+  too_long_en: '닉네임은 영문·숫자 최대 12자까지 가능합니다.',
+  reserved: '사용할 수 없는 닉네임입니다.',
+  banned: '부적절한 표현이 포함된 닉네임입니다.',
+}
+export const NICKNAME_INVALID_MSG = '닉네임은 완성된 한글, 영문, 숫자로 2자 이상 입력해 주세요.'
+function nicknameFormatError(name) {
+  const r = validateNicknameFormat(name)
+  if (r.ok) return null
+  return { ok: false, code: 'nickname_invalid', errCode: r.code, error: NICKNAME_ERR_MSG[r.code] || NICKNAME_INVALID_MSG }
 }
 
 // ── 닉네임 중복 확인 ── 본인(exceptId/exceptEmail)은 제외.
@@ -297,7 +302,8 @@ export function needsOnboarding(user) {
 export async function completeOnboarding({ nickname, gender = null, ageGroup = null }) {
   const name = (nickname || '').trim()
   if (!name) return { ok: false, error: '닉네임을 입력해 주세요.' }
-  if (!isValidNickname(name)) return { ok: false, error: NICKNAME_INVALID_MSG, code: 'nickname_invalid' }
+  const fe = nicknameFormatError(name)
+  if (fe) return fe
   if (!ageGroup) return { ok: false, error: '나이대를 선택해 주세요.' }
   const me = getCurrentUser()
   if (await isNicknameTaken(name, { exceptId: me?.id, exceptEmail: me?.email }))
@@ -488,7 +494,8 @@ export function nicknameChangeInfo() {
 export async function changeNickname(nickname) {
   const name = (nickname || '').trim()
   if (!name) return { ok: false, error: '닉네임을 입력해 주세요.' }
-  if (!isValidNickname(name)) return { ok: false, error: NICKNAME_INVALID_MSG, code: 'nickname_invalid' }
+  const fe = nicknameFormatError(name)
+  if (fe) return fe
   const info = nicknameChangeInfo()
   if (!info.canChange)
     return { ok: false, error: '닉네임은 3개월에 한 번만 변경할 수 있습니다.', nextChangeAt: info.nextChangeAt }

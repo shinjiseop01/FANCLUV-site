@@ -4,6 +4,8 @@ import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser, updateAvatar, changeNickname, nicknameChangeInfo } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
+import { useNicknameCheck } from './lib/useNicknameCheck.js'
+import NicknameStatus from './components/NicknameStatus.jsx'
 import Avatar from './components/Avatar.jsx'
 import './ClubHomePage.css'
 import './SettingsPage.css'
@@ -29,6 +31,8 @@ export default function ProfileEditPage() {
   const [error, setError] = useState('')
   const [okMsg, setOkMsg] = useState('')
   const info = nicknameChangeInfo()
+  const nickCheck = useNicknameCheck(nickname, { exceptId: user?.id, exceptEmail: user?.email })
+  const unchanged = nickname.trim() === (user?.nickname || '')
 
   if (!team) {
     return (
@@ -125,15 +129,17 @@ export default function ProfileEditPage() {
             className="ac-input"
             value={nickname}
             onChange={e => { setNickname(e.target.value); setError(''); setOkMsg('') }}
-            maxLength={20}
+            maxLength={12}
             disabled={!info.canChange}
           />
-          <p className="ac-hint">
-            {info.canChange
-              ? t('profile.nicknameRule')
-              : t('profile.nicknameLockedUntil', { date: formatDate(info.nextChangeAt) })}
-          </p>
-          <button className="ac-save-btn" onClick={saveNickname} disabled={!info.canChange || !nickname.trim() || nickname.trim() === user?.nickname}>
+          {info.canChange ? (
+            unchanged
+              ? <p className="ac-hint">{t('nickname.hint')}</p>
+              : <NicknameStatus status={nickCheck} />
+          ) : (
+            <p className="ac-hint">{t('profile.nicknameLockedUntil', { date: formatDate(info.nextChangeAt) })}</p>
+          )}
+          <button className="ac-save-btn" onClick={saveNickname} disabled={!info.canChange || unchanged || nickCheck.state !== 'available'}>
             {t('profile.saveNickname')}
           </button>
         </section>

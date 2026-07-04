@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getCurrentUser, completeOnboarding } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
+import { useNicknameCheck } from './lib/useNicknameCheck.js'
+import NicknameStatus from './components/NicknameStatus.jsx'
 import Avatar from './components/Avatar.jsx'
 import './SignupPage.css'
 
@@ -17,6 +19,7 @@ export default function OnboardingPage() {
 
   // 소셜에서 가져온 임시 닉네임으로 채우지 않고 빈칸으로 시작(사용자가 직접 입력).
   const [nickname, setNickname] = useState('')
+  const nickCheck = useNicknameCheck(nickname, { exceptId: me?.id, exceptEmail: me?.email })
   const [gender, setGender] = useState(me?.gender || '')
   const [ageGroup, setAgeGroup] = useState(me?.ageGroup || '')
   const [error, setError] = useState('')
@@ -59,8 +62,9 @@ export default function OnboardingPage() {
               value={nickname}
               onChange={e => { setNickname(e.target.value); setError('') }}
               autoComplete="nickname"
-              maxLength={20}
+              maxLength={12}
             />
+            <NicknameStatus status={nickCheck} />
           </div>
 
           {/* 성별 (선택) */}
@@ -93,7 +97,7 @@ export default function OnboardingPage() {
 
           {error && <div className="su-error" role="alert">⚠ {error}</div>}
 
-          <button type="submit" className="su-btn" disabled={loading}>
+          <button type="submit" className="su-btn" disabled={loading || nickCheck.state !== 'available'}>
             {loading ? (
               <span className="su-btn-loading"><span className="su-spinner" />{t('onboard.saving')}</span>
             ) : (
