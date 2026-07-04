@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser, updateAvatar, changeNickname, nicknameChangeInfo } from './lib/auth.js'
-import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import Avatar from './components/Avatar.jsx'
 import './ClubHomePage.css'
 import './SettingsPage.css'
@@ -20,7 +20,7 @@ export default function ProfileEditPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const { t } = useLang()
+  const { lang, t } = useLang()
   const fileRef = useRef(null)
 
   const user = getCurrentUser()
@@ -81,7 +81,7 @@ export default function ProfileEditPage() {
           <div className="ch-logo" role="button" tabIndex={0} onClick={() => navigate(`/club/${teamId}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/club/${teamId}`) } }}>FANCLUV</div>
           <div className="ch-club">
             <TeamEmblem color={team.color} size={30} className="ch-club-emblem" />
-            <span className="ch-club-name">{team.name}</span>
+            <span className="ch-club-name">{teamName(team, lang)}</span>
           </div>
           <div className="ch-actions">
             <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>

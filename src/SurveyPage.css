@@ -41,11 +41,15 @@
   color: var(--ink);
   line-height: 1.35;
   margin-bottom: 12px;
+  overflow-wrap: break-word;
+  word-break: keep-all;
 }
 .sv-desc {
   font-size: 15px;
   color: var(--muted);
   line-height: 1.7;
+  overflow-wrap: break-word;
+  word-break: keep-all;
 }
 
 /* Form */
@@ -57,14 +61,20 @@
   border-radius: 16px;
   padding: 24px 26px;
   margin: 0;
+  min-width: 0;              /* fieldset 기본 min-width 로 인한 넘침 방지 */
 }
 .sv-q legend {
+  display: block;
+  width: 100%;              /* legend 가 카드 폭을 넘지 않도록 */
+  box-sizing: border-box;
   font-size: 16px;
   font-weight: 700;
   color: var(--ink);
   line-height: 1.5;
   padding: 0;
   margin-bottom: 18px;
+  overflow-wrap: break-word;
+  word-break: keep-all;
 }
 .sv-q legend em { font-style: normal; font-weight: 500; color: var(--muted); font-size: 13px; }
 .sv-qnum { color: var(--team-deep); margin-right: 6px; }
@@ -95,6 +105,7 @@
 }
 .sv-option:hover { border-color: color-mix(in srgb, var(--team) 40%, var(--border)); background: var(--page-bg); }
 .sv-option input { accent-color: var(--team-deep); width: 17px; height: 17px; flex-shrink: 0; }
+.sv-option span { min-width: 0; overflow-wrap: break-word; word-break: keep-all; }
 .sv-option.on {
   border-color: var(--team);
   background: color-mix(in srgb, var(--team) 7%, var(--mix-base));
@@ -104,6 +115,8 @@
 /* Textarea */
 .sv-textarea {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;   /* padding 포함 폭 계산 → 카드 밖으로 넘치지 않음 */
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 13px 15px;

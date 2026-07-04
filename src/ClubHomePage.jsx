@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
-import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import { relativeTime } from './lib/relativeTime.js'
 import { getHomeContent } from './lib/homeRepo.js'
@@ -12,10 +12,11 @@ import './ClubHomePage.css'
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
+// id 는 설문 상세 라우트(/survey/:surveyId)와 연결 — Mock 팬 설문 id 사용.
 const ONGOING_SURVEYS = [
-  { title: '2026 홈 유니폼 디자인 선호도', deadline: 'D-3', count: 1284 },
-  { title: '응원가 리뉴얼 의견 수렴', deadline: 'D-7', count: 842 },
-  { title: '경기 시작 시간 선호 조사', deadline: 'D-12', count: 1567 },
+  { id: 'home', title: '2026 홈 유니폼 디자인 선호도', deadline: 'D-3', count: 1284 },
+  { id: 'cheer', title: '응원가 리뉴얼 의견 수렴', deadline: 'D-7', count: 842 },
+  { id: 'facility', title: '경기 시작 시간 선호 조사', deadline: 'D-12', count: 1567 },
 ]
 
 // deterministic per-club stats so each page differs but stays stable
@@ -76,7 +77,7 @@ export default function ClubHomePage() {
 
           <div className="ch-club">
             <TeamEmblem color={team.color} size={30} className="ch-club-emblem" />
-            <span className="ch-club-name">{team.name}</span>
+            <span className="ch-club-name">{teamName(team, lang)}</span>
           </div>
 
           <div className="ch-actions">
@@ -104,7 +105,7 @@ export default function ClubHomePage() {
 
         <section className="ch-welcome">
           <h1>{t('home.welcome', { name: NICKNAME })}</h1>
-          <p>{t('home.welcomeSub', { team: team.name })}</p>
+          <p>{t('home.welcomeSub', { team: teamName(team, lang) })}</p>
         </section>
 
         {/* Stat cards */}
@@ -169,8 +170,15 @@ export default function ClubHomePage() {
 
             <Panel title={t('home.ongoingSurvey')}>
               <ul className="ch-side-list">
-                {ONGOING_SURVEYS.map((s, i) => (
-                  <li key={i} className="ch-side-survey">
+                {ONGOING_SURVEYS.map(s => (
+                  <li
+                    key={s.id}
+                    className="ch-side-survey is-link"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/club/${team.id}/survey/${s.id}`)}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/club/${team.id}/survey/${s.id}`) } }}
+                  >
                     <div>
                       <p className="ch-side-survey-title">{s.title}</p>
                       <p className="ch-side-survey-count">{s.count.toLocaleString()}명 참여</p>

@@ -58,6 +58,7 @@ export const INFO_CONTENT = {
         ] },
         { h: '2. 정보 이용 목적', p: [
           '회원 식별 및 로그인, 팬 의견·설문 데이터의 집계와 분석, 서비스 개선, 구단 전달용 통계 생성을 위해 이용합니다.',
+          '이메일 주소는 본인 확인(인증번호)과 가입 환영 메일, 서비스 관련 안내 발송에도 이용됩니다. 이메일 발송은 외부 발송 대행사(Resend)를 통해 처리될 수 있습니다.',
         ] },
         { h: '3. 보관 및 삭제', p: [
           '수집된 정보는 서비스 제공 기간 동안 보관되며, 회원 탈퇴 또는 삭제 요청 시 지체 없이 파기합니다. (MVP 단계에서는 데이터가 이용자의 브라우저(localStorage)에 저장됩니다.)',
@@ -82,6 +83,7 @@ export const INFO_CONTENT = {
         ] },
         { h: '2. Purpose of use', p: [
           'Member identification and login, aggregation and analysis of opinion/survey data, service improvement, and generation of statistics delivered to clubs.',
+          'Your email is also used for identity verification (verification codes), a welcome email on signup, and service-related notices. Email delivery may be handled through an external provider (Resend).',
         ] },
         { h: '3. Retention and deletion', p: [
           'Collected information is retained while the service is provided and is destroyed without delay upon withdrawal or a deletion request. (At the MVP stage, data is stored in the user\'s browser via localStorage.)',

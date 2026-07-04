@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
-import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import { loadStandings, loadMatchData, refreshMatch } from './lib/matchRepo.js'
@@ -17,7 +17,7 @@ export default function MatchCenterPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const { t } = useLang()
+  const { lang, t } = useLang()
 
   const [data, setData] = useState(null)         // { next, live, upcoming, recent }
   const [standings, setStandings] = useState([]) // [{ rank, team, played, win, draw, loss, gd, points }]
@@ -81,7 +81,7 @@ export default function MatchCenterPage() {
           <div className="ch-logo" role="button" tabIndex={0} onClick={() => navigate(`/club/${teamId}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/club/${teamId}`) } }}>FANCLUV</div>
           <div className="ch-club">
             <TeamEmblem color={team.color} size={30} className="ch-club-emblem" />
-            <span className="ch-club-name">{team.name}</span>
+            <span className="ch-club-name">{teamName(team, lang)}</span>
           </div>
           <div className="ch-actions">
             <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
@@ -139,13 +139,13 @@ export default function MatchCenterPage() {
               <div className="mc-matchup">
                 <div className="mc-side">
                   <TeamEmblem color={next.home.color} size={64} />
-                  <span className="mc-side-name">{next.home.name}</span>
+                  <span className="mc-side-name">{teamName(next.home, lang)}</span>
                   <span className="mc-side-tag">HOME</span>
                 </div>
                 <div className="mc-vs">VS</div>
                 <div className="mc-side">
                   <TeamEmblem color={next.away.color} size={64} />
-                  <span className="mc-side-name">{next.away.name}</span>
+                  <span className="mc-side-name">{teamName(next.away, lang)}</span>
                   <span className="mc-side-tag">AWAY</span>
                 </div>
               </div>
@@ -178,11 +178,11 @@ export default function MatchCenterPage() {
                     </div>
                     <div className="mc-match-teams">
                       <span className="mc-team-line">
-                        <TeamEmblem color={m.home.color} size={12} /> {m.home.name}
+                        <TeamEmblem color={m.home.color} size={12} /> {teamName(m.home, lang)}
                         <span className="mc-ha">홈</span>
                       </span>
                       <span className="mc-team-line">
-                        <TeamEmblem color={m.away.color} size={12} /> {m.away.name}
+                        <TeamEmblem color={m.away.color} size={12} /> {teamName(m.away, lang)}
                         <span className="mc-ha away">원정</span>
                       </span>
                     </div>
@@ -208,9 +208,9 @@ export default function MatchCenterPage() {
                         <span className={`mc-outcome ${o.cls}`}>{o.label}</span>
                       </div>
                       <div className="mc-result">
-                        <span className="mc-result-team right"><TeamEmblem color={m.home.color} size={12} /> {m.home.name}</span>
+                        <span className="mc-result-team right"><TeamEmblem color={m.home.color} size={12} /> {teamName(m.home, lang)}</span>
                         <span className="mc-score">{m.homeScore} : {m.awayScore}</span>
-                        <span className="mc-result-team"><TeamEmblem color={m.away.color} size={12} /> {m.away.name}</span>
+                        <span className="mc-result-team"><TeamEmblem color={m.away.color} size={12} /> {teamName(m.away, lang)}</span>
                       </div>
                       <div className="mc-match-info">
                         <span className="mc-stadium">📍 {m.stadium}</span>
@@ -235,12 +235,12 @@ export default function MatchCenterPage() {
               <div className="mc-live-body">
                 <div className="mc-live-team">
                   <TeamEmblem color={live.home.color} size={34} />
-                  <span>{live.home.name}</span>
+                  <span>{teamName(live.home, lang)}</span>
                 </div>
                 <span className="mc-live-score">{live.homeScore} : {live.awayScore}</span>
                 <div className="mc-live-team">
                   <TeamEmblem color={live.away.color} size={34} />
-                  <span>{live.away.name}</span>
+                  <span>{teamName(live.away, lang)}</span>
                 </div>
               </div>
               <p className="mc-live-stadium">📍 {live.stadium}</p>
@@ -267,7 +267,7 @@ export default function MatchCenterPage() {
                     {standings.map(s => (
                       <tr key={s.team.id} className={s.team.id === team.id ? 'me' : ''}>
                         <td className="mc-rank">{s.rank}</td>
-                        <td className="mc-tname"><TeamEmblem color={s.team.color} size={14} /> <span>{s.team.name}</span></td>
+                        <td className="mc-tname"><TeamEmblem color={s.team.color} size={14} /> <span>{teamName(s.team, lang)}</span></td>
                         <td>{s.played}</td>
                         <td>{s.win}</td>
                         <td>{s.draw}</td>

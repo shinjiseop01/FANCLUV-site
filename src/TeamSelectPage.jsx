@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { TEAMS, TeamEmblem } from './teams.jsx'
+import { TEAMS, teamName, TeamEmblem } from './teams.jsx'
 import { setSelectedTeam } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import './TeamSelectPage.css'
 
 export default function TeamSelectPage() {
   const navigate = useNavigate()
-  const { t } = useLang()
+  const { lang, t } = useLang()
   const [selected, setSelected] = useState(null)
 
   function handleStart() {
@@ -50,7 +50,7 @@ export default function TeamSelectPage() {
                   </svg>
                 </span>
                 <TeamEmblem color={team.color} />
-                <span className="ts-card-name">{team.name}</span>
+                <span className="ts-card-name">{teamName(team, lang)}</span>
               </button>
             )
           })}

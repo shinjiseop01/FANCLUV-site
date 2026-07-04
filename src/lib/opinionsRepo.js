@@ -13,6 +13,30 @@ import { pushMockNotification } from './notificationsRepo.js'
 function hoursSince(iso) {
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 3600000))
 }
+
+// ── Mock 영속화 (새로고침 후에도 공감/댓글 유지) ──
+// Supabase 모드에서는 실제 테이블이 담당하므로 사용하지 않는다.
+const LIKES_KEY = 'fancluv_likes'        // 내가 공감한 opinionId 배열
+const COMMENTS_KEY = 'fancluv_comments'  // { [opinionId]: [{id,author,hours,text,createdAt}] }
+function readJSON(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback } catch { return fallback }
+}
+function writeJSON(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)) } catch { /* ignore */ }
+}
+function getLikedSet() { return new Set(readJSON(LIKES_KEY, [])) }
+function isLikedMock(id) { return getLikedSet().has(String(id)) }
+function setLikedMock(id, liked) {
+  const set = getLikedSet()
+  if (liked) set.add(String(id)); else set.delete(String(id))
+  writeJSON(LIKES_KEY, [...set])
+}
+function getStoredComments(id) { return readJSON(COMMENTS_KEY, {})[String(id)] || [] }
+function addStoredComment(id, comment) {
+  const all = readJSON(COMMENTS_KEY, {})
+  all[String(id)] = [...(all[String(id)] || []), comment]
+  writeJSON(COMMENTS_KEY, all)
+}
 function splitParas(body) {
   const parts = String(body || '').split(/\n{2,}|\n/).map(s => s.trim()).filter(Boolean)
   return parts.length ? parts : [String(body || '')]
@@ -154,7 +178,14 @@ export async function getOpinionDetail(teamId, id) {
   const base = mockBaseList(teamId)
   const item = created || base.find(o => o.id === String(id))
   if (!item) return null
-  const opinion = { ...item, avatarUrl: item.avatarUrl || null, full: item.full || splitParas(item.body) }
+  // 영속화된 공감/댓글을 반영 (새로고침 후 유지)
+  const likeDelta = isLikedMock(id) ? 1 : 0
+  const extraComments = getStoredComments(id).length
+  const opinion = {
+    ...item, avatarUrl: item.avatarUrl || null, full: item.full || splitParas(item.body),
+    likes: item.likes + likeDelta,
+    comments: item.comments + extraComments,
+  }
   const related = base
     .filter(o => o.category === item.category && o.id !== item.id)
     .concat(base.filter(o => o.category !== item.category && o.id !== item.id))
@@ -193,7 +224,13 @@ export async function listComments(opinionId) {
     if (error) return []
     return (data || []).map(mapCommentRow)
   }
-  return INITIAL_COMMENTS.map((c, i) => ({ id: `ic${i}`, author: c.author, avatarUrl: null, hours: c.hours, text: c.text }))
+  // Mock: 시드 댓글 + localStorage 에 저장된 내 댓글(새로고침 후 유지)
+  const seeded = INITIAL_COMMENTS.map((c, i) => ({ id: `ic${i}`, author: c.author, avatarUrl: null, hours: c.hours, text: c.text }))
+  const stored = getStoredComments(opinionId).map(c => ({
+    id: c.id, author: c.author, avatarUrl: null,
+    hours: hoursSince(c.createdAt), text: c.text,
+  }))
+  return [...seeded, ...stored]
 }
 
 // 댓글 작성 (teamId 는 Mock 알림 URL 생성용 — 실제 Supabase 는 트리거가 URL 포함)
@@ -209,12 +246,14 @@ export async function addComment(opinionId, content, teamId = null) {
     if (error) return { ok: false, error: error.message }
     return { ok: true, comment: { id: data.id, author: me.nickname, avatarUrl: me.avatarUrl, hours: 0, text } }
   }
-  // Mock: 알림 데모 (실제 Supabase 는 DB 트리거가 "의견 작성자"에게 생성)
+  // Mock: localStorage 에 저장(새로고침 후 유지) + 알림 데모
+  const comment = { id: `c${Date.now()}`, author: me?.nickname || '팬', hours: 0, text, createdAt: new Date().toISOString() }
+  addStoredComment(opinionId, comment)
   pushMockNotification({
     type: 'comment', title: '새 댓글', body: '내 의견에 새 댓글이 달렸습니다.',
     url: teamId ? `/club/${teamId}/opinions/${opinionId}` : null,
   })
-  return { ok: true, comment: { id: `c${Date.now()}`, author: me?.nickname || '팬', avatarUrl: me?.avatarUrl || null, hours: 0, text } }
+  return { ok: true, comment: { ...comment, avatarUrl: me?.avatarUrl || null } }
 }
 
 // 내가 이 의견에 공감했는지
@@ -227,7 +266,7 @@ export async function getLikeState(opinionId) {
       .eq('opinion_id', opinionId).eq('user_id', me.id).maybeSingle()
     return { likedByMe: !!data }
   }
-  return { likedByMe: false }
+  return { likedByMe: isLikedMock(opinionId) }
 }
 
 // 공감 토글 (1인 1회, 취소 가능). nextLiked = 토글 후 원하는 상태.
@@ -246,10 +285,11 @@ export async function toggleLike(opinionId, nextLiked, teamId = null) {
     }
     return { ok: true }
   }
-  // Mock: 공감 시 알림 데모 (실제 Supabase 는 DB 트리거가 담당)
+  // Mock: localStorage 에 공감 상태 저장(새로고침 후 유지)
+  setLikedMock(opinionId, nextLiked)
   if (nextLiked) pushMockNotification({
     type: 'like', title: '새 공감', body: '내 의견에 공감이 추가되었습니다.',
     url: teamId ? `/club/${teamId}/opinions/${opinionId}` : null,
   })
-  return { ok: true } // Mock: 세션 내 상태만 유지
+  return { ok: true }
 }

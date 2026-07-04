@@ -2,20 +2,29 @@
 // `color` is the brand point colour; `colorDeep` is a readable-on-white variant
 // used for text / primary actions (matters for light colours like yellow).
 
+// `name`/`nameEn` = 한/영 표시명 (teamName(team, lang)로 선택).
+// `color` 는 브랜드 포인트 컬러, `colorDeep` 은 흰 배경 위 텍스트/버튼용 진한 변형.
+// 빨강 계열(서울·포항·부천)은 서로 구분되도록 색을 분리했다.
 export const TEAMS = [
-  { id: 'seoul',    name: 'FC 서울',          short: '서울', color: '#C8102E', colorDeep: '#C8102E' },
-  { id: 'ulsan',    name: '울산 HD FC',       short: '울산', color: '#1A50A0', colorDeep: '#1A50A0' },
-  { id: 'jeonbuk',  name: '전북 현대 모터스',  short: '전북', color: '#1F683E', colorDeep: '#1F683E' },
-  { id: 'pohang',   name: '포항 스틸러스',     short: '포항', color: '#C8102E', colorDeep: '#9E1418' },
-  { id: 'daejeon',  name: '대전하나시티즌',    short: '대전', color: '#5E2B97', colorDeep: '#5E2B97' },
-  { id: 'gwangju',  name: '광주 FC',          short: '광주', color: '#F4C20D', colorDeep: '#9A7A00' },
-  { id: 'gangwon',  name: '강원 FC',          short: '강원', color: '#F47920', colorDeep: '#C85A12' },
-  { id: 'gimcheon', name: '김천상무 FC',       short: '김천', color: '#E03131', colorDeep: '#C42121' },
-  { id: 'jeju',     name: '제주 SK FC',       short: '제주', color: '#E8590C', colorDeep: '#C2480A' },
-  { id: 'anyang',   name: 'FC 안양',          short: '안양', color: '#4B2E83', colorDeep: '#4B2E83' },
-  { id: 'incheon',  name: '인천 유나이티드 FC', short: '인천', color: '#0B79C4', colorDeep: '#0A66A6' },
-  { id: 'bucheon',  name: '부천 FC 1995',     short: '부천', color: '#D6242B', colorDeep: '#B41C22' },
+  { id: 'seoul',    name: 'FC 서울',          nameEn: 'FC Seoul',               short: '서울', color: '#E60012', colorDeep: '#C1000F' },
+  { id: 'ulsan',    name: '울산 HD',          nameEn: 'Ulsan HD',               short: '울산', color: '#1A50A0', colorDeep: '#1A50A0' },
+  { id: 'jeonbuk',  name: '전북 현대 모터스',  nameEn: 'Jeonbuk Hyundai Motors', short: '전북', color: '#1F683E', colorDeep: '#1F683E' },
+  { id: 'pohang',   name: '포항 스틸러스',     nameEn: 'Pohang Steelers',        short: '포항', color: '#C8102E', colorDeep: '#9E1418' },
+  { id: 'daejeon',  name: '대전하나시티즌',    nameEn: 'Daejeon Hana Citizen',   short: '대전', color: '#007A6C', colorDeep: '#006255' },
+  { id: 'gwangju',  name: '광주 FC',          nameEn: 'Gwangju FC',             short: '광주', color: '#F4C20D', colorDeep: '#9A7A00' },
+  { id: 'gangwon',  name: '강원 FC',          nameEn: 'Gangwon FC',             short: '강원', color: '#F47920', colorDeep: '#C85A12' },
+  { id: 'gimcheon', name: '김천상무 FC',       nameEn: 'Gimcheon Sangmu',        short: '김천', color: '#E03131', colorDeep: '#C42121' },
+  { id: 'jeju',     name: '제주 SK FC',       nameEn: 'Jeju SK FC',             short: '제주', color: '#E8590C', colorDeep: '#C2480A' },
+  { id: 'anyang',   name: 'FC 안양',          nameEn: 'FC Anyang',              short: '안양', color: '#4B2E83', colorDeep: '#4B2E83' },
+  { id: 'incheon',  name: '인천 유나이티드 FC', nameEn: 'Incheon United',         short: '인천', color: '#0B79C4', colorDeep: '#0A66A6' },
+  { id: 'bucheon',  name: '부천 FC 1995',     nameEn: 'Bucheon FC 1995',        short: '부천', color: '#E63C2F', colorDeep: '#C42D22' },
 ]
+
+// 현재 언어에 맞는 구단명. lang==='en' 이면 영문명(없으면 한글명 fallback).
+export function teamName(team, lang) {
+  if (!team) return ''
+  return lang === 'en' ? (team.nameEn || team.name) : team.name
+}
 
 // Main menu items + their routes, shared by every page's top nav so that
 // every menu entry navigates consistently from any page.

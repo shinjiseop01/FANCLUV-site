@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
-import { getTeam, TEAMS, TeamEmblem, menuPath } from './teams.jsx'
+import { getTeam, teamName, TEAMS, TeamEmblem, menuPath } from './teams.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import RankIcon from './components/RankIcon.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
@@ -105,7 +105,7 @@ export default function FanRankingPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const { t } = useLang()
+  const { lang, t } = useLang()
   const loading = useFakeLoading()
   const [scope, setScope] = useState('league') // 'league' | 'club'
   const [criteria, setCriteria] = useState('score')
@@ -167,7 +167,7 @@ export default function FanRankingPage() {
           <div className="ch-logo" role="button" tabIndex={0} onClick={() => navigate(`/club/${teamId}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/club/${teamId}`) } }}>FANCLUV</div>
           <div className="ch-club">
             <TeamEmblem color={team.color} size={30} className="ch-club-emblem" />
-            <span className="ch-club-name">{team.name}</span>
+            <span className="ch-club-name">{teamName(team, lang)}</span>
           </div>
           <div className="ch-actions">
             <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
@@ -293,7 +293,7 @@ export default function FanRankingPage() {
                     <span className="fr-avatar">{p.name[0]}</span>
                     <span className="fr-name">{p.name}</span>
                     {scope === 'league' && (
-                      <span className="fr-team"><TeamEmblem color={p.team.color} size={18} /> {p.team.name}</span>
+                      <span className="fr-team"><TeamEmblem color={p.team.color} size={18} /> {teamName(p.team, lang)}</span>
                     )}
                     <span className="fr-score">{fmt(p[criteria])}{crit.unit}</span>
                   </li>

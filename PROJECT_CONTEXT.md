@@ -1,7 +1,7 @@
 # FANCLUV — 프로젝트 컨텍스트 (핸드오프 문서)
 
 > 새 채팅에서 이 파일을 읽으면 바로 이어서 작업할 수 있도록 정리한 문서입니다.
-> 최종 정리: 2026-07-04 / `main` 브랜치 기준 (실시간 데이터 Provider·캐시 14차)
+> 최종 정리: 2026-07-04 / `main` 브랜치 기준 (디테일 개선 15차 — 링크/아이콘/색상/댓글/팀 다국어)
 
 ## 1. 프로젝트 개요
 
@@ -216,6 +216,7 @@ npm run lint     # oxlint
 
 **Supabase 백엔드 연동 시리즈 (최신)**
 
+0. 디테일 개선 — 15차: 구단 공식 링크 실 URL(4채널·SVG·새창), 이모지→SVG(`Icon.jsx`), 팀 색상 보정(서울/포항/부천 레드 구분·대전 그린), 팀명 다국어(`teamName(team,lang)`·`nameEn`), 닉네임 자음/모음 검증(`isValidNickname`), 공감/댓글 localStorage 영속화, 댓글 줄바꿈(`white-space:pre-wrap`), 설문 카드 정렬, 환영 이메일(`welcomeEmail.js`+`send-welcome-email`), 홈 진행중설문 클릭→상세
 0. 실시간 데이터 Provider 구조 + 캐시 — 14차 (`cache.js`·`matchRepo`·`leagueProvider`·`homeRepo`·AI 키워드 선택)
 0. 링크/탐색 개선 — 13차 (구단 공식 링크 `clubLinks.js`·키워드/카테고리 query 필터·홈 카드 이동, `6e114e3`)
 0. 설문 상세를 별도 Route(`/survey/:surveyId`)로 분리 — 12차 (`SurveyDetailPage`, `a6e1aeb`)

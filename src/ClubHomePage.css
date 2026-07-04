@@ -315,6 +315,9 @@
   padding: 13px 0; border-top: 1px solid var(--border-soft);
 }
 .ch-side-survey:first-child { padding-top: 0; border-top: none; }
+.ch-side-survey.is-link { cursor: pointer; border-radius: 10px; padding-left: 8px; padding-right: 8px; margin: 0 -8px; transition: background 0.14s; }
+.ch-side-survey.is-link:hover { background: color-mix(in srgb, var(--team) 6%, var(--mix-base)); }
+.ch-side-survey.is-link:hover .ch-side-survey-title { color: var(--team-deep); }
 .ch-side-survey-title { font-size: 13.5px; font-weight: 600; color: var(--ink); line-height: 1.4; margin-bottom: 3px; }
 .ch-side-survey-count { font-size: 12px; color: var(--muted); }
 .ch-deadline {

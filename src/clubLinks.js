@@ -1,82 +1,91 @@
 // FANCLUV — K리그1(2026) 12개 구단 공식 채널 링크.
 //
-// 각 구단의 공식 홈페이지(home)는 반드시 채우고, 티켓/인스타/유튜브는 알려진
-// 공식 채널이 있으면 채운다. 특정 채널이 없으면 getClubLinks()가 공식 홈페이지로
-// fallback 처리한다. 모든 링크는 새 창(target=_blank)으로 연다.
-// ⚠️ X(Twitter)는 정책상 포함하지 않는다.
+// 표시 채널은 4개: 공식 홈페이지 / 티켓 예매 / Instagram / YouTube.
+// 모든 링크는 새 창(target=_blank)으로 연다. ⚠️ X(Twitter)는 포함하지 않는다.
+// 특정 채널이 없으면 getClubLinks()가 공식 홈페이지로 fallback 처리한다.
 
 // key = teams.jsx 의 team id
 const CLUB_LINKS = {
   seoul: {
     home: 'https://www.fcseoul.com',
-    ticket: 'https://www.fcseoul.com/reservation/ticketList.do',
-    instagram: 'https://www.instagram.com/fcseoul',
+    ticket: 'https://www.fcseoul.com/tickets/reserveSingleTicket',
+    instagram: 'https://www.instagram.com/fcseoul/',
     youtube: 'https://www.youtube.com/@FCSEOUL',
   },
   ulsan: {
-    home: 'https://www.ulsanhd.com',
-    ticket: 'https://www.ulsanhd.com/ticket',
-    instagram: 'https://www.instagram.com/ulsanhd_official',
-    youtube: 'https://www.youtube.com/@ulsanhd',
+    home: 'https://www.uhdfc.com/main.php',
+    ticket: 'https://www.uhdfc.com/apply/ticket.php',
+    instagram: 'https://www.instagram.com/uhdfc_1983/',
+    youtube: 'https://www.youtube.com/@ULSANHDFC',
   },
   jeonbuk: {
-    home: 'https://www.hyundai-motorsfc.com',
-    instagram: 'https://www.instagram.com/jeonbukhyundai_official',
-    youtube: 'https://www.youtube.com/@jeonbukhyundaifc',
+    home: 'https://hyundai-motorsfc.com',
+    ticket: 'https://hyundai-motorsfc.com/ticket',
+    instagram: 'https://www.instagram.com/jeonbuk1994/',
+    youtube: 'https://www.youtube.com/@Jeonbuk1994',
   },
   pohang: {
     home: 'https://www.steelers.co.kr',
-    instagram: 'https://www.instagram.com/pohang_steelers',
-    youtube: 'https://www.youtube.com/@pohangsteelers',
+    ticket: 'https://www.steelers.co.kr/match/ticket',
+    instagram: 'https://www.instagram.com/fc.pohangsteelers/',
+    youtube: 'https://www.youtube.com/@fc.pohangsteelers',
   },
   daejeon: {
-    home: 'https://www.dcfc.co.kr',
-    instagram: 'https://www.instagram.com/daejeonhanacitizen',
+    home: 'https://www.dhcfc.kr',
+    ticket: 'https://www.dhcfc.kr/ti/ti.php',
+    instagram: 'https://www.instagram.com/daejeon_hana/',
     youtube: 'https://www.youtube.com/@daejeonhanacitizen',
   },
   gwangju: {
     home: 'https://www.gwangjufc.com',
-    instagram: 'https://www.instagram.com/gwangju_fc',
-    youtube: 'https://www.youtube.com/@gwangjufc',
+    ticket: 'https://www.gwangjufc.com/ticket/membership_card.php',
+    instagram: 'https://www.instagram.com/gwangju_fc/',
+    youtube: 'https://www.youtube.com/@Gwangju_FC',
   },
   gangwon: {
     home: 'https://gangwon-fc.com',
-    instagram: 'https://www.instagram.com/gangwonfc_official',
-    youtube: 'https://www.youtube.com/@gangwonfc',
+    ticket: 'https://gangwon-fc.com/match/stadium_gangneung',
+    instagram: 'https://www.instagram.com/gangwon_fc/',
+    youtube: 'https://www.youtube.com/@gangwonfc2008',
   },
   gimcheon: {
     home: 'https://www.gimcheonfc.com',
-    instagram: 'https://www.instagram.com/gimcheon_sangmu_fc',
-    youtube: 'https://www.youtube.com/@gimcheonsangmufc',
+    ticket: 'https://www.gimcheonfc.com/ti/ti_p.php',
+    instagram: 'https://www.instagram.com/gimcheonfc/',
+    youtube: 'https://www.youtube.com/@gimcheonfc',
   },
   jeju: {
-    home: 'https://www.jeju-utd.com',
-    instagram: 'https://www.instagram.com/jejuskfc',
-    youtube: 'https://www.youtube.com/@jejuskfc',
+    home: 'https://www.jejuskfc.com',
+    ticket: 'https://www.jejuskfc.com/reservation/ticketInfo',
+    instagram: 'https://www.instagram.com/jejuskfc_official/',
+    youtube: 'https://www.youtube.com/@제주SK_FC',
   },
   anyang: {
     home: 'https://www.fc-anyang.com',
-    instagram: 'https://www.instagram.com/fc_anyang',
-    youtube: 'https://www.youtube.com/@fcanyang',
+    ticket: 'https://www.fc-anyang.com/ticket/ticket.asp',
+    instagram: 'https://www.instagram.com/fc_anyang/',
+    youtube: 'https://www.youtube.com/@fc_anyang',
   },
   incheon: {
-    home: 'https://www.incheonutd.com',
-    instagram: 'https://www.instagram.com/incheon_utd',
-    youtube: 'https://www.youtube.com/@incheonutd',
+    home: 'https://www.incheonutd.com/main/index.php',
+    ticket: 'https://www.incheonutd.com/ticket/ticket_intro.php',
+    instagram: 'https://www.instagram.com/incheonutd/',
+    youtube: 'https://www.youtube.com/@incheonutdfc',
   },
   bucheon: {
-    home: 'https://www.bfc1995.com',
-    instagram: 'https://www.instagram.com/bucheonfc1995',
-    youtube: 'https://www.youtube.com/@bucheonfc1995',
+    home: 'https://bfc1995.com',
+    ticket: 'https://bfc1995.com/ticket/reservations',
+    instagram: 'https://www.instagram.com/bucheonfc1995/',
+    youtube: 'https://www.youtube.com/channel/UCR2h5a66sN72NQoIBYFZ5OA',
   },
 }
 
-// 표시할 채널 순서 + 아이콘 + locale 라벨 키.
+// 표시할 채널 순서 + SVG 아이콘 이름(Icon.jsx) + locale 라벨 키. (X/Twitter 제외)
 export const CLUB_LINK_CHANNELS = [
-  { key: 'home', icon: '🌐', labelKey: 'news.linkHome' },
-  { key: 'ticket', icon: '🎫', labelKey: 'news.linkTicket' },
-  { key: 'instagram', icon: '📸', labelKey: 'news.linkInstagram' },
-  { key: 'youtube', icon: '▶', labelKey: 'news.linkYoutube' },
+  { key: 'home', icon: 'globe', labelKey: 'news.linkHome' },
+  { key: 'ticket', icon: 'ticket', labelKey: 'news.linkTicket' },
+  { key: 'instagram', icon: 'instagram', labelKey: 'news.linkInstagram' },
+  { key: 'youtube', icon: 'youtube', labelKey: 'news.linkYoutube' },
 ]
 
 // 구단의 채널별 URL을 반환한다. 특정 채널이 없으면 공식 홈페이지로 fallback.

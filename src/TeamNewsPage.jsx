@@ -3,8 +3,9 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
-import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getClubLinks, CLUB_LINK_CHANNELS } from './clubLinks.js'
+import Icon from './components/Icon.jsx'
 import { listNews } from './lib/newsRepo.js'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
@@ -21,7 +22,7 @@ export default function TeamNewsPage() {
   const { teamId, newsId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const { t } = useLang()
+  const { lang, t } = useLang()
   const [searchParams, setSearchParams] = useSearchParams()
   const keyword = searchParams.get('keyword') || '' // 키워드 클릭/직접 접속 시 필터
   const [news, setNews] = useState([])
@@ -88,7 +89,7 @@ export default function TeamNewsPage() {
           <div className="ch-logo" role="button" tabIndex={0} onClick={() => navigate(`/club/${teamId}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/club/${teamId}`) } }}>FANCLUV</div>
           <div className="ch-club">
             <TeamEmblem color={team.color} size={30} className="ch-club-emblem" />
-            <span className="ch-club-name">{team.name}</span>
+            <span className="ch-club-name">{teamName(team, lang)}</span>
           </div>
           <div className="ch-actions">
             <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
@@ -248,9 +249,9 @@ export default function TeamNewsPage() {
                   <div className="tn-shortcuts">
                     {CLUB_LINK_CHANNELS.map(ch => (
                       <a key={ch.key} href={clubLinks[ch.key]} target="_blank" rel="noopener noreferrer" className="tn-shortcut">
-                        <span className="tn-shortcut-icon" aria-hidden="true">{ch.icon}</span>
+                        <span className="tn-shortcut-icon" aria-hidden="true"><Icon name={ch.icon} size={18} /></span>
                         <span>{t(ch.labelKey)}</span>
-                        <span className="tn-shortcut-arrow" aria-hidden="true">↗</span>
+                        <span className="tn-shortcut-arrow" aria-hidden="true"><Icon name="external" size={14} /></span>
                       </a>
                     ))}
                   </div>

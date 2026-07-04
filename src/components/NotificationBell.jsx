@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { relativeTime } from '../lib/relativeTime.js'
+import Icon from './Icon.jsx'
 import { listNotifications, unreadCount, markRead, markAllRead } from '../lib/notificationsRepo.js'
 
 // Header notification bell. Loads notifications from notificationsRepo
@@ -84,7 +85,7 @@ export default function NotificationBell() {
           </div>
           {items.length === 0 ? (
             <div className="fc-bell-empty">
-              <span aria-hidden="true">🔔</span>
+              <span aria-hidden="true"><Icon name="bell" size={26} strokeWidth={1.5} /></span>
               <p>{t('common.noNotifications')}</p>
             </div>
           ) : (

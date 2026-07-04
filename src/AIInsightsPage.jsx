@@ -5,7 +5,7 @@ import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { isSupabaseConfigured } from './lib/supabase.js'
 import { getLatestInsight } from './lib/ai/analyzeFanInsights.js'
-import { getTeam, TeamEmblem, menuPath } from './teams.jsx'
+import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import './ClubHomePage.css'
@@ -86,7 +86,7 @@ export default function AIInsightsPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
-  const { t } = useLang()
+  const { lang, t } = useLang()
   const [view, setView] = useState(null)
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'empty'
   const [kwChoice, setKwChoice] = useState(null)  // 키워드 클릭 시 이동 대상 선택 모달
@@ -126,7 +126,7 @@ export default function AIInsightsPage() {
           <div className="ch-logo" role="button" tabIndex={0} onClick={() => navigate(`/club/${teamId}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/club/${teamId}`) } }}>FANCLUV</div>
           <div className="ch-club">
             <TeamEmblem color={team.color} size={30} className="ch-club-emblem" />
-            <span className="ch-club-name">{team.name}</span>
+            <span className="ch-club-name">{teamName(team, lang)}</span>
           </div>
           <div className="ch-actions">
             <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
