@@ -63,13 +63,13 @@
 .adm-stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
 .adm-stat { background: var(--canvas); border: 1px solid var(--border); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 6px; }
 .adm-stat.accent { border-color: color-mix(in srgb, var(--team) 45%, var(--border)); }
-.adm-stat-icon { font-size: 22px; }
+.adm-stat-icon { font-size: 22px; display: inline-flex; align-items: center; color: var(--team-deep); }
 .adm-stat-value { font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -1px; }
 .adm-stat-label { font-size: 13px; color: var(--muted); font-weight: 600; }
 
 /* Quick links */
 .adm-quick-grid { display: flex; gap: 10px; flex-wrap: wrap; }
-.adm-quick-btn { background: var(--canvas); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: 14px; font-weight: 700; color: var(--body); cursor: pointer; font-family: inherit; transition: border-color 0.14s, color 0.14s; }
+.adm-quick-btn { display: inline-flex; align-items: center; gap: 7px; background: var(--canvas); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: 14px; font-weight: 700; color: var(--body); cursor: pointer; font-family: inherit; transition: border-color 0.14s, color 0.14s; }
 .adm-quick-btn:hover { border-color: var(--team); color: var(--team-deep); }
 
 /* Toolbar / search */
@@ -101,7 +101,8 @@
 /* Action buttons sit in a flex row: always one line, even gap, equal width,
    right-aligned so every row lines up on the same baseline. */
 .adm-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: nowrap; }
-.adm-actions .adm-btn-sm { margin-left: 0; min-width: 60px; text-align: center; white-space: nowrap; flex-shrink: 0; }
+/* 모든 행에서 버튼 위치·높이가 동일하게 보이도록 min-width/높이 통일 */
+.adm-actions .adm-btn-sm { margin-left: 0; min-width: 72px; height: 32px; display: inline-flex; align-items: center; justify-content: center; text-align: center; white-space: nowrap; flex-shrink: 0; }
 
 /* Badges */
 .adm-badge { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 100px; }
@@ -117,7 +118,7 @@
 .adm-badge.vnone { color: #C2410C; background: rgba(234, 88, 12, 0.14); }
 
 /* Buttons */
-.adm-btn-sm { font-size: 12.5px; font-weight: 700; padding: 6px 11px; border-radius: 8px; border: 1px solid var(--border); background: var(--canvas); color: var(--body); cursor: pointer; font-family: inherit; transition: border-color 0.14s, color 0.14s; }
+.adm-btn-sm { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 32px; font-size: 12.5px; font-weight: 700; padding: 6px 11px; border-radius: 8px; border: 1px solid var(--border); background: var(--canvas); color: var(--body); cursor: pointer; font-family: inherit; transition: border-color 0.14s, color 0.14s; }
 .adm-btn-sm:hover { border-color: var(--team); color: var(--team-deep); }
 .adm-btn-sm.danger:hover { border-color: #DC2626; color: #DC2626; }
 .adm-btn-sm:disabled { opacity: 0.45; cursor: default; }
@@ -249,7 +250,7 @@
 /* Panels & grids */
 .adm-panel { background: var(--canvas); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
 .adm-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
-.adm-panel-title { font-size: 15px; font-weight: 800; color: var(--ink); }
+.adm-panel-title { display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 800; color: var(--ink); }
 .adm-panel-link {
   flex-shrink: 0; font-size: 12.5px; font-weight: 700; color: var(--team-deep);
   background: none; border: none; cursor: pointer; font-family: inherit; padding: 0;

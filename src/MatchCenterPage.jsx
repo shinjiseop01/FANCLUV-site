@@ -5,6 +5,7 @@ import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import EmptyState from './components/EmptyState.jsx'
+import Icon from './components/Icon.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import { loadStandings, loadMatchData, refreshMatch } from './lib/matchRepo.js'
 import './ClubHomePage.css'
@@ -108,7 +109,7 @@ export default function MatchCenterPage() {
       <main className="mc-main">
         {loading ? <SkeletonList count={4} lines={2} /> : (error || !data) ? (
           <EmptyState
-            icon="⚽"
+            iconName="ball"
             title={t('match.emptyTitle')}
             message={t('match.emptyMsg')}
             ctaLabel={t('common.refresh')}
@@ -150,9 +151,9 @@ export default function MatchCenterPage() {
                 </div>
               </div>
               <div className="mc-next-meta">
-                <span>📅 {next.date}</span>
-                <span>🕒 {next.time}</span>
-                <span>📍 {next.stadium}</span>
+                <span className="ic-txt"><Icon name="calendar" size={15} /> {next.date}</span>
+                <span className="ic-txt"><Icon name="clock" size={15} /> {next.time}</span>
+                <span className="ic-txt"><Icon name="pin" size={15} /> {next.stadium}</span>
               </div>
 
               {/* CTA */}
@@ -187,7 +188,7 @@ export default function MatchCenterPage() {
                       </span>
                     </div>
                     <div className="mc-match-info">
-                      <span className="mc-stadium">📍 {m.stadium}</span>
+                      <span className="mc-stadium ic-txt"><Icon name="pin" size={13} /> {m.stadium}</span>
                       <span className="mc-status upcoming">{t('match.upcoming')}</span>
                     </div>
                   </li>
@@ -213,7 +214,7 @@ export default function MatchCenterPage() {
                         <span className="mc-result-team"><TeamEmblem color={m.away.color} size={12} /> {teamName(m.away, lang)}</span>
                       </div>
                       <div className="mc-match-info">
-                        <span className="mc-stadium">📍 {m.stadium}</span>
+                        <span className="mc-stadium ic-txt"><Icon name="pin" size={13} /> {m.stadium}</span>
                         <button className="mc-op-btn" onClick={goOpinions}>{t('match.viewOpinion')}</button>
                       </div>
                     </li>
@@ -243,7 +244,7 @@ export default function MatchCenterPage() {
                   <span>{teamName(live.away, lang)}</span>
                 </div>
               </div>
-              <p className="mc-live-stadium">📍 {live.stadium}</p>
+              <p className="mc-live-stadium ic-txt"><Icon name="pin" size={14} /> {live.stadium}</p>
             </section>
 
             {/* Standings (실시간 순위표 — API 미연결 시 Mock) */}
@@ -285,9 +286,9 @@ export default function MatchCenterPage() {
             <section className="mc-panel">
               <h2 className="mc-panel-title">{t('match.quick')}</h2>
               <div className="mc-quick">
-                <button onClick={goWrite}>📝 경기 의견 작성</button>
-                <button onClick={goSurvey}>📊 경기 설문 참여</button>
-                <button onClick={goOpinions}>💬 팬 의견 보러 가기</button>
+                <button className="ic-txt" onClick={goWrite}><Icon name="edit" size={16} /> 경기 의견 작성</button>
+                <button className="ic-txt" onClick={goSurvey}><Icon name="chart" size={16} /> 경기 설문 참여</button>
+                <button className="ic-txt" onClick={goOpinions}><Icon name="comment" size={16} /> 팬 의견 보러 가기</button>
               </div>
             </section>
           </aside>

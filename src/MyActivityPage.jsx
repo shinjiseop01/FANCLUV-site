@@ -9,6 +9,8 @@ import Avatar from './components/Avatar.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import { useFakeLoading } from './lib/useFakeLoading.js'
+import RankIcon from './components/RankIcon.jsx'
+import Icon from './components/Icon.jsx'
 import { getActivityBadge } from './lib/activityBadge.js'
 import './ClubHomePage.css'
 import './MyActivityPage.css'
@@ -74,7 +76,7 @@ export default function MyActivityPage() {
   const surveyCount = MOCK_SURVEYS.length
   const empathyCount = myOpinions.reduce((s, o) => s + (o.likes || 0), 0)
 
-  // activity score → badge tier (🌱 Rookie → ⚽ Active → 🔥 Super → 👑 Legend)
+  // activity score → badge tier (Rookie → Active → Super → Legend)
   const score = opinionCount * 6 + commentCount + surveyCount * 5
   const { badge, next, progress } = getActivityBadge(score)
   const badgeName = b => (lang === 'en' ? b.en : b.ko)
@@ -154,7 +156,7 @@ export default function MyActivityPage() {
               {myOpinions.length === 0 ? (
                 <EmptyState
                   compact
-                  icon="📝"
+                  iconName="edit"
                   title={t('empty.activityTitle')}
                   message={t('empty.activityMsg')}
                   ctaLabel={t('empty.activityCta')}
@@ -171,8 +173,8 @@ export default function MyActivityPage() {
                       </div>
                       <span className="ma-op-title">{o.title}</span>
                       <div className="ma-op-foot">
-                        <span>♥ 공감 {o.likes}</span>
-                        <span>💬 댓글 {o.comments}</span>
+                        <span className="ic-txt"><Icon name="heart" size={13} /> 공감 {o.likes}</span>
+                        <span className="ic-txt"><Icon name="comment" size={13} /> 댓글 {o.comments}</span>
                       </div>
                     </button>
                   </li>
@@ -208,15 +210,15 @@ export default function MyActivityPage() {
             <section className="ma-panel ma-level">
               <h2 className="ma-panel-title">{t('act.level')}</h2>
               <div className="ma-level-badge">
-                <span className="ma-level-emoji" aria-hidden="true">{badge.emoji}</span>
+                <span className="ma-level-emoji" aria-hidden="true"><RankIcon name={badge.icon} size={22} /></span>
                 <span className="ma-level-name">{badgeName(badge)}</span>
               </div>
               <div className="ma-level-bar"><span style={{ width: `${progress}%` }} /></div>
               <p className="ma-level-hint">
                 {next
                   ? (lang === 'en'
-                    ? <>{progress}% to <strong>{next.emoji} {badgeName(next)}</strong></>
-                    : <>다음 레벨 <strong>{next.emoji} {badgeName(next)}</strong>까지 {progress}%</>)
+                    ? <>{progress}% to <strong className="ic-txt"><RankIcon name={next.icon} size={14} /> {badgeName(next)}</strong></>
+                    : <>다음 레벨 <strong className="ic-txt"><RankIcon name={next.icon} size={14} /> {badgeName(next)}</strong>까지 {progress}%</>)
                   : (lang === 'en' ? 'You\'ve reached the top level!' : '최고 레벨에 도달했습니다!')}
               </p>
             </section>

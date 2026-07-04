@@ -63,7 +63,7 @@ export default function AdminMembers() {
       </div>
 
       {visible.length === 0 ? (
-        <EmptyState icon="🔍" title={t('empty.searchTitle')} message={t('empty.searchMsg')} />
+        <EmptyState iconName="search" title={t('empty.searchTitle')} message={t('empty.searchMsg')} />
       ) : (
         <div className="adm-table-wrap">
           <table className="adm-table">

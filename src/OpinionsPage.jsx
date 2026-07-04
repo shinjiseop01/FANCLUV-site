@@ -8,6 +8,7 @@ import { listOpinions } from './lib/opinionsRepo.js'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import Avatar from './components/Avatar.jsx'
+import Icon from './components/Icon.jsx'
 import { relativeTime } from './lib/relativeTime.js'
 import './ClubHomePage.css'
 import './OpinionsPage.css'
@@ -172,13 +173,13 @@ export default function OpinionsPage() {
             ) : visible.length === 0 ? (
               filtersActive ? (
                 <EmptyState
-                  icon="🔍"
+                  iconName="search"
                   title={t('empty.searchTitle')}
                   message={t('empty.searchMsg')}
                 />
               ) : (
                 <EmptyState
-                  icon="💬"
+                  iconName="comment"
                   title={t('empty.opinionsTitle')}
                   message={t('empty.opinionsMsg')}
                   ctaLabel={t('empty.opinionsCta')}
@@ -219,8 +220,8 @@ export default function OpinionsPage() {
                         <h3 className="op-item-title">{o.title}</h3>
                         <p className="op-item-body">{o.body}</p>
                         <div className="op-item-foot">
-                          <span className="op-foot-stat">♥ {t('op.agree')} {o.likes}</span>
-                          <span className="op-foot-stat">💬 {t('op.comment')} {o.comments}</span>
+                          <span className="op-foot-stat ic-txt"><Icon name="heart" size={14} /> {t('op.agree')} {o.likes}</span>
+                          <span className="op-foot-stat ic-txt"><Icon name="comment" size={14} /> {t('op.comment')} {o.comments}</span>
                         </div>
                       </article>
                     )
@@ -277,7 +278,7 @@ export default function OpinionsPage() {
 
       {/* Floating write button */}
       <button className="ch-fab" aria-label={t('op.fab')} onClick={() => navigate(`/club/${team.id}/write`)}>
-        <span className="op-fab-emoji" aria-hidden="true">✏️</span>
+        <span className="op-fab-emoji" aria-hidden="true"><Icon name="edit" size={18} /></span>
         <span>{t('op.fab')}</span>
       </button>
     </div>

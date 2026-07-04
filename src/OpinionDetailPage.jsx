@@ -7,6 +7,7 @@ import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getOpinionDetail, listComments, addComment, getLikeState, toggleLike as toggleLikeApi } from './lib/opinionsRepo.js'
 import { submitReport } from './lib/reportsRepo.js'
 import ReportModal from './components/ReportModal.jsx'
+import Icon from './components/Icon.jsx'
 import { relativeTime } from './lib/relativeTime.js'
 import './ClubHomePage.css'
 import './OpinionDetailPage.css'
@@ -212,16 +213,16 @@ export default function OpinionDetailPage() {
               {/* Interaction bar */}
               <div className="od-actions">
                 <button className={`od-act od-empathy${liked ? ' on' : ''}`} onClick={toggleLike}>
-                  <span aria-hidden="true">❤️</span> {t('detail.agree')} <strong>{likeCount}</strong>
+                  <Icon name="heart" size={17} /> {t('detail.agree')} <strong>{likeCount}</strong>
                 </button>
                 <button className="od-act" onClick={() => document.querySelector('.od-comment-input')?.focus()}>
-                  <span aria-hidden="true">💬</span> {t('detail.comment')} <strong>{comments.length}</strong>
+                  <Icon name="comment" size={17} /> {t('detail.comment')} <strong>{comments.length}</strong>
                 </button>
                 <button className="od-act" onClick={handleShare}>
-                  <span aria-hidden="true">🔗</span> {t('detail.share')}
+                  <Icon name="share" size={17} /> {t('detail.share')}
                 </button>
                 <button className="od-act od-report" onClick={() => setReportOpen(true)}>
-                  <span aria-hidden="true">🚩</span> {t('detail.report')}
+                  <Icon name="flag" size={17} /> {t('detail.report')}
                 </button>
               </div>
             </article>

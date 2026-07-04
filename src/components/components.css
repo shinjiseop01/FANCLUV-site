@@ -41,7 +41,10 @@ select:focus-visible {
   font-size: 40px;
   line-height: 1;
   margin-bottom: 6px;
-  filter: saturate(0.9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
 }
 .fc-empty-title {
   font-size: 17px;
@@ -325,3 +328,7 @@ select:focus-visible {
 .nick-status.hint { color: var(--muted); }
 .nick-status.err { color: #E0463C; }
 .nick-status.ok { color: #0E9F6E; }
+
+/* ───────────── Inline icon + text (수직 중앙 정렬 유틸) ───────────── */
+.ic-txt { display: inline-flex; align-items: center; gap: 5px; }
+.ic-txt svg { flex-shrink: 0; }

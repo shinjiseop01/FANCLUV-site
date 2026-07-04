@@ -7,6 +7,7 @@ import { isSupabaseConfigured } from './lib/supabase.js'
 import { getLatestInsight } from './lib/ai/analyzeFanInsights.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import EmptyState from './components/EmptyState.jsx'
+import Icon from './components/Icon.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import './ClubHomePage.css'
 import './AIInsightsPage.css'
@@ -16,9 +17,9 @@ const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI �
 // ── Mock data ──
 const SUMMARY = { opinions: 1284, surveys: 842, progress: 100 }
 const SENTIMENT = [
-  { key: 'pos', emoji: '😊', label: '긍정', value: 58, color: '#0E9F6E' },
-  { key: 'neu', emoji: '😐', label: '중립', value: 27, color: '#9AA0AA' },
-  { key: 'neg', emoji: '😡', label: '부정', value: 15, color: '#E05252' },
+  { key: 'pos', icon: 'smile', label: '긍정', value: 58, color: '#0E9F6E' },
+  { key: 'neu', icon: 'meh', label: '중립', value: 27, color: '#9AA0AA' },
+  { key: 'neg', icon: 'frown', label: '부정', value: 15, color: '#E05252' },
 ]
 const KEYWORDS = [
   { tag: '#MD', weight: 3 }, { tag: '#유니폼', weight: 3 }, { tag: '#티켓', weight: 2 },
@@ -67,9 +68,9 @@ function insightToView(ins) {
   return {
     summary: { opinions: d.opinionsCount || 0, surveys: d.surveysCount || 0, progress: 100 },
     sentiment: [
-      { key: 'pos', emoji: '😊', label: '긍정', value: ins.sentiment_positive || 0, color: '#0E9F6E' },
-      { key: 'neu', emoji: '😐', label: '중립', value: ins.sentiment_neutral || 0, color: '#9AA0AA' },
-      { key: 'neg', emoji: '😡', label: '부정', value: ins.sentiment_negative || 0, color: '#E05252' },
+      { key: 'pos', icon: 'smile', label: '긍정', value: ins.sentiment_positive || 0, color: '#0E9F6E' },
+      { key: 'neu', icon: 'meh', label: '중립', value: ins.sentiment_neutral || 0, color: '#9AA0AA' },
+      { key: 'neg', icon: 'frown', label: '부정', value: ins.sentiment_negative || 0, color: '#E05252' },
     ],
     keywords: kw.length ? kw : KEYWORDS,
     aiSummary: ins.summary || AI_SUMMARY,
@@ -154,11 +155,11 @@ export default function AIInsightsPage() {
         {status === 'loading' ? (
           <SkeletonList count={3} lines={4} />
         ) : status === 'empty' || !view ? (
-          <EmptyState icon="🤖" title={t('empty.insightsTitle')} message={t('empty.insightsMsg')} />
+          <EmptyState iconName="robot" title={t('empty.insightsTitle')} message={t('empty.insightsMsg')} />
         ) : (
         <>
         <section className="ai-pagehead">
-          <div className="ai-badge"><span className="ai-spark" aria-hidden="true">✦</span> AI 분석</div>
+          <div className="ai-badge"><span className="ai-spark" aria-hidden="true"><Icon name="sparkle" size={15} /></span> AI 분석</div>
           <h1>{t('ai.title')}</h1>
           <p>{t('ai.subtitle')}</p>
         </section>
@@ -194,7 +195,7 @@ export default function AIInsightsPage() {
                 <ul className="ai-sent-legend">
                   {view.sentiment.map(s => (
                     <li key={s.key}>
-                      <span className="ai-sent-emoji" aria-hidden="true">{s.emoji}</span>
+                      <span className="ai-sent-emoji" aria-hidden="true"><Icon name={s.icon} size={18} style={{ color: s.color }} /></span>
                       <span className="ai-sent-name">{s.label}</span>
                       <span className="ai-sent-bar"><span style={{ width: `${s.value}%`, background: s.color }} /></span>
                       <span className="ai-sent-pct" style={{ color: s.color }}>{s.value}%</span>
@@ -224,7 +225,7 @@ export default function AIInsightsPage() {
 
             {/* AI summary */}
             <section className="ai-panel ai-aisummary">
-              <h2 className="ai-panel-title"><span className="ai-spark" aria-hidden="true">✦</span> AI 요약</h2>
+              <h2 className="ai-panel-title"><span className="ai-spark" aria-hidden="true"><Icon name="sparkle" size={15} /></span> AI 요약</h2>
               <p className="ai-aisummary-text">{view.aiSummary}</p>
             </section>
 
@@ -312,10 +313,10 @@ export default function AIInsightsPage() {
             <p className="ai-kwmenu-title">{t('ai.keywordChooseTitle')}</p>
             <div className="ai-kwmenu-actions">
               <button type="button" className="ai-kwmenu-btn" onClick={() => navigate(`/club/${team.id}/opinions?keyword=${encodeURIComponent(kwChoice)}`)}>
-                <span aria-hidden="true">💬</span> {t('ai.keywordGoOpinions')}
+                <Icon name="comment" size={16} /> {t('ai.keywordGoOpinions')}
               </button>
               <button type="button" className="ai-kwmenu-btn" onClick={() => navigate(`/club/${team.id}/news?keyword=${encodeURIComponent(kwChoice)}`)}>
-                <span aria-hidden="true">📰</span> {t('ai.keywordGoNews')}
+                <Icon name="news" size={16} /> {t('ai.keywordGoNews')}
               </button>
             </div>
             <button type="button" className="ai-kwmenu-cancel" onClick={() => setKwChoice(null)}>{t('common.cancel')}</button>

@@ -155,9 +155,9 @@ export default function TeamNewsPage() {
                   <SkeletonList count={3} lines={2} />
                 ) : list.length === 0 ? (
                   keyword ? (
-                    <EmptyState icon="🔍" title={t('empty.searchTitle')} message={t('empty.searchMsg')} />
+                    <EmptyState iconName="search" title={t('empty.searchTitle')} message={t('empty.searchMsg')} />
                   ) : (
-                    <EmptyState icon="📰" title={t('empty.newsTitle')} message={t('empty.newsMsg')} />
+                    <EmptyState iconName="news" title={t('empty.newsTitle')} message={t('empty.newsMsg')} />
                   )
                 ) : (
                 <>
@@ -172,8 +172,8 @@ export default function TeamNewsPage() {
                       <h2 className="tn-hero-title">{hero.title}</h2>
                       <p className="tn-hero-summary">{hero.summary}</p>
                       <div className="tn-reactions">
-                        <span>💬 팬 의견 {hero.opinions}개</span>
-                        <span>📊 설문 참여 {hero.survey}명</span>
+                        <span className="ic-txt"><Icon name="comment" size={13} /> 팬 의견 {hero.opinions}개</span>
+                        <span className="ic-txt"><Icon name="chart" size={13} /> 설문 참여 {hero.survey}명</span>
                       </div>
                       <div className="tn-cta" onClick={e => e.stopPropagation()}>
                         <button className="tn-cta-btn primary" onClick={goWrite}>{t('news.ctaWrite')}</button>
@@ -195,8 +195,8 @@ export default function TeamNewsPage() {
                         <h3 className="tn-card-title">{n.title}</h3>
                         <p className="tn-card-summary">{n.summary}</p>
                         <div className="tn-reactions">
-                          <span>💬 팬 의견 {n.opinions}개</span>
-                          <span>📊 설문 참여 {n.survey}명</span>
+                          <span className="ic-txt"><Icon name="comment" size={13} /> 팬 의견 {n.opinions}개</span>
+                          <span className="ic-txt"><Icon name="chart" size={13} /> 설문 참여 {n.survey}명</span>
                         </div>
                         <div className="tn-cta" onClick={e => e.stopPropagation()}>
                           <button className="tn-cta-btn primary" onClick={goWrite}>{t('news.ctaWriteShort')}</button>
@@ -292,9 +292,9 @@ function NewsDetail({ news, team, t, onBack, onWrite, onSurvey }) {
       <h1 className="tn-detail-title">{news.title}</h1>
       <Thumb team={team} category={news.category} hero />
       <div className="tn-reactions tn-detail-reactions">
-        <span>💬 팬 의견 {news.opinions}개</span>
-        <span>📊 설문 참여 {news.survey}명</span>
-        <span>👁 조회 {news.views.toLocaleString()}</span>
+        <span className="ic-txt"><Icon name="comment" size={13} /> 팬 의견 {news.opinions}개</span>
+        <span className="ic-txt"><Icon name="chart" size={13} /> 설문 참여 {news.survey}명</span>
+        <span className="ic-txt"><Icon name="eye" size={13} /> 조회 {news.views.toLocaleString()}</span>
       </div>
       <div className="tn-detail-body">
         <p className="tn-lead">{news.summary}</p>

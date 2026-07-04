@@ -1,7 +1,7 @@
 # FANCLUV — 프로젝트 컨텍스트 (핸드오프 문서)
 
 > 새 채팅에서 이 파일을 읽으면 바로 이어서 작업할 수 있도록 정리한 문서입니다.
-> 최종 정리: 2026-07-04 / `main` 브랜치 기준 (닉네임 정책 강화 16차)
+> 최종 정리: 2026-07-04 / `main` 브랜치 기준 (UI 정렬·이모지→SVG 통일 17차)
 
 ## 1. 프로젝트 개요
 
@@ -216,6 +216,7 @@ npm run lint     # oxlint
 
 **Supabase 백엔드 연동 시리즈 (최신)**
 
+0. UI 정렬·아이콘 통일 — 17차: OS 이모지 전면 제거→공용 SVG 아이콘(`Icon.jsx` 확장, EmptyState는 `iconName` prop), 관리자 액션버튼 정렬 통일(min-width 72·height 32·세로중앙), 설문 legend 정렬, 아이콘+텍스트 `ic-txt`(flex/align-center) 유틸, 감정/배지 아이콘 SVG화(`activityBadge` icon 필드), locale 내 이모지 제거
 0. 닉네임 정책 강화 — 16차: 실시간 검증(형식+중복) `useNicknameCheck`/`NicknameStatus`, 규칙 일원화 `nicknameValidation.js`(완성형 한글·영문·숫자만, 공백/특수문자/자음모음/한자/이모지 불가, 한글 8자·총 12자, 예약어 `reservedNicknames.js`·금칙어 `bannedWords.js`), 회원가입·온보딩·프로필수정 3폼 적용(사용가능/중복 안내·저장버튼 비활성)
 0. 디테일 개선 — 15차: 구단 공식 링크 실 URL(4채널·SVG·새창), 이모지→SVG(`Icon.jsx`), 팀 색상 보정(서울/포항/부천 레드 구분·대전 그린), 팀명 다국어(`teamName(team,lang)`·`nameEn`), 공감/댓글 localStorage 영속화, 댓글 줄바꿈(`white-space:pre-wrap`), 설문 카드 정렬, 환영 이메일(`welcomeEmail.js`+`send-welcome-email`), 홈 진행중설문 클릭→상세
 0. 실시간 데이터 Provider 구조 + 캐시 — 14차 (`cache.js`·`matchRepo`·`leagueProvider`·`homeRepo`·AI 키워드 선택)

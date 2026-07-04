@@ -46,7 +46,7 @@ export default function AdminOpinions() {
       </header>
 
       {opinions.length === 0 ? (
-        <EmptyState icon="💬" title={t('empty.opinionsTitle')} message={t('empty.opinionsMsg')} />
+        <EmptyState iconName="comment" title={t('empty.opinionsTitle')} message={t('empty.opinionsMsg')} />
       ) : (
         <div className="adm-table-wrap">
           <table className="adm-table">
@@ -106,7 +106,7 @@ export default function AdminOpinions() {
           </div>
 
           {selectedComments.length === 0 ? (
-            <EmptyState compact icon="💬" title={t('admin.cm.emptyTitle')} message={t('admin.cm.emptyMsg')} />
+            <EmptyState compact iconName="comment" title={t('admin.cm.emptyTitle')} message={t('admin.cm.emptyMsg')} />
           ) : (
             <ul className="adm-comment-list">
               {selectedComments.map(c => (

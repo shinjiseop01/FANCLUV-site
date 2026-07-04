@@ -11,17 +11,18 @@ import { LineChart, BarChart, DonutChart, StackedBar } from './AdminCharts.jsx'
 import { TEAMS } from '../teams.jsx'
 import { runAnalysis } from '../lib/ai/analyzeFanInsights.js'
 import { createNotice } from '../lib/notificationsRepo.js'
+import Icon from '../components/Icon.jsx'
 
-// KPI 카드 정의 (값 key + 라벨 + 아이콘 + 표시형식)
+// KPI 카드 정의 (값 key + 라벨 + 아이콘 이름 + 표시형식)
 const KPI_CARDS = [
-  { key: 'totalMembers',        labelKey: 'admin.dash.totalMembers',   icon: '👥' },
-  { key: 'activeMembers',       labelKey: 'admin.dash.activeMembers',  icon: '✅' },
-  { key: 'totalOpinions',       labelKey: 'admin.dash.totalOpinions',  icon: '💬' },
-  { key: 'opinionsToday',       labelKey: 'admin.dash.opinionsToday',  icon: '✍️' },
-  { key: 'activeSurveys',       labelKey: 'admin.dash.activeSurveys',  icon: '📊' },
-  { key: 'surveyParticipation', labelKey: 'admin.dash.participation',  icon: '🗳️', suffix: '%' },
-  { key: 'totalComments',       labelKey: 'admin.dash.comments',       icon: '🗨️' },
-  { key: 'totalLikes',          labelKey: 'admin.dash.likes',          icon: '❤️' },
+  { key: 'totalMembers',        labelKey: 'admin.dash.totalMembers',   icon: 'users' },
+  { key: 'activeMembers',       labelKey: 'admin.dash.activeMembers',  icon: 'userCheck' },
+  { key: 'totalOpinions',       labelKey: 'admin.dash.totalOpinions',  icon: 'comment' },
+  { key: 'opinionsToday',       labelKey: 'admin.dash.opinionsToday',  icon: 'edit' },
+  { key: 'activeSurveys',       labelKey: 'admin.dash.activeSurveys',  icon: 'chart' },
+  { key: 'surveyParticipation', labelKey: 'admin.dash.participation',  icon: 'survey', suffix: '%' },
+  { key: 'totalComments',       labelKey: 'admin.dash.comments',       icon: 'comment' },
+  { key: 'totalLikes',          labelKey: 'admin.dash.likes',          icon: 'heart' },
 ]
 
 const REPORT_STATUS = { pending: 'admin.rp.pending', resolved: 'admin.rp.resolved' }
@@ -107,7 +108,7 @@ export default function AdminDashboard() {
       <div className="adm-stat-grid">
         {KPI_CARDS.map(c => (
           <div key={c.key} className="adm-stat">
-            <span className="adm-stat-icon" aria-hidden="true">{c.icon}</span>
+            <span className="adm-stat-icon" aria-hidden="true"><Icon name={c.icon} size={20} /></span>
             <span className="adm-stat-value">
               {Number(stats[c.key] || 0).toLocaleString()}{c.suffix || ''}
             </span>
@@ -119,16 +120,16 @@ export default function AdminDashboard() {
       {/* 5) 관리자 빠른 작업 */}
       <section className="adm-dash-section">
         <div className="adm-quick-grid">
-          <button className="adm-quick-btn" onClick={() => navigate('/admin/surveys')}>📊 {t('admin.dash.qCreateSurvey')}</button>
-          <button className="adm-quick-btn" onClick={() => navigate('/admin/news')}>📰 {t('admin.dash.qCreateNews')}</button>
-          <button className="adm-quick-btn" onClick={() => navigate('/admin/members')}>👥 {t('admin.dash.qMembers')}</button>
-          <button className="adm-quick-btn" onClick={() => navigate('/admin/reports')}>🚩 {t('admin.dash.qReports')}</button>
+          <button className="adm-quick-btn" onClick={() => navigate('/admin/surveys')}><Icon name="chart" size={17} /> {t('admin.dash.qCreateSurvey')}</button>
+          <button className="adm-quick-btn" onClick={() => navigate('/admin/news')}><Icon name="news" size={17} /> {t('admin.dash.qCreateNews')}</button>
+          <button className="adm-quick-btn" onClick={() => navigate('/admin/members')}><Icon name="users" size={17} /> {t('admin.dash.qMembers')}</button>
+          <button className="adm-quick-btn" onClick={() => navigate('/admin/reports')}><Icon name="flag" size={17} /> {t('admin.dash.qReports')}</button>
         </div>
       </section>
 
       {/* AI 팬 인사이트 분석 실행 */}
       <section className="adm-panel adm-dash-section">
-        <div className="adm-panel-head"><h2 className="adm-panel-title">✦ {t('admin.ai.title')}</h2></div>
+        <div className="adm-panel-head"><h2 className="adm-panel-title"><Icon name="sparkle" size={17} /> {t('admin.ai.title')}</h2></div>
         <div className="adm-ai-run">
           <select className="adm-input" value={aiClub} onChange={e => setAiClub(e.target.value)} aria-label={t('admin.ai.title')}>
             <option value="all">{t('admin.ai.allClubs')}</option>
@@ -143,7 +144,7 @@ export default function AdminDashboard() {
 
       {/* 관리자 공지 발송 */}
       <section className="adm-panel adm-dash-section">
-        <div className="adm-panel-head"><h2 className="adm-panel-title">📢 {t('admin.notice.title')}</h2></div>
+        <div className="adm-panel-head"><h2 className="adm-panel-title"><Icon name="megaphone" size={17} /> {t('admin.notice.title')}</h2></div>
         <p className="adm-sub adm-notice-sub">{t('admin.notice.desc')}</p>
         <div className="adm-notice-form">
           <div className="adm-notice-row">

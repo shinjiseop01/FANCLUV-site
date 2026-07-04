@@ -1,11 +1,11 @@
 // Activity badge tiers, derived from a simple mock activity score.
-// 🌱 Rookie → ⚽ Active → 🔥 Super → 👑 Legend.
+// Rookie → Active → Super → Legend. `icon` maps to RankIcon names (SVG).
 
 export const ACTIVITY_BADGES = [
-  { key: 'rookie', emoji: '🌱', min: 0,   ko: 'Rookie Fan', en: 'Rookie Fan' },
-  { key: 'active', emoji: '⚽', min: 30,  ko: 'Active Fan', en: 'Active Fan' },
-  { key: 'super',  emoji: '🔥', min: 80,  ko: 'Super Fan',  en: 'Super Fan' },
-  { key: 'legend', emoji: '👑', min: 150, ko: 'Legend Fan', en: 'Legend Fan' },
+  { key: 'rookie', icon: 'rookie', min: 0,   ko: 'Rookie Fan', en: 'Rookie Fan' },
+  { key: 'active', icon: 'active', min: 30,  ko: 'Active Fan', en: 'Active Fan' },
+  { key: 'super',  icon: 'super',  min: 80,  ko: 'Super Fan',  en: 'Super Fan' },
+  { key: 'legend', icon: 'legend', min: 150, ko: 'Legend Fan', en: 'Legend Fan' },
 ]
 
 // Returns { badge, next, progress } where progress is % toward the next tier.

@@ -74,7 +74,7 @@ export default function AdminReports() {
       {loading ? (
         <p className="adm-loading" role="status">{t('common.loading')}</p>
       ) : visible.length === 0 ? (
-        <EmptyState icon="🚩" title={t('admin.rp.emptyTitle')} message={t('admin.rp.emptyMsg')} />
+        <EmptyState iconName="flag" title={t('admin.rp.emptyTitle')} message={t('admin.rp.emptyMsg')} />
       ) : (
         <div className="adm-table-wrap">
           <table className="adm-table">

@@ -90,7 +90,7 @@ export default function AdminSurveys() {
       )}
 
       {surveys.length === 0 ? (
-        <EmptyState icon="📊" title={t('empty.surveysTitle')} message={t('empty.surveysMsg')} />
+        <EmptyState iconName="survey" title={t('empty.surveysTitle')} message={t('empty.surveysMsg')} />
       ) : (
         <div className="adm-table-wrap">
           <table className="adm-table">

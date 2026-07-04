@@ -184,3 +184,9 @@
   font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
 .ai-kwmenu-cancel:hover { color: var(--body); }
+
+/* 아이콘 수직 중앙 정렬 (이모지 → SVG 교체) */
+.ai-badge { display: inline-flex; align-items: center; gap: 5px; }
+.ai-spark { display: inline-flex; align-items: center; color: var(--team-deep); }
+.ai-sent-emoji { display: inline-flex; align-items: center; }
+.ai-panel-title { display: flex; align-items: center; gap: 6px; }

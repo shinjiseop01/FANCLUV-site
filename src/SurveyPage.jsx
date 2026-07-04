@@ -114,7 +114,7 @@ export default function SurveyPage() {
           <SkeletonList count={4} lines={2} />
         ) : visibleSurveys.length === 0 ? (
           <EmptyState
-            icon="📋"
+            iconName="clipboard"
             title={t('empty.surveysTitle')}
             message={t('empty.surveysMsg')}
           />

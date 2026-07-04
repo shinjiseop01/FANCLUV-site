@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { TEAMS, getTeam } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import Icon from '../components/Icon.jsx'
 import { adminListNews, createNews, updateNews, deleteNews } from '../lib/newsRepo.js'
 
 const EMPTY = { title: '', content: '', team: TEAMS[0].id, image: '' }
@@ -87,7 +88,7 @@ export default function AdminNews() {
       )}
 
       {news.length === 0 ? (
-        <EmptyState icon="📰" title={t('empty.newsTitle')} message={t('empty.newsMsg')} />
+        <EmptyState iconName="news" title={t('empty.newsTitle')} message={t('empty.newsMsg')} />
       ) : (
         <div className="adm-table-wrap">
           <table className="adm-table">
@@ -107,7 +108,7 @@ export default function AdminNews() {
                   <tr key={n.id}>
                     <td>
                       <div className="adm-thumb" style={{ backgroundImage: n.image ? `url(${n.image})` : 'none' }}>
-                        {!n.image && '🖼'}
+                        {!n.image && <Icon name="image" size={18} />}
                       </div>
                     </td>
                     <td className="adm-cell-strong">{n.title}</td>

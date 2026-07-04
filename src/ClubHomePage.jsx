@@ -7,6 +7,7 @@ import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import { relativeTime } from './lib/relativeTime.js'
 import { getHomeContent } from './lib/homeRepo.js'
+import Icon from './components/Icon.jsx'
 import './ClubHomePage.css'
 
 
@@ -156,8 +157,8 @@ export default function ClubHomePage() {
                     </div>
                     <p className="ch-opinion-text">{o.text}</p>
                     <div className="ch-opinion-foot">
-                      <span>♥ {o.likes}</span>
-                      <span>💬 {o.comments}</span>
+                      <span className="ic-txt"><Icon name="heart" size={14} /> {o.likes}</span>
+                      <span className="ic-txt"><Icon name="comment" size={14} /> {o.comments}</span>
                     </div>
                   </li>
                 ))}
