@@ -7,7 +7,6 @@ import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import { relativeTime } from './lib/relativeTime.js'
 import { getHomeContent } from './lib/homeRepo.js'
-import { listActiveNotices } from './lib/noticesRepo.js'
 import Icon from './components/Icon.jsx'
 import './ClubHomePage.css'
 
@@ -42,15 +41,6 @@ export default function ClubHomePage() {
   // 홈 인기 콘텐츠(인기 의견/카테고리/키워드)를 Supabase 로 계산, 아니면 Mock — homeRepo.
   const [home, setHome] = useState(null)
   const [loading, setLoading] = useState(true)
-
-  // 관리자 공지 (숨김 제외 · 노출 기간 내 · 고정/중요 상단) — noticesRepo.
-  const [notices, setNotices] = useState([])
-  useEffect(() => {
-    if (!team) return
-    let active = true
-    listActiveNotices(team.id).then(list => { if (active) setNotices(list) })
-    return () => { active = false }
-  }, [team])
 
   const load = useCallback(() => {
     if (!team) return
@@ -118,26 +108,7 @@ export default function ClubHomePage() {
           <h1>{t('home.welcome', { name: NICKNAME })}</h1>
           <p>{t('home.welcomeSub', { team: teamName(team, lang) })}</p>
         </section>
-
-        {/* 관리자 공지 배너 (중요/고정 공지가 상단) */}
-        {notices.length > 0 && (
-          <section className="ch-notices" aria-label={t('home.noticeTitle')}>
-            {notices.map(n => (
-              <div key={n.id} className={`ch-notice${n.isImportant ? ' important' : ''}`}>
-                <span className="ch-notice-ic" aria-hidden="true">
-                  <Icon name={n.pinned ? 'pin' : 'megaphone'} size={16} />
-                </span>
-                <div className="ch-notice-body">
-                  <div className="ch-notice-top">
-                    {n.isImportant && <span className="ch-notice-tag">{t('home.noticeImportant')}</span>}
-                    <span className="ch-notice-title">{n.title}</span>
-                  </div>
-                  <p className="ch-notice-text">{n.body}</p>
-                </div>
-              </div>
-            ))}
-          </section>
-        )}
+        {/* 관리자 공지는 홈 카드가 아니라 알림센터(NotificationBell)에서만 노출한다. */}
 
         {/* Stat cards */}
         <section className="ch-stats">

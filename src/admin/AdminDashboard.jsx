@@ -6,6 +6,7 @@ import { getAdminDashboard, refreshAdminDashboard } from '../lib/admin/adminStat
 import { LineChart, BarChart } from './AdminCharts.jsx'
 import { TEAMS, getTeam } from '../teams.jsx'
 import { runAnalysis } from '../lib/ai/analyzeFanInsights.js'
+import { generateAiReport, REPORT_PERIODS } from '../lib/ai/report/index.js'
 import { createNotice } from '../lib/noticesRepo.js'
 import EmptyState from '../components/EmptyState.jsx'
 import Icon from '../components/Icon.jsx'
@@ -109,6 +110,23 @@ export default function AdminDashboard() {
     setAiMsg(t(map[res.code] || 'admin.ai.failed'))
   }
 
+  // AI 리포트(PDF) 생성 — 선택 구단의 최신 인사이트 기반. 향후 월간/분기/연간 확장.
+  const [reportPeriod, setReportPeriod] = useState('monthly')
+  const [reportBusy, setReportBusy] = useState(false)
+  const [reportMsg, setReportMsg] = useState('')
+  async function genReport() {
+    setReportBusy(true); setReportMsg('')
+    try {
+      const res = await generateAiReport({ clubId: aiClub, periodType: reportPeriod, t })
+      if (res.ok) setReportMsg(t('aiReport.done', { file: res.fileName }))
+      else if (res.code === 'no_insight') setReportMsg(t('aiReport.noInsight'))
+      else setReportMsg(t('aiReport.failed'))
+    } catch {
+      setReportMsg(t('aiReport.failed'))
+    }
+    setReportBusy(false)
+  }
+
   // 관리자 공지 발송 → 대상 팬에게 'notice' 알림 생성
   const [noticeTitle, setNoticeTitle] = useState('')
   const [noticeBody, setNoticeBody] = useState('')
@@ -185,6 +203,19 @@ export default function AdminDashboard() {
           </button>
         </div>
         {aiMsg && <p className="adm-ai-msg" role="status">{aiMsg}</p>}
+
+        {/* AI 리포트(PDF) 생성 */}
+        <div className="adm-ai-report">
+          <div className="adm-ai-run">
+            <select className="adm-input" value={reportPeriod} onChange={e => setReportPeriod(e.target.value)} aria-label={t('aiReport.period')}>
+              {REPORT_PERIODS.map(p => <option key={p.key} value={p.key}>{t(p.labelKey)}</option>)}
+            </select>
+            <button className="adm-btn-ghost adm-report-btn" onClick={genReport} disabled={reportBusy}>
+              <Icon name="news" size={16} /> {reportBusy ? t('aiReport.generating') : t('aiReport.generate')}
+            </button>
+          </div>
+          {reportMsg && <p className="adm-ai-msg" role="status">{reportMsg}</p>}
+        </div>
       </section>
 
       {/* 관리자 공지 발송 */}

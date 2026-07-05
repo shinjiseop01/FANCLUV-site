@@ -36,15 +36,15 @@ function getMockList() {
 
 // Mock 모드에서 이벤트 발생 시 알림 추가 (다른 repo 들이 호출).
 // Supabase 모드에서는 DB 트리거가 생성하므로 아무것도 하지 않는다.
-export function pushMockNotification({ type, title, body, url = null }) {
+export function pushMockNotification({ type, title, body, url = null, isImportant = false }) {
   if (isSupabaseConfigured) return
   const list = getMockList()
-  list.unshift({ id: 'n' + Date.now(), type, title, body, url, is_read: false, created_at: new Date().toISOString() })
+  list.unshift({ id: 'n' + Date.now(), type, title, body, url, is_read: false, is_important: isImportant, created_at: new Date().toISOString() })
   writeMock(list)
 }
 
 function mapRow(r) {
-  return { id: r.id, type: r.type, title: r.title, body: r.body, url: r.url, isRead: !!r.is_read, createdAt: r.created_at }
+  return { id: r.id, type: r.type, title: r.title, body: r.body, url: r.url, isRead: !!r.is_read, isImportant: !!r.is_important, createdAt: r.created_at }
 }
 
 // 관리자 공지 등록(createNotice)은 noticesRepo.js 로 이동했다(공지 CRUD/노출 일원화).

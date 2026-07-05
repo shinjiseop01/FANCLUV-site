@@ -104,7 +104,7 @@ export async function createNotice({ title, body, teamId = null, isImportant = f
   }
   list.unshift(notice)
   writeMock(list)
-  if (!hidden) pushMockNotification({ type: 'notice', title: tt, body: bb })
+  if (!hidden) pushMockNotification({ type: 'notice', title: tt, body: bb, isImportant })
   return { ok: true, notice }
 }
 

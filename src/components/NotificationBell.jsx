@@ -58,6 +58,10 @@ export default function NotificationBell() {
   }
 
   const hoursSince = iso => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 3600000))
+  const fmtDate = iso => {
+    const d = new Date(iso)
+    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+  }
 
   return (
     <div className="fc-bell" ref={ref}>
@@ -95,9 +99,12 @@ export default function NotificationBell() {
                   <button type="button" className={`fc-bell-item${n.isRead ? '' : ' unread'}`} onClick={() => onItemClick(n)}>
                     {!n.isRead && <span className="fc-bell-dot" aria-hidden="true" />}
                     <span className="fc-bell-item-body">
-                      <span className="fc-bell-item-title">{n.title}</span>
+                      <span className="fc-bell-item-title">
+                        {n.isImportant && <span className="fc-bell-important">{t('notice.important')}</span>}
+                        {n.title}
+                      </span>
                       {n.body && <span className="fc-bell-item-text">{n.body}</span>}
-                      <span className="fc-bell-item-time">{relativeTime(hoursSince(n.createdAt), lang)}</span>
+                      <span className="fc-bell-item-time">{fmtDate(n.createdAt)} · {relativeTime(hoursSince(n.createdAt), lang)}</span>
                     </span>
                   </button>
                 </li>
@@ -116,10 +123,13 @@ export default function NotificationBell() {
           onMouseDown={e => { if (e.target === e.currentTarget) setNotice(null) }}
         >
           <div className="ntc-modal">
-            <span className="ntc-tag">{t('notice.tag')}</span>
+            <div className="ntc-tags">
+              <span className="ntc-tag">{t('notice.tag')}</span>
+              {notice.isImportant && <span className="ntc-tag important">{t('notice.important')}</span>}
+            </div>
             <h2 className="ntc-title">{notice.title}</h2>
             <p className="ntc-body">{notice.body}</p>
-            <span className="ntc-time">{relativeTime(hoursSince(notice.createdAt), lang)}</span>
+            <span className="ntc-time">{fmtDate(notice.createdAt)}</span>
             <button type="button" className="ntc-close" onClick={() => setNotice(null)}>{t('common.close')}</button>
           </div>
         </div>

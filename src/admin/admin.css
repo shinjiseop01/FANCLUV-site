@@ -386,6 +386,8 @@
 .adm-ai-run { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .adm-ai-run .adm-input { max-width: 260px; }
 .adm-ai-msg { margin-top: 12px; font-size: 13.5px; color: var(--body); }
+.adm-ai-report { margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border); }
+.adm-report-btn { display: inline-flex; align-items: center; gap: 6px; }
 
 /* 관리자 공지 발송 패널 */
 .adm-notice-sub { margin: -6px 0 14px; }

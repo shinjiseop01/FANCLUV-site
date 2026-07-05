@@ -253,10 +253,17 @@ select:focus-visible {
   background: var(--canvas); border: 1px solid var(--border); border-radius: 16px;
   padding: 24px; box-shadow: 0 20px 48px rgba(0, 0, 0, 0.28);
 }
+.ntc-tags { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
 .ntc-tag {
   display: inline-block; font-size: 11.5px; font-weight: 700; color: var(--team-deep, #4F46E5);
   background: color-mix(in srgb, var(--team, #4F46E5) 12%, var(--mix-base));
-  padding: 3px 10px; border-radius: 100px; margin-bottom: 12px;
+  padding: 3px 10px; border-radius: 100px;
+}
+.ntc-tag.important { color: #fff; background: #C2410C; }
+/* 알림센터 중요 공지 배지 */
+.fc-bell-important {
+  display: inline-block; font-size: 10px; font-weight: 800; color: #fff; background: #C2410C;
+  padding: 1px 6px; border-radius: 5px; margin-right: 5px; vertical-align: middle;
 }
 .ntc-title { font-size: 18px; font-weight: 800; color: var(--ink); margin-bottom: 10px; line-height: 1.4; }
 .ntc-body { font-size: 14px; color: var(--body); line-height: 1.7; white-space: pre-wrap; }
