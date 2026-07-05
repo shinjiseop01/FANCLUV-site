@@ -240,8 +240,15 @@
 }
 .adm-report-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border-soft); }
 
+/* 회원 상세 패널 (운영자 전용) — 라벨이 길어 컬럼을 넓게, 값 정렬은 report와 공유 */
+.adm-member-detail { margin-top: 20px; }
+.adm-member-dl { margin-bottom: 0; }
+.adm-member-dl > div { grid-template-columns: 140px 1fr; }
+.adm-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+
 @media (max-width: 640px) {
   .adm-report-dl > div { grid-template-columns: 80px 1fr; }
+  .adm-member-dl > div { grid-template-columns: 110px 1fr; }
 }
 
 /* ════════════════════════════════════════════════════════════

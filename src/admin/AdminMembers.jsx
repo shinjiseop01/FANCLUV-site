@@ -14,11 +14,24 @@ function vMeta(status) {
   return { cls: 'vnone', key: 'admin.mem.vNone' }
 }
 
+// 로그인 방식(provider) 표시 라벨. 소셜은 브랜드명 그대로, 이메일만 번역.
+function loginLabel(provider, t) {
+  if (provider === 'google') return 'Google'
+  if (provider === 'kakao') return 'Kakao'
+  if (provider === 'naver') return 'NAVER'
+  return t('admin.mem.loginEmail')
+}
+
 export default function AdminMembers() {
   const { t } = useLang()
   const [members, setMembers] = useState(MOCK_MEMBERS)
   const [query, setQuery] = useState('')
   const [vfilter, setVfilter] = useState('all')
+  const [selectedId, setSelectedId] = useState(null)   // 회원 상세 패널 (운영자 전용)
+
+  // 성별 / 나이대 표시 라벨 (회원가입 폼과 동일 키 재사용)
+  const genderLabel = g => g === 'male' ? t('signup.genderMale') : g === 'female' ? t('signup.genderFemale') : t('set.notSet')
+  const ageLabel = a => a ? (a === '50+' ? t('signup.age50') : t(`signup.age${a}`)) : t('set.notSet')
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -37,7 +50,10 @@ export default function AdminMembers() {
 
   function remove(id) {
     setMembers(list => list.filter(m => m.id !== id))
+    if (selectedId === id) setSelectedId(null)
   }
+
+  const selected = members.find(m => m.id === selectedId) || null
 
   return (
     <div className="adm-page">
@@ -101,6 +117,9 @@ export default function AdminMembers() {
                     </td>
                     <td className="adm-col-actions">
                       <div className="adm-actions">
+                        <button className={`adm-btn-sm${selectedId === m.id ? ' on' : ''}`} onClick={() => setSelectedId(id => (id === m.id ? null : m.id))}>
+                          {t('admin.mem.viewDetail')}
+                        </button>
                         <button className="adm-btn-sm" onClick={() => toggleActive(m.id)}>
                           {m.status === 'active' ? t('admin.mem.deactivate') : t('admin.mem.activate')}
                         </button>
@@ -113,6 +132,43 @@ export default function AdminMembers() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* 회원 상세 정보 — 운영자 전용 (RequireAdmin 가드 안에서만 렌더) */}
+      {selected && (
+        <section className="adm-panel adm-member-detail">
+          <div className="adm-panel-head">
+            <h2 className="adm-h2 adm-panel-title">{t('admin.mem.detailTitle')}</h2>
+            <button className="adm-btn-sm" onClick={() => setSelectedId(null)}>{t('admin.mem.close')}</button>
+          </div>
+          <dl className="adm-report-dl adm-member-dl">
+            <div><dt>{t('admin.mem.fId')}</dt><dd className="adm-mono">{selected.id}</dd></div>
+            <div><dt>{t('admin.mem.fNickname')}</dt><dd>{selected.nickname}</dd></div>
+            <div><dt>{t('admin.mem.colEmail')}</dt><dd>{selected.email}</dd></div>
+            <div><dt>{t('admin.mem.colJoined')}</dt><dd>{selected.joinedAt}</dd></div>
+            <div><dt>{t('admin.mem.fLogin')}</dt><dd>{loginLabel(selected.provider, t)}</dd></div>
+            <div><dt>{t('admin.mem.colTeam')}</dt><dd>{getTeam(selected.team)?.name || '-'}</dd></div>
+            <div><dt>{t('admin.mem.fGender')}</dt><dd>{genderLabel(selected.gender)}</dd></div>
+            <div><dt>{t('admin.mem.fAge')}</dt><dd>{ageLabel(selected.ageGroup)}</dd></div>
+            <div>
+              <dt>{t('admin.mem.fVerifyEmail')}</dt>
+              <dd>
+                <span className={`adm-badge ${selected.verificationStatus === 'unverified' ? 'vnone' : 'vemail'}`}>
+                  {selected.verificationStatus === 'unverified' ? t('admin.mem.verifiedNo') : t('admin.mem.verifiedYes')}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>{t('admin.mem.colStatus')}</dt>
+              <dd>
+                <span className={`adm-badge ${selected.status}`}>
+                  {selected.status === 'active' ? t('admin.mem.active') : t('admin.mem.inactive')}
+                </span>
+              </dd>
+            </div>
+            <div><dt>{t('admin.mem.fLastActive')}</dt><dd>{selected.lastActiveAt || '-'}</dd></div>
+          </dl>
+        </section>
       )}
     </div>
   )
