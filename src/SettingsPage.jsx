@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { useTheme } from './contexts/ThemeContext.jsx'
-import { logout, getCurrentUser, deleteAccount } from './lib/auth.js'
+import { logout, getCurrentUser, deleteAccount, nicknameChangeInfo } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
+import { getCurrentDevice } from './lib/deviceInfo.js'
+import Icon from './components/Icon.jsx'
 import './ClubHomePage.css'
 import './SettingsPage.css'
 
@@ -32,6 +34,17 @@ export default function SettingsPage() {
   const user = getCurrentUser()
   const nickname = user?.nickname || '팬'
   const email = user?.email || '-'
+  const nickInfo = nicknameChangeInfo()
+  const device = getCurrentDevice()
+
+  // 로그인 방식 라벨 (이메일 / Google / Kakao / NAVER)
+  const PROVIDER_LABEL = { email: t('set.loginEmail'), google: 'Google', kakao: 'Kakao', naver: 'NAVER' }
+  const loginMethod = PROVIDER_LABEL[user?.provider] || t('set.loginEmail')
+  const genderLabel = user?.gender === 'male' ? t('signup.genderMale')
+    : user?.gender === 'female' ? t('signup.genderFemale')
+      : t('set.notSet')
+  const ageLabel = user?.ageGroup ? (user.ageGroup === '50+' ? t('signup.age50') : t(`signup.age${user.ageGroup}`)) : t('set.notSet')
+  const fmtDate = iso => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '-')
 
   // notifications (mock — ON/OFF only)
   const [noti, setNoti] = useState({ survey: true, news: true, comment: true, empathy: false })
@@ -120,6 +133,34 @@ export default function SettingsPage() {
             onClick={() => navigate(`/club/${team.id}/password`)}>
             <span>{t('set.changePw')}</span>
             <span className="st-chevron" aria-hidden="true">›</span>
+          </div>
+        </section>
+
+        {/* Profile info */}
+        <section className="st-card">
+          <h2 className="st-card-title">{t('set.profileInfo')}</h2>
+          <div className="st-row st-row-static"><span>{t('set.infoEmail')}</span><span className="st-muted">{email}</span></div>
+          <div className="st-row st-row-static"><span>{t('set.infoJoined')}</span><span className="st-muted">{fmtDate(user?.joinedAt)}</span></div>
+          <div className="st-row st-row-static"><span>{t('set.infoLogin')}</span><span className="st-muted">{loginMethod}</span></div>
+          <div className="st-row st-row-static"><span>{t('set.infoTeam')}</span><span className="st-muted">{teamName(team, lang)}</span></div>
+          <div className="st-row st-row-static"><span>{t('set.infoGender')}</span><span className="st-muted">{genderLabel}</span></div>
+          <div className="st-row st-row-static"><span>{t('set.infoAge')}</span><span className="st-muted">{ageLabel}</span></div>
+          <div className="st-row st-row-static">
+            <span>{t('set.infoNextNickname')}</span>
+            <span className="st-muted">{nickInfo.nextChangeAt ? fmtDate(nickInfo.nextChangeAt) : t('set.nowAvailable')}</span>
+          </div>
+        </section>
+
+        {/* Account security — current login device (Mock 구조) */}
+        <section className="st-card">
+          <h2 className="st-card-title">{t('set.security')}</h2>
+          <div className="st-device">
+            <span className="st-device-ic" aria-hidden="true"><Icon name="users" size={20} /></span>
+            <div className="st-device-body">
+              <span className="st-device-name">{device.device} · {device.browser}</span>
+              <span className="st-device-meta">{device.os} · {device.country}</span>
+            </div>
+            <span className="st-device-badge">{t('set.currentLogin')}</span>
           </div>
         </section>
 
