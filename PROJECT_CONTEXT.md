@@ -1,7 +1,7 @@
 # FANCLUV — 프로젝트 컨텍스트 (핸드오프 문서)
 
 > 새 채팅에서 이 파일을 읽으면 바로 이어서 작업할 수 있도록 정리한 문서입니다.
-> 최종 정리: 2026-07-05 / `main` 브랜치 기준 (프로필 정리·로고 아이콘 21차)
+> 최종 정리: 2026-07-05 / `main` 브랜치 기준 (회원정보 노출범위 정리 22차 + 로고 리프레시 23차)
 
 ## 1. 프로젝트 개요
 
@@ -196,6 +196,7 @@ npm run lint     # oxlint
 ### 관리자 콘솔 — `src/admin/`
 - `RequireAdmin` 가드로 보호. `AdminLayout` + 중첩 라우트(대시보드/회원/의견/설문/뉴스/신고/설정).
 - 데이터는 `adminData.js`의 Mock. 댓글 관리 기능 포함, 토스트 없이 인라인 피드백.
+- **회원 관리(AdminMembers) — 운영자 전용 상세 정보(22차)**: 회원 테이블은 요약(닉네임·이메일·가입일·응원팀·인증·상태)만, 행별 **"상세" 버튼 → 인라인 상세 패널**에서 **Member ID·닉네임·이메일·가입일·로그인 방식·응원팀·성별·나이대·이메일 인증 여부·계정 상태·마지막 활동일** 표시. `MOCK_MEMBERS`에 `provider`/`gender`/`ageGroup`/`lastActiveAt` 보강. 상세 정보는 **`RequireAdmin` 가드 내부에서만 렌더** → 일반 사용자 화면·URL 직접 접근으로는 노출 안 됨. 패널은 신고 상세와 동일한 `adm-report-dl` 토큰 재사용(라이트/다크 자동). **Member ID·로그인 방식·마지막 활동일 등 상세 식별 정보는 일반 사용자 설정/프로필 화면엔 절대 표시하지 않음.**
 - **대시보드 고도화**(`AdminDashboard.jsx` + `AdminCharts.jsx`): KPI 8종, 구단별 현황 테이블(만족도·참여율 미니바), 최근 활동(가입/의견/댓글/신고), 차트(라인·바·도넛·감정 누적바 — 순수 SVG, 라이브러리 없음), 빠른 작업 4종.
 - **KPI는 Supabase 집계 연동(13차 강화)**: `getDashboardStats()`가 Supabase 설정 시 `count(*)` 쿼리(회원/의견/댓글/오늘 의견/진행 설문/좋아요/응답/**미처리 신고**/**7일 내 활성**)로 계산, 아니면 Mock. **`withCache('admin:stats')` 30초 캐시**. 나머지 대시보드 데이터(구단별/최근/차트)는 아직 Mock.
 - **관리자 CRUD가 Supabase에 반영**: 설문(`surveysRepo`)·뉴스(`newsRepo`)는 관리자 RLS(`is_admin()`)로 서버 반영. `/admin` 접근은 `RequireAdmin`+`isAdmin()`(profiles.role) → 일반 사용자 차단.
@@ -210,12 +211,21 @@ npm run lint     # oxlint
 - **FindIdPage / FindPasswordPage** (`RecoveryPages.css`) — 아이디·비밀번호 찾기 (Mock).
 - **VerifyEmailPage** — Mock 이메일 인증 흐름 (`AccountPages.css`).
 - **ProfileEditPage / ChangePasswordPage** — 프로필 수정·비밀번호 변경.
+  - **회원정보 노출 최소화(22차)**: 프로필 수정 화면은 **수정 기능 중심(프로필 이미지 + 닉네임)**만 유지 → **활동 통계 카드 제거**(관련 `profileStatsRepo` 로드 로직도 제거). 설정 페이지 **프로필 정보 카드는 이메일·가입일·성별·나이대만** 노출(Member ID·로그인 방식·다음 닉네임 변경 가능일 등 상세 식별 정보 미표시). 상세 회원 정보는 운영자 회원 관리에서만 확인.
+  - **응원팀 카드는 유지**: 읽기 전용 회원정보가 아니라 **구단 변경 기능 카드**(현재 팀 엠블럼·이름 + "구단 변경" 버튼)라 설정 화면에 그대로 둠.
 - **InfoPage** (`InfoPage.jsx` + `infoContent.js`) — `page` prop으로 소개/개인정보/약관 렌더.
+
+### 브랜드 로고 / PWA 아이콘 — `public/`
+- **로고 리프레시(23차)**: 브랜드 소스 로고를 `FANCLUV logo.jpeg`(루트, 금색 FC-하트 모노그램·검정 배경 820×808)로 교체. 헤더/로그인 화면의 **"FANCLUV" 로고는 이미지가 아니라 텍스트 워드마크**(`.ch-logo` 등 타이포그래피)라 로고 파일 교체와 무관하게 그대로 렌더된다.
+- 로고 **이미지가 실제 소비되는 지점 = PWA/파비콘 아이콘**. 새 로고에서 `public/icon-192.png`·`public/icon-512.png`를 재생성(정사각 크롭 후 리사이즈). `public/logo.png`도 새 로고로 갱신(1.1MB→약 53KB). manifest `theme/background_color #0e0e0e`가 로고의 검정 배경과 조화.
+- 아이콘 참조처: `manifest.webmanifest`(icon-192/512), `index.html`의 `apple-touch-icon`(/icon-192.png), `lib/browserPush.js`(알림 아이콘 /icon-192.png), `sw.js`(캐싱). 브라우저 탭 파비콘은 별도의 벡터 마크 `public/favicon.svg`(보라 #863bff)로, 이번 교체에서 건드리지 않음(향후 통일 여지).
 
 ## 4. 완료된 작업 (git 히스토리, 최신 → 과거)
 
 **Supabase 백엔드 연동 시리즈 (최신)**
 
+0. 브랜드 로고 리프레시 — 23차: 소스 로고를 `FANCLUV logo.jpeg`로 교체 → `public/icon-192/512.png`·`public/logo.png` 재생성(헤더/로그인 로고는 텍스트 워드마크라 불변, favicon.svg는 유지). PROJECT_CONTEXT 최신화 동반 (`Update project context and refresh FANCLUV logo`).
+0. 회원정보 노출범위 정리 — 22차: 일반 사용자 설정/프로필에서 상세 회원 식별정보(Member ID·로그인 방식·다음 닉네임 변경일 등) 미노출 확정, 프로필 수정 화면 **활동 통계 카드 제거**(수정 기능만), 운영자 **회원 상세 패널**에 Member ID·로그인 방식·성별·나이대·마지막 활동일 등 11개 필드 추가(`RequireAdmin` 가드 내부 전용). 응원팀 카드는 구단 변경 기능으로 유지 (`978eec7` Restrict detailed member info to admin).
 0. 프로필 정리·로고 PWA 아이콘 — 21차: 실제 로고(`FANCLUV logo.png`)로 `icon-192/512.png` 생성(any+maskable, manifest·apple-touch·SW·알림 아이콘 갱신, theme/bg `#0e0e0e`). 닉네임 제한 안내 "닉네임은 90일마다 변경할 수 있습니다."(날짜 미표시). 설정 프로필 정보 카드 = 이메일·가입일·성별·나이대만(로그인방식·응원팀·다음변경일 제거).
 0. PWA·브라우저 알림 — 20차: `manifest.webmanifest`(standalone·theme #863bff·아이콘 `icon.svg` 192/512/maskable) + `public/sw.js`(앱셸 캐싱·오프라인 fallback·업데이트 대응) `registerSW`(PROD 전용). 설정에 **브라우저 알림 카드**(권한 허용/차단/미요청 + 토글 + 테스트 알림) `browserPush.js`, 알림 설정 영속화 `notifyPrefs.js`(브라우저/이메일/설문/뉴스/댓글/공감/공지). 향후 이벤트 연결 지점 `pushEventNotification(type)`(comment/like/survey/news/notice)
 0. 프로필 관리 고도화 — 19차: 아바타 업로드/미리보기/교체/기본복원(형식 jpg·jpeg·png·webp/5MB 검증) + **1:1 크롭(원형 미리보기)** `AvatarCropper`, 저장소 추상화 `avatarStorage`(Supabase Storage `avatars` 버킷=`0012` / Mock dataURL), 활동 통계 `profileStatsRepo`(Supabase count/Mock), 설정 프로필정보(이메일·가입일·로그인방식·응원팀·성별·나이대)·다음 닉네임 변경일·계정 보안 기기정보 `deviceInfo`
@@ -273,15 +283,32 @@ npm run lint     # oxlint
 
 → **팬 화면 8개 + 계정 복구/인증/정보 페이지 + 관리자 콘솔 구현 완료 + Supabase 백엔드 1~10차 연동 완료(Auth/Profile·의견/댓글/공감·설문·뉴스/알림·소셜로그인·AI인사이트·온보딩·회원탈퇴).** 모든 데이터 레이어는 **Supabase-우선 + Mock 폴백** 어댑터 구조라 키 없이도 앱이 동작.
 
-## 5. 알려진 특이사항 / TODO 후보
+## 5. 남은 TODO / 알려진 특이사항
 
-- **Supabase 핵심 이관 완료.** 신고(`reports`)·알림·공지(`notices`)까지 연동 완료(11차). 남은 잔여: 관리자 대시보드의 구단별/최근활동/차트는 아직 Mock, KPI만 실집계 연동됨.
-- **소셜 로그인 잔여**: Google·Kakao는 Supabase native, NAVER는 커스텀 Edge Function(`naver-callback`). 프로필 이미지가 아직 placeholder(SVG data URI)인 provider 존재 → 실 사진 URL 매핑 확인 필요. 배포/시크릿은 [SOCIAL_LOGIN_SETUP.md](SOCIAL_LOGIN_SETUP.md).
-- **Edge Function 배포 필요 항목**: `send-email-code`(Resend), `naver-callback`(`--no-verify-jwt`), `analyze-insights`(OpenAI, verify_jwt 유지), `delete-account`. 검증 체크리스트는 [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
-- 이메일 인증은 Supabase(`send-email-code`)/Mock 양쪽 동작, **휴대폰 본인인증(PASS/NICE/KCB)은 구조만 준비**된 상태 → 실제 연동 필요.
-- 비밀번호는 Supabase Auth가 관리(실서비스 안전). **Mock 모드 한정 평문 저장** — 데모 전용.
-- `src/App.jsx`·`README.md`는 **여전히 Vite 기본 템플릿** (실제 진입점은 `main.jsx`) — 정리/삭제 가능.
-- 루트에 `log-in page.docx`, `tmp/`, `.DS_Store` 존재.
+### 실제 외부 연동 (Mock/Provider 골격 → 실서비스)
+- [ ] **실제 K리그 API 연동** — 경기센터 순위표·일정. 현재 `leagueProvider`(`VITE_LEAGUE_API_BASE` 설정 시 `/standings`·`/fixtures/:teamId` 호출) + Mock fallback 구조만 완비. 실 API 스펙에 맞춰 Provider 응답 매핑 필요.
+- [ ] **실제 팀별 뉴스 연동** — 현재 `newsRepo`가 Supabase `team_news`(관리자 입력) + Mock. 외부 뉴스 소스(구단 공식/RSS/제휴 API) 자동 수집·매핑은 미구현.
+- [ ] **관리자 KPI 실집계 고도화** — 대시보드 KPI 8종은 Supabase `count(*)` 실집계 연동 완료(13차, 30초 캐시). **구단별 현황·최근 활동·차트(라인/바/도넛/감정)는 아직 Mock** → `date_trunc` 집계 등으로 실데이터 전환 필요.
+- [ ] **휴대폰 본인인증(PASS / NICE / KCB) 실제 연동** — 사용자 스키마·`VERIFICATION` 상태(`phone_verified`)·설정 UI 자리만 준비됨. 이메일 인증만 실동작. 실제 본인인증 게이트웨이 연동 필요.
+
+### Edge Function 배포 확인 (Supabase)
+- [ ] `send-email-code` — 이메일 인증번호 발송(Resend, 미설정 시 devCode 폴백).
+- [ ] `naver-callback` — NAVER OAuth 콜백. 반드시 **`--no-verify-jwt`**로 배포(외부 콜백엔 JWT 없음, service_role 서버 처리). 시크릿: `NAVER_CLIENT_ID/SECRET`, `NAVER_REDIRECT_URI`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+- [ ] `analyze-insights` — AI 팬 인사이트(OpenAI). **verify_jwt 유지**(요청자 admin role 재확인).
+- [ ] `delete-account` — 안전한 회원탈퇴(service_role, 시크릿 자동 주입).
+- 검증 체크리스트: [SUPABASE_SETUP.md](SUPABASE_SETUP.md) / 소셜 배포·시크릿: [SOCIAL_LOGIN_SETUP.md](SOCIAL_LOGIN_SETUP.md).
+
+### 보안 / 코드 정리
+- [ ] **Mock 모드 평문 비밀번호 제거** — Supabase 모드는 Supabase Auth가 관리(안전). **Mock 모드 한정 평문 저장**은 데모 전용 → 실서비스 전 제거/해시화 필수.
+- [ ] **`src/App.jsx` 정리** — 여전히 Vite 기본 템플릿(실제 진입점은 `main.jsx`). 미사용 → 정리/삭제.
+- [ ] **`README.md` Vite 기본 템플릿 잔재 정리** — 프로젝트 실제 내용으로 갱신.
+- [ ] **소셜 프로필 이미지** — 일부 provider가 placeholder(SVG data URI). 실 사진 URL 매핑 확인.
+- [ ] 파비콘(`public/favicon.svg`, 보라 #863bff)이 PWA 아이콘(금색 FC-하트)과 다른 마크 → 브랜드 통일 여부 검토(이번 로고 교체에선 미변경).
+- [ ] 루트/작업 잔재: `log-in page.docx`, `tmp/`, `.DS_Store` 등 정리 여지.
+
+### 상태 요약
+- **Supabase 핵심 이관 완료**: Auth/Profile · 팬 의견/댓글/공감 · 설문 · 뉴스/알림 · 소셜로그인 · AI인사이트 · 온보딩 · 회원탈퇴 · 신고/공지. 모든 데이터 레이어가 **Supabase-우선 + Mock 폴백** 구조라 키 없이도 앱 동작.
+- **소셜 로그인**: Google·Kakao = Supabase native, NAVER = 커스텀 Edge Function(`naver-callback`).
 
 ## 6. 작업 시 참고
 
