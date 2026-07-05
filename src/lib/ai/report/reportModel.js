@@ -52,6 +52,39 @@ function teamCode(team) {
   return (team.nameEn || team.id).replace(/[^A-Za-z0-9]/g, '').toUpperCase()
 }
 
+// 저장된 리포트 문서(clubReportsRepo) → PDF 모델.
+// 문서 content 에는 집계/요약 필드만 있으므로(개인정보 없음) 그대로 사용한다.
+export function buildModelFromReportDoc(doc) {
+  const team = getTeam(doc.teamId)
+  const c = doc.content || {}
+  const generatedAt = new Date()
+  return {
+    ok: true,
+    isAll: !team,
+    team: team
+      ? { name: team.name, nameEn: team.nameEn, short: team.short, color: team.color, colorDeep: team.colorDeep }
+      : { name: 'FANCLUV', nameEn: 'FANCLUV', short: '전체', color: FANCLUV_PRIMARY, colorDeep: FANCLUV_PRIMARY },
+    generatedAt,
+    generatedAtLabel: fmtDate(generatedAt),
+    periodType: doc.periodType,
+    periodLabel: doc.periodLabel || periodLabel(doc.periodType, generatedAt),
+    fileName: `${teamCode(team)}_AI_Report_${fileToken(doc.periodType || 'monthly', generatedAt)}.pdf`,
+    summary: c.summary || '',
+    finalSummary: c.finalSummary || '',
+    operatorComment: c.operatorComment || '',
+    sentiment: {
+      positive: c.sentiment?.positive || 0,
+      neutral: c.sentiment?.neutral || 0,
+      negative: c.sentiment?.negative || 0,
+    },
+    keywords: (c.keywords || []).map((k, i) => ({ rank: i + 1, tag: k.tag, count: k.count || 0 })),
+    categories: c.categories || [],
+    satisfaction: Math.round(c.satisfaction || 0),
+    suggestions: (c.suggestions || []).map((s, i) => ({ rank: s.rank || i + 1, title: s.title, desc: s.desc || '' })),
+    kpi: c.kpi || { opinions: 0, comments: 0, members: 0, responses: 0, aiRunDate: '' },
+  }
+}
+
 export async function buildReportModel({ clubId = 'all', periodType = 'monthly' } = {}) {
   const insight = await getLatestInsight(clubId)
   if (!insight) return { ok: false, code: 'no_insight' }

@@ -1,0 +1,173 @@
+// FANCLUV — 구단 전달용 리포트 관리 repository.
+//
+// 운영자가 AI 인사이트를 스냅샷해 리포트 초안을 만들고, 검토·수정 후 승인/전달하는
+// 워크플로우의 단일 데이터 소스. Supabase(club_reports/report_deliveries) 또는 Mock.
+//
+// 개인정보 보호(요구사항 7): 리포트 content 에는 집계/요약 필드만 저장한다.
+//   summary · sentiment · keywords · categories · satisfaction · suggestions · kpi ·
+//   operatorComment · finalSummary — 이메일/닉네임/원본 의견/댓글/신고는 저장하지 않는다.
+import { supabase, isSupabaseConfigured } from '../supabase.js'
+import { getCurrentUser, isAdmin } from '../auth.js'
+import { buildReportModel } from '../ai/report/reportModel.js'
+
+export const REPORT_STATUSES = ['draft', 'review', 'approved', 'delivered']
+
+const KEY = 'fancluv_club_reports'
+const DKEY = 'fancluv_report_deliveries'
+
+function readMock(key) { try { return JSON.parse(localStorage.getItem(key)) || [] } catch { return [] } }
+function writeMock(key, list) { try { localStorage.setItem(key, JSON.stringify(list)) } catch { /* ignore */ } }
+
+function mapRow(r) {
+  return {
+    id: r.id,
+    teamId: r.team_id,
+    title: r.title,
+    periodType: r.period_type,
+    periodLabel: r.period_label,
+    status: r.status,
+    content: r.content || {},
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    deliveredAt: r.delivered_at || null,
+    deliveredBy: r.delivered_by || null,
+  }
+}
+
+// AI 인사이트 → 리포트 content 스냅샷 (집계 필드만).
+function contentFromModel(model) {
+  return {
+    summary: model.summary || '',
+    sentiment: { ...model.sentiment },
+    keywords: (model.keywords || []).map(k => ({ tag: k.tag, count: k.count })),
+    categories: (model.categories || []).map(c => ({ name: c.name, note: c.note })),
+    satisfaction: model.satisfaction || 0,
+    suggestions: (model.suggestions || []).map(s => ({ rank: s.rank, title: s.title, desc: s.desc })),
+    kpi: { ...model.kpi },
+    operatorComment: '',
+    finalSummary: model.summary || '', // 초안 시작점 — 운영자가 검토·수정
+  }
+}
+
+// ── 목록 ──
+export async function adminListReports() {
+  if (!isAdmin()) return []
+  if (isSupabaseConfigured) {
+    const { data, error } = await supabase.from('club_reports').select('*').order('created_at', { ascending: false })
+    if (error) return []
+    return (data || []).map(mapRow)
+  }
+  return readMock(KEY).slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+}
+
+// ── 생성 (AI 인사이트 초안) ──
+export async function createReport({ teamId, periodType = 'monthly', title }) {
+  if (!isAdmin()) return { ok: false, error: 'forbidden' }
+  const tt = (title || '').trim()
+  if (!teamId || teamId === 'all') return { ok: false, code: 'no_team' }
+  if (!tt) return { ok: false, code: 'no_title' }
+
+  const model = await buildReportModel({ clubId: teamId, periodType })
+  if (!model.ok) return { ok: false, code: 'no_insight' }
+  const content = contentFromModel(model)
+
+  if (isSupabaseConfigured) {
+    const me = getCurrentUser()
+    const { data, error } = await supabase.from('club_reports').insert({
+      team_id: teamId, title: tt, period_type: periodType, period_label: model.periodLabel,
+      status: 'draft', content, created_by: me?.id || null,
+    }).select().single()
+    if (error) return { ok: false, error: error.message }
+    return { ok: true, report: mapRow(data) }
+  }
+  const now = new Date().toISOString()
+  const report = {
+    id: 'rp' + Date.now(), teamId, title: tt, periodType, periodLabel: model.periodLabel,
+    status: 'draft', content, createdAt: now, updatedAt: now, deliveredAt: null, deliveredBy: null,
+  }
+  const list = readMock(KEY); list.unshift(report); writeMock(KEY, list)
+  return { ok: true, report }
+}
+
+// ── 상세 ──
+export async function getReport(id) {
+  if (!isAdmin()) return null
+  if (isSupabaseConfigured) {
+    const { data } = await supabase.from('club_reports').select('*').eq('id', id).maybeSingle()
+    return data ? mapRow(data) : null
+  }
+  return readMock(KEY).find(r => r.id === id) || null
+}
+
+// ── 본문/제목 수정 ──
+export async function updateReport(id, { title, content }) {
+  if (!isAdmin()) return { ok: false, error: 'forbidden' }
+  const patch = { updated_at: new Date().toISOString() }
+  if (title != null) patch.title = title
+  if (content != null) patch.content = content
+  if (isSupabaseConfigured) {
+    const { data, error } = await supabase.from('club_reports').update(patch).eq('id', id).select().single()
+    if (error) return { ok: false, error: error.message }
+    return { ok: true, report: mapRow(data) }
+  }
+  let updated = null
+  writeMock(KEY, readMock(KEY).map(r => {
+    if (r.id !== id) return r
+    updated = { ...r, ...(title != null ? { title } : {}), ...(content != null ? { content } : {}), updatedAt: patch.updated_at }
+    return updated
+  }))
+  return { ok: true, report: updated }
+}
+
+// ── 상태 변경 (전달 완료 시 전달 기록 저장) ──
+export async function setStatus(id, status) {
+  if (!isAdmin()) return { ok: false, error: 'forbidden' }
+  const me = getCurrentUser()
+  const now = new Date().toISOString()
+  const delivering = status === 'delivered'
+
+  if (isSupabaseConfigured) {
+    const patch = { status, updated_at: now }
+    if (delivering) { patch.delivered_at = now; patch.delivered_by = me?.nickname || 'Admin' }
+    const { data, error } = await supabase.from('club_reports').update(patch).eq('id', id).select().single()
+    if (error) return { ok: false, error: error.message }
+    if (delivering) {
+      await supabase.from('report_deliveries').insert({ report_id: id, team_id: data.team_id, operator: me?.nickname || 'Admin' })
+    }
+    return { ok: true, report: mapRow(data) }
+  }
+
+  let updated = null
+  writeMock(KEY, readMock(KEY).map(r => {
+    if (r.id !== id) return r
+    updated = { ...r, status, updatedAt: now, ...(delivering ? { deliveredAt: now, deliveredBy: me?.nickname || 'Admin' } : {}) }
+    return updated
+  }))
+  if (delivering && updated) {
+    const dl = readMock(DKEY)
+    dl.unshift({ id: 'dl' + Date.now(), reportId: id, teamId: updated.teamId, operator: me?.nickname || 'Admin', deliveredAt: now })
+    writeMock(DKEY, dl)
+  }
+  return { ok: true, report: updated }
+}
+
+// ── 삭제 ──
+export async function deleteReport(id) {
+  if (!isAdmin()) return { ok: false, error: 'forbidden' }
+  if (isSupabaseConfigured) {
+    const { error } = await supabase.from('club_reports').delete().eq('id', id)
+    return { ok: !error }
+  }
+  writeMock(KEY, readMock(KEY).filter(r => r.id !== id))
+  return { ok: true }
+}
+
+// ── 전달 기록 목록 ──
+export async function listDeliveries() {
+  if (!isAdmin()) return []
+  if (isSupabaseConfigured) {
+    const { data } = await supabase.from('report_deliveries').select('*').order('delivered_at', { ascending: false })
+    return (data || []).map(d => ({ id: d.id, reportId: d.report_id, teamId: d.team_id, operator: d.operator, deliveredAt: d.delivered_at }))
+  }
+  return readMock(DKEY)
+}

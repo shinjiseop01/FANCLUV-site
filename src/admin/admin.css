@@ -401,3 +401,22 @@
 @media (max-width: 560px) {
   .adm-notice-team { max-width: none; width: 100%; }
 }
+
+/* ── 구단 전달용 리포트 관리 ── */
+.adm-badge.delivered { color: var(--team-deep); background: color-mix(in srgb, var(--team) 14%, var(--mix-base)); }
+.adm-table tr.is-selected { background: color-mix(in srgb, var(--team) 6%, var(--mix-base)); }
+.adm-report-edit .adm-field { margin-bottom: 16px; }
+.adm-rpt-statusbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.adm-rpt-statuses { display: flex; gap: 6px; flex-wrap: wrap; }
+.adm-rpt-pdf { display: inline-flex; align-items: center; gap: 6px; }
+.adm-rpt-pdf:disabled { opacity: 0.5; cursor: not-allowed; }
+.adm-rpt-lockhint { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+.adm-rpt-delivery { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--team-deep);
+  background: color-mix(in srgb, var(--team) 10%, var(--mix-base)); border-radius: 8px; padding: 8px 12px; margin-bottom: 16px; }
+.adm-rpt-tolabel { font-size: 11.5px; font-weight: 700; color: var(--team-deep); }
+.adm-rpt-sentiment { display: flex; gap: 12px; flex-wrap: wrap; }
+.adm-rpt-sentiment label { flex: 1; min-width: 90px; font-size: 12.5px; font-weight: 700; color: var(--muted); display: flex; flex-direction: column; gap: 5px; }
+.adm-mono-area { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.6; resize: vertical; }
+.adm-rpt-kpi { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--body);
+  background: var(--page-bg); border: 1px solid var(--border-soft); border-radius: 10px; padding: 12px 14px; }
+.adm-rpt-kpi b { color: var(--ink); }

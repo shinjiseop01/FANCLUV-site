@@ -161,12 +161,14 @@ function bodyHtml(model, t) {
       <span style="font-size:16px;font-weight:900;color:#15171C;">${esc(model.team.name)} · AI Fan Insight</span>
       <span style="font-size:12.5px;color:#8A9099;font-weight:700;">${esc(model.periodLabel)}</span>
     </div>
-    ${block(t('aiReport.summary'), `<p style="font-size:15px;color:#3A3F47;line-height:1.75;margin:0;background:#F7F5FF;border-radius:12px;padding:18px 20px;">${esc(model.summary)}</p>`)}
+    ${model.finalSummary ? `<section style="margin-bottom:34px;">${sectionTitle(t('aiReport.finalSummary'), FANCLUV_PRIMARY)}<p style="font-size:15px;color:#2A2E35;line-height:1.75;margin:0;background:#F7F5FF;border:1px solid ${FANCLUV_PRIMARY}33;border-radius:12px;padding:18px 20px;">${esc(model.finalSummary)}</p></section>` : ''}
+    ${block(t('aiReport.summary'), `<p style="font-size:15px;color:#3A3F47;line-height:1.75;margin:0;background:#F6F7F9;border-radius:12px;padding:18px 20px;">${esc(model.summary)}</p>`)}
     ${block(t('aiReport.sentiment'), sentimentHtml(model, t, color))}
     ${block(t('aiReport.keywords'), keywordsHtml(model, color))}
     ${block(t('aiReport.complaints'), categoriesHtml(model, color))}
     ${block(t('aiReport.satisfaction'), satisfactionHtml(model, color))}
     ${block(t('aiReport.suggestions'), suggestionsHtml(model, color))}
+    ${model.operatorComment ? block(t('aiReport.operatorComment'), `<p style="font-size:14px;color:#3A3F47;line-height:1.7;margin:0;border-left:4px solid ${color};padding:6px 0 6px 16px;">${esc(model.operatorComment)}</p>`) : ''}
     ${block(t('aiReport.kpi'), kpiHtml(model, t, color))}
     <div style="margin-top:40px;border-top:1px solid #E6E8EB;padding-top:14px;font-size:11.5px;color:#A0A5AC;text-align:center;">
       © ${new Date().getFullYear()} FANCLUV · ${esc(t('aiReport.confidential'))}
