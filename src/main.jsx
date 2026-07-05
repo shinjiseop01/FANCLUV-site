@@ -39,6 +39,7 @@ import AdminMembers from './admin/AdminMembers.jsx'
 import AdminOpinions from './admin/AdminOpinions.jsx'
 import AdminSurveys from './admin/AdminSurveys.jsx'
 import AdminNews from './admin/AdminNews.jsx'
+import AdminNotices from './admin/AdminNotices.jsx'
 import AdminReports from './admin/AdminReports.jsx'
 import AdminSettings from './admin/AdminSettings.jsx'
 import AccessDenied from './admin/AccessDenied.jsx'
@@ -112,6 +113,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="opinions" element={<AdminOpinions />} />
           <Route path="surveys" element={<AdminSurveys />} />
           <Route path="news" element={<AdminNews />} />
+          <Route path="notices" element={<AdminNotices />} />
           <Route path="reports" element={<AdminReports />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>

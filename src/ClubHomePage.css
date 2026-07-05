@@ -418,3 +418,28 @@
 @media (max-width: 420px) {
   .ch-stats { grid-template-columns: 1fr; }
 }
+
+/* ── 관리자 공지 배너 (중요/고정 상단) ── */
+.ch-notices { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+.ch-notice {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px; border-radius: 14px;
+  background: var(--card, #fff); border: 1px solid var(--border, #e6e8eb);
+}
+.ch-notice.important {
+  border-color: color-mix(in srgb, var(--team) 40%, transparent);
+  background: color-mix(in srgb, var(--team) 7%, var(--mix-base));
+}
+.ch-notice-ic {
+  flex-shrink: 0; width: 32px; height: 32px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--team-deep); background: color-mix(in srgb, var(--team) 12%, var(--mix-base));
+}
+.ch-notice-body { flex: 1; min-width: 0; }
+.ch-notice-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ch-notice-tag {
+  font-size: 11px; font-weight: 800; color: #fff; background: var(--team-deep);
+  padding: 2px 8px; border-radius: 100px; flex-shrink: 0;
+}
+.ch-notice-title { font-size: 15px; font-weight: 800; color: var(--ink); }
+.ch-notice-text { margin: 4px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.55; }

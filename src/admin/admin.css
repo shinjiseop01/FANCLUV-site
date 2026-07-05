@@ -209,18 +209,47 @@
 
 .adm-comment-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
 .adm-comment {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+  display: flex; flex-direction: column; gap: 12px;
   padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--page-bg);
 }
+.adm-comment-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .adm-comment.is-hidden { opacity: 0.6; }
 .adm-comment-body { flex: 1; min-width: 0; }
 .adm-comment-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
 .adm-comment-text { font-size: 14px; color: var(--ink); line-height: 1.6; word-break: break-word; }
 
 @media (max-width: 640px) {
-  .adm-comment { flex-direction: column; }
+  .adm-comment-main { flex-direction: column; }
   .adm-comment .adm-actions { width: 100%; justify-content: flex-start; }
 }
+
+/* ── CSV 다운로드 버튼 ── */
+.adm-csv-btn { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ── 배지 추가: 반려 / 고정 / 중요 ── */
+.adm-badge.rejected { color: var(--muted); background: var(--page-bg); border: 1px solid var(--border); }
+.adm-badge.pin { color: var(--team-deep); background: color-mix(in srgb, var(--team) 14%, var(--mix-base)); margin-right: 8px; display: inline-flex; align-items: center; gap: 3px; }
+.adm-badge.important { color: #C2410C; background: rgba(234, 88, 12, 0.15); margin-right: 8px; }
+
+/* ── 공지 폼 체크박스 ── */
+.adm-field-check { display: flex; align-items: flex-end; }
+.adm-check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; padding: 10px 0; }
+.adm-check input { width: 17px; height: 17px; accent-color: var(--team-deep); cursor: pointer; }
+
+/* ── 관리자 내부 메모 (운영자 전용) ── */
+.adm-notes { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border); }
+.adm-notes-head { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--ink); margin-bottom: 10px; }
+.adm-notes-hint { font-size: 11.5px; font-weight: 600; color: var(--muted); margin-left: auto; }
+.adm-notes-form { display: flex; gap: 8px; margin-bottom: 12px; }
+.adm-notes-form .adm-input { flex: 1; }
+.adm-notes-empty { font-size: 13px; color: var(--muted); margin: 0; }
+.adm-notes-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.adm-note-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--page-bg); border: 1px solid var(--border-soft); }
+.adm-note-body { flex: 1; min-width: 0; }
+.adm-note-text { display: block; font-size: 13.5px; color: var(--ink); line-height: 1.5; word-break: break-word; }
+.adm-note-meta { display: block; font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+.adm-note-del { flex-shrink: 0; background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 0 4px; }
+.adm-note-del:hover { color: #DC2626; }
 
 /* Loading text */
 .adm-loading { padding: 40px 8px; text-align: center; color: var(--muted); font-size: 14px; }

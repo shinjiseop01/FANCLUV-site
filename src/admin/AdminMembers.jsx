@@ -3,9 +3,13 @@ import { useLang } from '../contexts/LanguageContext.jsx'
 import { getTeam } from '../teams.jsx'
 import Avatar from '../components/Avatar.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import Icon from '../components/Icon.jsx'
+import AdminNoteBox from './AdminNoteBox.jsx'
 import { MOCK_MEMBERS } from './adminData.js'
+import { exportCsv } from '../lib/admin/csv.js'
 
-const VFILTERS = ['all', 'unverified', 'email_verified', 'phone_verified']
+// 필터: 전체 / 정상 / 비활성 / 이메일 인증 완료 / 이메일 인증 미완료
+const FILTERS = ['all', 'active', 'inactive', 'email_verified', 'email_unverified']
 
 // Verification badge: class + label key per status.
 function vMeta(status) {
@@ -22,25 +26,40 @@ function loginLabel(provider, t) {
   return t('admin.mem.loginEmail')
 }
 
+// 필터 매칭 (상태 + 이메일 인증 여부)
+function matchFilter(m, f) {
+  if (f === 'all') return true
+  if (f === 'active') return m.status === 'active'
+  if (f === 'inactive') return m.status === 'inactive'
+  if (f === 'email_verified') return m.verificationStatus === 'email_verified' || m.verificationStatus === 'phone_verified'
+  if (f === 'email_unverified') return (m.verificationStatus || 'unverified') === 'unverified'
+  return true
+}
+
 export default function AdminMembers() {
   const { t } = useLang()
   const [members, setMembers] = useState(MOCK_MEMBERS)
   const [query, setQuery] = useState('')
-  const [vfilter, setVfilter] = useState('all')
+  const [filter, setFilter] = useState('all')
   const [selectedId, setSelectedId] = useState(null)   // 회원 상세 패널 (운영자 전용)
 
   // 성별 / 나이대 표시 라벨 (회원가입 폼과 동일 키 재사용)
   const genderLabel = g => g === 'male' ? t('signup.genderMale') : g === 'female' ? t('signup.genderFemale') : t('set.notSet')
   const ageLabel = a => a ? (a === '50+' ? t('signup.age50') : t(`signup.age${a}`)) : t('set.notSet')
+  const statusLabel = s => s === 'active' ? t('admin.mem.active') : t('admin.mem.inactive')
 
+  // 검색: 이메일 / 닉네임 / 구단 / 날짜(가입일) / 상태
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
     return members.filter(m => {
-      if (vfilter !== 'all' && (m.verificationStatus || 'unverified') !== vfilter) return false
-      if (q && !(m.nickname.toLowerCase().includes(q) || m.email.toLowerCase().includes(q))) return false
-      return true
+      if (!matchFilter(m, filter)) return false
+      if (!q) return true
+      const team = getTeam(m.team)?.name || ''
+      return [m.nickname, m.email, team, m.joinedAt, statusLabel(m.status)]
+        .some(v => String(v || '').toLowerCase().includes(q))
     })
-  }, [members, query, vfilter])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [members, query, filter, t])
 
   function toggleActive(id) {
     setMembers(list => list.map(m =>
@@ -53,25 +72,54 @@ export default function AdminMembers() {
     if (selectedId === id) setSelectedId(null)
   }
 
+  function downloadCsv() {
+    const cols = [
+      { key: 'id', label: 'Member ID' },
+      { key: 'nickname', label: t('admin.mem.fNickname') },
+      { key: 'email', label: t('admin.mem.colEmail') },
+      { key: 'joinedAt', label: t('admin.mem.colJoined') },
+      { key: 'team', label: t('admin.mem.colTeam') },
+      { key: 'login', label: t('admin.mem.fLogin') },
+      { key: 'gender', label: t('admin.mem.fGender') },
+      { key: 'age', label: t('admin.mem.fAge') },
+      { key: 'verify', label: t('admin.mem.fVerifyEmail') },
+      { key: 'status', label: t('admin.mem.colStatus') },
+      { key: 'lastActive', label: t('admin.mem.fLastActive') },
+    ]
+    const rows = visible.map(m => ({
+      id: m.id, nickname: m.nickname, email: m.email, joinedAt: m.joinedAt,
+      team: getTeam(m.team)?.name || '', login: loginLabel(m.provider, t),
+      gender: genderLabel(m.gender), age: ageLabel(m.ageGroup),
+      verify: m.verificationStatus === 'unverified' ? t('admin.mem.verifiedNo') : t('admin.mem.verifiedYes'),
+      status: statusLabel(m.status), lastActive: m.lastActiveAt || '',
+    }))
+    exportCsv('fancluv_members', cols, rows)
+  }
+
   const selected = members.find(m => m.id === selectedId) || null
 
   return (
     <div className="adm-page">
-      <header className="adm-page-head">
-        <h1 className="adm-h1">{t('admin.menu.members')}</h1>
-        <p className="adm-sub">{t('admin.mem.sub', { n: members.length })}</p>
+      <header className="adm-page-head adm-head-row">
+        <div>
+          <h1 className="adm-h1">{t('admin.menu.members')}</h1>
+          <p className="adm-sub">{t('admin.mem.sub', { n: members.length })}</p>
+        </div>
+        <button className="adm-btn-ghost adm-csv-btn" onClick={downloadCsv} disabled={visible.length === 0}>
+          <Icon name="external" size={15} /> {t('admin.csv')}
+        </button>
       </header>
 
       <div className="adm-toolbar">
         <div className="adm-search">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M21 21l-4.3-4.3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+          <Icon name="search" size={18} />
           <input type="search" placeholder={t('admin.mem.searchPh')} value={query} onChange={e => setQuery(e.target.value)} />
         </div>
-        <div className="adm-filters" role="group" aria-label={t('admin.mem.colVerify')}>
-          {VFILTERS.map(f => (
+        <div className="adm-filters" role="group" aria-label={t('admin.mem.colStatus')}>
+          {FILTERS.map(f => (
             <button key={f}
-              className={`adm-filter${vfilter === f ? ' on' : ''}`}
-              onClick={() => setVfilter(f)}>
+              className={`adm-filter${filter === f ? ' on' : ''}`}
+              onClick={() => setFilter(f)}>
               {t(`admin.mem.filter.${f}`)}
             </button>
           ))}
@@ -111,9 +159,7 @@ export default function AdminMembers() {
                     <td>{team ? team.name : '-'}</td>
                     <td><span className={`adm-badge ${v.cls}`}>{t(v.key)}</span></td>
                     <td>
-                      <span className={`adm-badge ${m.status}`}>
-                        {m.status === 'active' ? t('admin.mem.active') : t('admin.mem.inactive')}
-                      </span>
+                      <span className={`adm-badge ${m.status}`}>{statusLabel(m.status)}</span>
                     </td>
                     <td className="adm-col-actions">
                       <div className="adm-actions">
@@ -160,14 +206,12 @@ export default function AdminMembers() {
             </div>
             <div>
               <dt>{t('admin.mem.colStatus')}</dt>
-              <dd>
-                <span className={`adm-badge ${selected.status}`}>
-                  {selected.status === 'active' ? t('admin.mem.active') : t('admin.mem.inactive')}
-                </span>
-              </dd>
+              <dd><span className={`adm-badge ${selected.status}`}>{statusLabel(selected.status)}</span></dd>
             </div>
             <div><dt>{t('admin.mem.fLastActive')}</dt><dd>{selected.lastActiveAt || '-'}</dd></div>
           </dl>
+
+          <AdminNoteBox entityType="member" entityId={selected.id} />
         </section>
       )}
     </div>

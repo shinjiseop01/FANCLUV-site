@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import Icon from '../components/Icon.jsx'
 import {
   adminListSurveys, createSurvey, updateSurvey,
   closeSurvey as closeSurveyApi, deleteSurvey,
 } from '../lib/surveysRepo.js'
+import { exportCsv } from '../lib/admin/csv.js'
 
 const EMPTY = { title: '', desc: '', question: '', endDate: '' }
 
@@ -52,6 +54,22 @@ export default function AdminSurveys() {
     if (res.ok) setSurveys(list => list.filter(s => s.id !== id))
   }
 
+  function downloadCsv() {
+    const cols = [
+      { key: 'id', label: 'ID' },
+      { key: 'title', label: t('admin.sv.colTitle') },
+      { key: 'question', label: t('admin.sv.fQuestion') },
+      { key: 'endDate', label: t('admin.sv.colEnd') },
+      { key: 'responses', label: t('admin.sv.colResponses') },
+      { key: 'status', label: t('admin.sv.colStatus') },
+    ]
+    const rows = surveys.map(s => ({
+      id: s.id, title: s.title, question: s.question || '', endDate: s.endDate || '',
+      responses: s.responses, status: s.status === 'open' ? t('admin.sv.open') : t('admin.sv.closed'),
+    }))
+    exportCsv('fancluv_surveys', cols, rows)
+  }
+
   return (
     <div className="adm-page">
       <header className="adm-page-head adm-head-row">
@@ -59,7 +77,12 @@ export default function AdminSurveys() {
           <h1 className="adm-h1">{t('admin.menu.surveys')}</h1>
           <p className="adm-sub">{t('admin.sv.sub', { n: surveys.length })}</p>
         </div>
-        <button className="adm-btn-primary" onClick={openCreate}>+ {t('admin.sv.create')}</button>
+        <div className="adm-head-actions">
+          <button className="adm-btn-ghost adm-csv-btn" onClick={downloadCsv} disabled={surveys.length === 0}>
+            <Icon name="external" size={15} /> {t('admin.csv')}
+          </button>
+          <button className="adm-btn-primary" onClick={openCreate}>+ {t('admin.sv.create')}</button>
+        </div>
       </header>
 
       {form && (

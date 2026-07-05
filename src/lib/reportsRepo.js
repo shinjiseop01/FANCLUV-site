@@ -97,6 +97,16 @@ export async function resolveReport(id) {
   return { ok: true }
 }
 
+// ── 관리자: 반려 (신고를 기각) ──
+export async function rejectReport(id) {
+  if (isSupabaseConfigured) {
+    const { error } = await supabase.from('reports').update({ status: 'rejected' }).eq('id', id)
+    return { ok: !error }
+  }
+  writeMock(getMockList().map(r => (r.id === id ? { ...r, status: 'rejected' } : r)))
+  return { ok: true }
+}
+
 // ── 관리자: 신고 삭제 ──
 export async function deleteReport(id) {
   if (isSupabaseConfigured) {

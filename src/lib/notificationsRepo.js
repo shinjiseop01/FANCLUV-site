@@ -47,23 +47,7 @@ function mapRow(r) {
   return { id: r.id, type: r.type, title: r.title, body: r.body, url: r.url, isRead: !!r.is_read, createdAt: r.created_at }
 }
 
-// ── 관리자 공지 등록 → 대상 팬에게 'notice' 알림 생성 ──
-// Supabase 는 notices 테이블 insert(트리거가 알림 broadcast), Mock 은 로컬 알림 추가.
-export async function createNotice({ title, body, teamId = null }) {
-  const t = (title || '').trim()
-  const b = (body || '').trim()
-  if (!t || !b) return { ok: false, error: '제목과 내용을 입력해 주세요.' }
-  if (isSupabaseConfigured) {
-    const me = getCurrentUser()
-    const { error } = await supabase.from('notices').insert({
-      title: t, body: b, team_id: teamId || null, created_by: me?.id || null,
-    })
-    if (error) return { ok: false, error: error.message }
-    return { ok: true }
-  }
-  pushMockNotification({ type: 'notice', title: t, body: b })
-  return { ok: true }
-}
+// 관리자 공지 등록(createNotice)은 noticesRepo.js 로 이동했다(공지 CRUD/노출 일원화).
 
 // ── 목록 ──
 export async function listNotifications() {

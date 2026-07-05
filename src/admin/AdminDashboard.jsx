@@ -6,7 +6,7 @@ import { getAdminDashboard, refreshAdminDashboard } from '../lib/admin/adminStat
 import { LineChart, BarChart } from './AdminCharts.jsx'
 import { TEAMS, getTeam } from '../teams.jsx'
 import { runAnalysis } from '../lib/ai/analyzeFanInsights.js'
-import { createNotice } from '../lib/notificationsRepo.js'
+import { createNotice } from '../lib/noticesRepo.js'
 import EmptyState from '../components/EmptyState.jsx'
 import Icon from '../components/Icon.jsx'
 
