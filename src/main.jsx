@@ -6,6 +6,7 @@ import { isSupabaseConfigured } from './lib/supabase.js'
 import { LanguageProvider } from './contexts/LanguageContext.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
+import { registerServiceWorker } from './lib/registerSW.js'
 import './index.css'
 import './theme.css'
 import './components/components.css'
@@ -123,3 +124,6 @@ createRoot(document.getElementById('root')).render(
     </ThemeProvider>
   </StrictMode>,
 )
+
+// PWA: Service Worker 등록 (프로덕션 빌드에서만 — dev HMR 보호)
+registerServiceWorker()

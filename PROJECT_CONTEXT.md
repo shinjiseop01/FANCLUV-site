@@ -1,7 +1,7 @@
 # FANCLUV — 프로젝트 컨텍스트 (핸드오프 문서)
 
 > 새 채팅에서 이 파일을 읽으면 바로 이어서 작업할 수 있도록 정리한 문서입니다.
-> 최종 정리: 2026-07-05 / `main` 브랜치 기준 (프로필 관리 고도화 19차)
+> 최종 정리: 2026-07-05 / `main` 브랜치 기준 (PWA·브라우저 알림 20차)
 
 ## 1. 프로젝트 개요
 
@@ -216,6 +216,7 @@ npm run lint     # oxlint
 
 **Supabase 백엔드 연동 시리즈 (최신)**
 
+0. PWA·브라우저 알림 — 20차: `manifest.webmanifest`(standalone·theme #863bff·아이콘 `icon.svg` 192/512/maskable) + `public/sw.js`(앱셸 캐싱·오프라인 fallback·업데이트 대응) `registerSW`(PROD 전용). 설정에 **브라우저 알림 카드**(권한 허용/차단/미요청 + 토글 + 테스트 알림) `browserPush.js`, 알림 설정 영속화 `notifyPrefs.js`(브라우저/이메일/설문/뉴스/댓글/공감/공지). 향후 이벤트 연결 지점 `pushEventNotification(type)`(comment/like/survey/news/notice)
 0. 프로필 관리 고도화 — 19차: 아바타 업로드/미리보기/교체/기본복원(형식 jpg·jpeg·png·webp/5MB 검증) + **1:1 크롭(원형 미리보기)** `AvatarCropper`, 저장소 추상화 `avatarStorage`(Supabase Storage `avatars` 버킷=`0012` / Mock dataURL), 활동 통계 `profileStatsRepo`(Supabase count/Mock), 설정 프로필정보(이메일·가입일·로그인방식·응원팀·성별·나이대)·다음 닉네임 변경일·계정 보안 기기정보 `deviceInfo`
 0. 표 액션컬럼·카드 정렬 통일 — 18차: 관리자 액션컬럼 고정폭(184)·설문 질문 div화·팬랭킹 사이드 카드 간격
 0. UI 정렬·아이콘 통일 — 17차: OS 이모지 전면 제거→공용 SVG 아이콘(`Icon.jsx` 확장, EmptyState는 `iconName` prop), 관리자 액션버튼 정렬 통일(min-width 72·height 32·세로중앙), 설문 legend 정렬, 아이콘+텍스트 `ic-txt`(flex/align-center) 유틸, 감정/배지 아이콘 SVG화(`activityBadge` icon 필드), locale 내 이모지 제거

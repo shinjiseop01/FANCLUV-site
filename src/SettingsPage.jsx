@@ -6,9 +6,21 @@ import { useTheme } from './contexts/ThemeContext.jsx'
 import { logout, getCurrentUser, deleteAccount, nicknameChangeInfo } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getCurrentDevice } from './lib/deviceInfo.js'
+import { getPrefs, setPref } from './lib/notifyPrefs.js'
+import { getPermission, requestPermission, sendTestNotification, isSupported } from './lib/browserPush.js'
 import Icon from './components/Icon.jsx'
 import './ClubHomePage.css'
 import './SettingsPage.css'
+
+// 브라우저 알림 설정 항목 (localStorage/Supabase preference 로 저장)
+const NOTI_PREFS = [
+  ['email', 'set.notiEmail'],
+  ['survey', 'set.notiSurvey'],
+  ['news', 'set.notiNews'],
+  ['comment', 'set.notiComment'],
+  ['empathy', 'set.notiEmpathy'],
+  ['notice', 'set.notiNotice'],
+]
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 const APP_VERSION = '1.0.0 (MVP)'
@@ -46,8 +58,9 @@ export default function SettingsPage() {
   const ageLabel = user?.ageGroup ? (user.ageGroup === '50+' ? t('signup.age50') : t(`signup.age${user.ageGroup}`)) : t('set.notSet')
   const fmtDate = iso => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '-')
 
-  // notifications (mock — ON/OFF only)
-  const [noti, setNoti] = useState({ survey: true, news: true, comment: true, empathy: false })
+  // 알림 설정(localStorage 영속) + 브라우저 알림 권한 상태
+  const [prefs, setPrefs] = useState(getPrefs())
+  const [perm, setPerm] = useState(getPermission())
   const [toast, setToast] = useState('')
   // 회원탈퇴
   const [showWithdraw, setShowWithdraw] = useState(false)
@@ -64,9 +77,41 @@ export default function SettingsPage() {
   }
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
-  const toggle = key => setNoti(p => ({ ...p, [key]: !p[key] }))
   function flash(msg) { setToast(msg); setTimeout(() => setToast(''), 1800) }
   function handleLogout() { logout(); navigate('/') }
+
+  // 알림 설정 토글(영속 저장)
+  function togglePref(key) {
+    const next = !prefs[key]
+    const updated = setPref(key, next)
+    setPrefs({ ...updated })
+  }
+
+  // 브라우저 알림 켜기/끄기 — 켤 때 권한 요청
+  async function toggleBrowser() {
+    if (!prefs.browser) {
+      let p = getPermission()
+      if (p === 'default') { p = await requestPermission(); setPerm(p) }
+      else setPerm(p)
+      if (p !== 'granted') { flash(t('set.browserBlocked')); return }
+      setPrefs({ ...setPref('browser', true) })
+    } else {
+      setPrefs({ ...setPref('browser', false) })
+    }
+  }
+
+  async function onTestNotification() {
+    let p = getPermission()
+    if (p === 'default') { p = await requestPermission(); setPerm(p) }
+    if (p !== 'granted') { flash(t('set.browserBlocked')); return }
+    const res = await sendTestNotification(t('set.testBody'))
+    flash(res.ok ? t('set.testSent') : t('set.browserBlocked'))
+  }
+
+  const permLabel = perm === 'granted' ? t('set.permGranted')
+    : perm === 'denied' ? t('set.permDenied')
+      : perm === 'unsupported' ? t('set.permUnsupported')
+        : t('set.permDefault')
 
   const withdrawPhrase = t('set.withdrawPhrase')
   async function handleWithdraw() {
@@ -244,21 +289,39 @@ export default function SettingsPage() {
           <p className="st-hint">{t('set.themeHint')}</p>
         </section>
 
-        {/* Notifications */}
+        {/* Browser (push) notification */}
+        <section className="st-card">
+          <h2 className="st-card-title">{t('set.browserTitle')}</h2>
+          <div className="st-row st-row-static">
+            <span>{t('set.browserPermission')}</span>
+            <span className={`st-vbadge ${perm === 'granted' ? 'ok' : perm === 'denied' ? 'no' : 'soon'}`}>{permLabel}</span>
+          </div>
+          <div className="st-row st-row-static">
+            <span>{t('set.notiBrowser')}</span>
+            <button
+              className={`st-switch${prefs.browser ? ' on' : ''}`}
+              role="switch" aria-checked={prefs.browser} aria-label={t('set.notiBrowser')}
+              disabled={!isSupported() || perm === 'denied'}
+              onClick={toggleBrowser}>
+              <span className="st-switch-knob" />
+            </button>
+          </div>
+          <button className="st-btn st-test-btn" onClick={onTestNotification} disabled={!isSupported()}>
+            {t('set.testNotify')}
+          </button>
+          {perm === 'denied' && <p className="st-hint">{t('set.browserBlockedHint')}</p>}
+        </section>
+
+        {/* Notification preferences */}
         <section className="st-card">
           <h2 className="st-card-title">{t('set.notifications')}</h2>
-          {[
-            ['survey', 'set.notiSurvey'],
-            ['news', 'set.notiNews'],
-            ['comment', 'set.notiComment'],
-            ['empathy', 'set.notiEmpathy'],
-          ].map(([key, label]) => (
+          {NOTI_PREFS.map(([key, label]) => (
             <div key={key} className="st-row st-row-static">
               <span>{t(label)}</span>
               <button
-                className={`st-switch${noti[key] ? ' on' : ''}`}
-                role="switch" aria-checked={noti[key]} aria-label={t(label)}
-                onClick={() => toggle(key)}>
+                className={`st-switch${prefs[key] ? ' on' : ''}`}
+                role="switch" aria-checked={prefs[key]} aria-label={t(label)}
+                onClick={() => togglePref(key)}>
                 <span className="st-switch-knob" />
               </button>
             </div>

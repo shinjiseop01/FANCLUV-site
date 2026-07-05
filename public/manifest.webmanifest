@@ -1,0 +1,17 @@
+{
+  "name": "FANCLUV",
+  "short_name": "FANCLUV",
+  "description": "K리그1 팬 커뮤니티 — 의견·설문·경기·랭킹·AI 인사이트",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#863bff",
+  "icons": [
+    { "src": "/icon.svg", "type": "image/svg+xml", "sizes": "192x192", "purpose": "any" },
+    { "src": "/icon.svg", "type": "image/svg+xml", "sizes": "512x512", "purpose": "any" },
+    { "src": "/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "maskable" }
+  ]
+}
