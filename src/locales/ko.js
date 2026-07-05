@@ -103,6 +103,7 @@ export default {
   'profile.nicknameRule': '닉네임은 90일에 한 번만 변경할 수 있습니다.',
   'profile.nicknameLockedUntil': '닉네임은 90일에 한 번만 변경할 수 있어요. 다음 변경 가능일: {date}',
   'profile.nicknameUpdated': '닉네임이 변경되었습니다.',
+  'profile.nicknameLocked': '닉네임은 90일마다 변경할 수 있습니다.',
   'profile.saveNickname': '닉네임 변경',
   // 비밀번호 변경
   'pw.title': '비밀번호 변경',

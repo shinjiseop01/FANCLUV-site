@@ -28,7 +28,7 @@ export async function requestPermission() {
 // 브라우저 알림 표시. Service Worker 등록이 있으면 SW 경유(설치형에서 안정적), 아니면 Notification.
 export async function showBrowserNotification({ title, body, url = '/', tag }) {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return { ok: false, reason: 'no_permission' }
-  const options = { body, icon: '/icon.svg', badge: '/icon.svg', tag, data: { url }, lang: 'ko' }
+  const options = { body, icon: '/icon-192.png', badge: '/icon-192.png', tag, data: { url }, lang: 'ko' }
   try {
     const reg = navigator.serviceWorker && (await navigator.serviceWorker.getRegistration())
     if (reg && reg.showNotification) { await reg.showNotification(title, options); return { ok: true } }

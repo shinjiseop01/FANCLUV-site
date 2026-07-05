@@ -5,7 +5,7 @@
 // - 앱 업데이트 대응: 버전 캐시명 + skipWaiting/clients.claim
 //   (새 SW 배포 시 CACHE 버전만 올리면 이전 캐시 정리)
 const CACHE = 'fancluv-cache-v1'
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg', '/favicon.svg']
+const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/favicon.svg']
 
 self.addEventListener('install', event => {
   self.skipWaiting()

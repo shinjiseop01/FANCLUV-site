@@ -103,6 +103,7 @@ export default {
   'profile.nicknameRule': 'Nickname can be changed once every 90 days.',
   'profile.nicknameLockedUntil': 'Nickname can be changed once every 90 days. Next change: {date}',
   'profile.nicknameUpdated': 'Nickname updated.',
+  'profile.nicknameLocked': 'You can change your nickname once every 90 days.',
   'profile.saveNickname': 'Save nickname',
   // Change password
   'pw.title': 'Change Password',

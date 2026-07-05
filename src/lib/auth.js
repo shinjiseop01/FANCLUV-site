@@ -498,7 +498,7 @@ export async function changeNickname(nickname) {
   if (fe) return fe
   const info = nicknameChangeInfo()
   if (!info.canChange)
-    return { ok: false, error: '닉네임은 3개월에 한 번만 변경할 수 있습니다.', nextChangeAt: info.nextChangeAt }
+    return { ok: false, error: '닉네임은 90일마다 변경할 수 있습니다.', nextChangeAt: info.nextChangeAt }
   const me = getCurrentUser()
   if (await isNicknameTaken(name, { exceptId: me?.id, exceptEmail: me?.email }))
     return { ok: false, error: '이미 사용 중인 닉네임입니다.', code: 'nickname_taken' }

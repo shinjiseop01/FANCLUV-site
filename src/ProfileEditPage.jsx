@@ -17,11 +17,6 @@ import './AccountPages.css'
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
-function formatDate(iso) {
-  if (!iso) return ''
-  return iso.slice(0, 10).replace(/-/g, '.')
-}
-
 export default function ProfileEditPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
@@ -108,9 +103,8 @@ export default function ProfileEditPage() {
     if (res.ok) {
       setOkMsg(t('profile.nicknameUpdated'))
     } else {
-      setError(res.nextChangeAt
-        ? t('profile.nicknameLockedUntil', { date: formatDate(res.nextChangeAt) })
-        : res.error)
+      // 제한 기간이면 다음 변경일(날짜) 없이 안내 메시지만 표시
+      setError(res.nextChangeAt ? t('profile.nicknameLocked') : res.error)
     }
   }
 
@@ -176,15 +170,11 @@ export default function ProfileEditPage() {
               ? <p className="ac-hint">{t('nickname.hint')}</p>
               : <NicknameStatus status={nickCheck} />
           ) : (
-            <p className="ac-hint">{t('profile.nicknameLockedUntil', { date: formatDate(info.nextChangeAt) })}</p>
+            <p className="ac-hint">{t('profile.nicknameLocked')}</p>
           )}
           <button className="ac-save-btn" onClick={saveNickname} disabled={!info.canChange || unchanged || nickCheck.state !== 'available'}>
             {t('profile.saveNickname')}
           </button>
-          <p className="ac-next-change">
-            {t('profile.nextChangeLabel')}
-            <strong>{info.nextChangeAt ? formatDate(info.nextChangeAt) : t('profile.nextChangeNow')}</strong>
-          </p>
         </section>
 
         {/* Activity stats */}
