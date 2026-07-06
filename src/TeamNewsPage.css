@@ -49,6 +49,14 @@
   padding: 3px 10px; border-radius: 100px;
 }
 .tn-date { font-size: 12.5px; color: var(--muted); }
+/* 외부(공식) 뉴스 출처 배지 — 클릭 시 원본 새 탭 */
+.tn-source {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 700; color: var(--team-deep);
+  background: color-mix(in srgb, var(--team) 10%, var(--mix-base));
+  padding: 2px 8px; border-radius: 100px; margin-left: auto;
+}
+.tn-source svg { width: 11px; height: 11px; }
 
 .tn-thumb {
   position: relative;

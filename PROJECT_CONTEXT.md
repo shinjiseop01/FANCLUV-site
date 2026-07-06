@@ -169,8 +169,19 @@ npm run lint     # oxlint
 - **URL query 필터(4차 탐색)**: `?category=<카테고리>` / `?keyword=<검색어>`를 `useSearchParams`로 읽어 카테고리 선택·검색어를 자동 적용(직접 접속/새로고침 대응). 홈의 인기 카테고리·주제, 사이드바 인기 카테고리·키워드 클릭이 이 필터로 연결됨. 기존 검색/카테고리/정렬 UI는 그대로.
 - **홈(ClubHomePage) 탐색 링크(4차)**: 인기 의견 카드 클릭 → 해당 의견 상세(`/opinions/:id`), 인기 카테고리 → `/opinions?category=`, 인기 주제(키워드) → `/opinions?keyword=`, "전체 보기/더 보기" → 목록. 홈 데이터의 카테고리/키워드를 의견 페이지 분류와 일치시킴.
 
-### 팀 뉴스 — `src/lib/newsRepo.js` (Supabase-우선 + Mock 폴백)
-- **Supabase 이관 완료(3차)**. `TeamNewsPage`(팬) + `AdminNews`(관리자)의 단일 데이터 소스. Supabase 설정 시 `team_news` 테이블(제목·내용·team_id·category·image_url·author·status·is_important), 아니면 Mock.
+### 팀 뉴스 Provider 아키텍처 — `src/lib/news/` (실제 뉴스 연동 구조)
+- **팀 뉴스 페이지는 `getTeamNews(clubId)`(서비스) 하나만 호출**한다. `TeamNewsPage`는 Supabase/Mock을 직접 부르지 않고 Provider를 통해 뉴스를 받는다.
+- **구조**
+  - `src/lib/news/newsSources.js` — 12개 구단 뉴스 소스 설정: `clubId·clubName·officialWebsite·newsUrl·rssUrl·instagramUrl·youtubeUrl`. 공식/SNS URL은 `clubLinks.js` 재사용, **공개 RSS 없는 구단은 `rssUrl: null`**. 실제 소스 확인 시 `SOURCE_OVERRIDES`만 채우면 됨.
+  - `src/lib/news/providers/` — `rssProvider`·`officialWebsiteProvider`·`newsApiProvider`(모두 **구조만**, 현재 `[]` 반환) + `mockNewsProvider`(fallback 데모 뉴스, `sourceUrl`=구단 공식 → 클릭 시 새 탭).
+  - `src/lib/news/teamNewsProvider.js` — 오케스트레이터: 우선순위 조합 + 표준화 + 캐시 + 폴백.
+- **실제 뉴스 연동 방식**: `REAL_PROVIDERS = [rss, newsApi, official]`을 순서대로 시도 → 처음으로 결과가 있는 Provider 사용. (RSS/스크래핑은 CORS 때문에 Edge Function 프록시로 구현 예정 — 각 provider에 TODO 주석.)
+- **우선순위(요구사항)**: ① 실제 Provider → ② Supabase 저장 뉴스(`team_news`)/관리자 등록 뉴스(**항상 병합**) → ③ **Mock fallback**(실제 Provider 없거나 전부 비었을 때). 관리자 등록 뉴스는 `sourceUrl` 없음 → **내부 상세**, 외부/공식 뉴스는 `sourceUrl` 있음 → **원본 새 탭**.
+- **표준 뉴스 형태(내부 통일)**: `{ id, clubId, title, summary, source, sourceUrl, imageUrl, publishedAt, category, isOfficial }` (+ 기존 UI 호환 필드 date/body/views/opinions/survey/important).
+- **캐시**: 구단별 5분(`withCache('teamnews:'+clubId, …, 5m)`). **실패 시 마지막 성공 데이터(`lastGood`) → 없으면 Mock**. 각 소스 실패는 개별 catch → 페이지 안 깨짐(Loading/Error/Empty/Mock 폴백 모두 처리).
+
+### 팀 뉴스 저장소 — `src/lib/newsRepo.js` (Supabase-우선 + Mock 폴백)
+- **Supabase 이관 완료(3차)**. `AdminNews`(관리자) + Provider의 저장 뉴스 소스. Supabase 설정 시 `team_news` 테이블(제목·내용·team_id·category·image_url·author·status·is_important), 아니면 Mock. `listNews(teamId)`는 Supabase `team_news`(published) 또는 Mock 관리자 등록 뉴스를 반환(팬 데모 뉴스는 `mockNewsProvider`로 분리됨).
 - 팬 API: `listNews(teamId)`(구단 필터, 최신순/중요 뉴스 정렬). 관리자 API: `adminListNews`/`createNews`/`updateNews`/`deleteNews`(관리자 RLS `is_admin()`). SQL: `0006_news_notifications.sql`.
 - **키워드 필터(4차 탐색)**: 키워드 칩 클릭 → `?keyword=` query 로 제목·요약·본문에 해당 키워드가 포함된 뉴스만 표시(활성 칩 ✕로 해제). AI 인사이트 키워드 클릭도 `/club/:id/news?keyword=<kw>`로 이동. 직접 URL 접속/새로고침 대응(`useSearchParams`).
 - **구단 바로가기(`src/clubLinks.js`)**: 12개 구단별 공식 홈페이지/티켓/Instagram/YouTube 실제 링크(`CLUB_LINK_CHANNELS`). **X(Twitter) 제거**, 모두 새 창(`target=_blank rel=noopener`). 특정 채널 미지정 시 `getClubLinks()`가 공식 홈페이지로 fallback. 라벨은 locale(`news.link*`).
@@ -287,7 +298,7 @@ npm run lint     # oxlint
 
 ### 실제 외부 연동 (Mock/Provider 골격 → 실서비스)
 - [ ] **실제 K리그 API 연동** — 경기센터 순위표·일정. 현재 `leagueProvider`(`VITE_LEAGUE_API_BASE` 설정 시 `/standings`·`/fixtures/:teamId` 호출) + Mock fallback 구조만 완비. 실 API 스펙에 맞춰 Provider 응답 매핑 필요.
-- [ ] **실제 팀별 뉴스 연동** — 현재 `newsRepo`가 Supabase `team_news`(관리자 입력) + Mock. 외부 뉴스 소스(구단 공식/RSS/제휴 API) 자동 수집·매핑은 미구현.
+- [ ] **실제 팀별 뉴스 연동** — Team News Provider 구조(`src/lib/news/`) 완비: `newsSources`(12구단 소스) + `rss/newsApi/official` provider(구조만) + `mockNewsProvider`(fallback) + `teamNewsProvider`(우선순위·표준화·5분 캐시·폴백). **남은 일**: (1) 각 구단 실제 `rssUrl`/뉴스 페이지 경로 확인 후 `SOURCE_OVERRIDES` 채우기, (2) CORS 회피용 Edge Function(`scrape-club-news`/`fetch-club-news`)로 rss/official/newsApi provider의 `fetch` 실제 구현, (3) 외부 뉴스 이미지(`imageUrl`) 매핑.
 - [ ] **관리자 KPI 실집계 고도화** — 대시보드 KPI 8종은 Supabase `count(*)` 실집계 연동 완료(13차, 30초 캐시). **구단별 현황·최근 활동·차트(라인/바/도넛/감정)는 아직 Mock** → `date_trunc` 집계 등으로 실데이터 전환 필요.
 - [ ] **휴대폰 본인인증(PASS / NICE / KCB) 실제 연동** — 사용자 스키마·`VERIFICATION` 상태(`phone_verified`)·설정 UI 자리만 준비됨. 이메일 인증만 실동작. 실제 본인인증 게이트웨이 연동 필요.
 

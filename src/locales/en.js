@@ -363,6 +363,8 @@ export default {
   // team news
   'news.title': 'Team News',
   'news.subtitle': 'Check your club’s latest news and share your opinions.',
+  'news.errorTitle': 'Couldn’t load news',
+  'news.errorMsg': 'Please try again shortly. It will appear automatically once restored.',
   'news.ctaWrite': 'Comment on this news',
   'news.ctaWriteShort': 'Write Opinion',
   'news.ctaSurvey': 'Join related survey',

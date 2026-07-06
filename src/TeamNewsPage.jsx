@@ -6,7 +6,7 @@ import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getClubLinks, CLUB_LINK_CHANNELS } from './clubLinks.js'
 import Icon from './components/Icon.jsx'
-import { listNews } from './lib/newsRepo.js'
+import { getTeamNews } from './lib/news/teamNewsProvider.js'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import './ClubHomePage.css'
@@ -27,6 +27,7 @@ export default function TeamNewsPage() {
   const keyword = searchParams.get('keyword') || '' // 키워드 클릭/직접 접속 시 필터
   const [news, setNews] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [category, setCategory] = useState('전체')
   const [sort, setSort] = useState('latest') // 'latest' | 'important'
 
@@ -37,14 +38,22 @@ export default function TeamNewsPage() {
     else setSearchParams({ keyword: clean }, { replace: true })
   }
 
-  // 구단 뉴스 로드 (Supabase 우선, 아니면 Mock — newsRepo)
+  // 구단 뉴스 로드 — Team News Provider(실제 Provider → Supabase/관리자 → Mock, 5분 캐시).
   useEffect(() => {
     if (!team) return
     let active = true
-    setLoading(true)
-    listNews(team.id).then(l => { if (active) { setNews(l); setLoading(false) } })
+    setLoading(true); setError(false)
+    getTeamNews(team.id)
+      .then(l => { if (active) { setNews(l); setLoading(false) } })
+      .catch(() => { if (active) { setNews([]); setError(true); setLoading(false) } })
     return () => { active = false }
   }, [teamId, team])
+
+  // 뉴스 클릭: 외부(원본 URL 있음)는 새 탭, 관리자/내부 뉴스는 내부 상세로 이동.
+  const openNews = n => {
+    if (n.sourceUrl) window.open(n.sourceUrl, '_blank', 'noopener,noreferrer')
+    else navigate(`/club/${team.id}/news/${n.id}`)
+  }
 
   const list = useMemo(() => {
     let filtered = category === '전체' ? news : news.filter(n => n.category === category)
@@ -153,6 +162,8 @@ export default function TeamNewsPage() {
               <div className="tn-col-main">
                 {loading ? (
                   <SkeletonList count={3} lines={2} />
+                ) : error && news.length === 0 ? (
+                  <EmptyState iconName="news" title={t('news.errorTitle')} message={t('news.errorMsg')} />
                 ) : list.length === 0 ? (
                   keyword ? (
                     <EmptyState iconName="search" title={t('empty.searchTitle')} message={t('empty.searchMsg')} />
@@ -162,12 +173,13 @@ export default function TeamNewsPage() {
                 ) : (
                 <>
                 {hero && (
-                  <article className="tn-hero" onClick={() => navigate(`/club/${team.id}/news/${hero.id}`)}>
+                  <article className="tn-hero" onClick={() => openNews(hero)}>
                     <Thumb team={team} category={hero.category} hero />
                     <div className="tn-hero-body">
                       <div className="tn-meta">
                         <span className="tn-cat-pill">{hero.category}</span>
                         <span className="tn-date">{hero.date}</span>
+                        {hero.sourceUrl && <span className="tn-source"><Icon name="external" size={11} /> {hero.source}</span>}
                       </div>
                       <h2 className="tn-hero-title">{hero.title}</h2>
                       <p className="tn-hero-summary">{hero.summary}</p>
@@ -185,12 +197,13 @@ export default function TeamNewsPage() {
 
                 <div className="tn-list">
                   {rest.map(n => (
-                    <article key={n.id} className="tn-card" onClick={() => navigate(`/club/${team.id}/news/${n.id}`)}>
+                    <article key={n.id} className="tn-card" onClick={() => openNews(n)}>
                       <Thumb team={team} category={n.category} />
                       <div className="tn-card-body">
                         <div className="tn-meta">
                           <span className="tn-cat-pill">{n.category}</span>
                           <span className="tn-date">{n.date}</span>
+                          {n.sourceUrl && <span className="tn-source"><Icon name="external" size={11} /> {n.source}</span>}
                         </div>
                         <h3 className="tn-card-title">{n.title}</h3>
                         <p className="tn-card-summary">{n.summary}</p>
@@ -217,7 +230,7 @@ export default function TeamNewsPage() {
                   <ul className="tn-popular">
                     {popular.map((n, i) => (
                       <li key={n.id}>
-                        <button className="tn-pop-item" onClick={() => navigate(`/club/${team.id}/news/${n.id}`)}>
+                        <button className="tn-pop-item" onClick={() => openNews(n)}>
                           <span className="tn-pop-rank">{i + 1}</span>
                           <span className="tn-pop-text">
                             <span className="tn-pop-title">{n.title}</span>
