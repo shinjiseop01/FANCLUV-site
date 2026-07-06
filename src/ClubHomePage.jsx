@@ -7,6 +7,7 @@ import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import { relativeTime } from './lib/relativeTime.js'
 import { getHomeContent } from './lib/homeRepo.js'
+import { loadMatchData, loadStandings } from './lib/matchRepo.js'
 import Icon from './components/Icon.jsx'
 import './ClubHomePage.css'
 
@@ -42,6 +43,18 @@ export default function ClubHomePage() {
   const [home, setHome] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // 경기/순위 — League Provider(matchRepo→leagueProvider, 5분 캐시·Mock 폴백).
+  const [match, setMatch] = useState(null)
+  const [standings, setStandings] = useState([])
+  useEffect(() => {
+    if (!team) return
+    let active = true
+    Promise.all([loadMatchData(team.id), loadStandings()])
+      .then(([m, s]) => { if (active) { setMatch(m); setStandings(s?.rows || []) } })
+      .catch(() => { if (active) { setMatch(null); setStandings([]) } })
+    return () => { active = false }
+  }, [team])
+
   const load = useCallback(() => {
     if (!team) return
     let active = true
@@ -67,6 +80,12 @@ export default function ClubHomePage() {
 
   const stats = clubStats(team.id)
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
+
+  // 경기/순위 파생값 (League Provider)
+  const nextMatch = match?.next
+  const recentMatch = match?.recent?.[0]
+  const top5 = standings.slice(0, 5)
+  const myRow = standings.find(r => r.team.id === team.id)
 
   return (
     <div className="ch-root" style={themeStyle}>
@@ -123,6 +142,54 @@ export default function ClubHomePage() {
 
           {/* Left 2/3 */}
           <div className="ch-col-main">
+
+            {/* 경기 · 시즌 성적 (League Provider) */}
+            <Panel title={t('home.matchTitle')} action={t('home.viewAll')}
+              onAction={() => navigate(`/club/${team.id}/matches`)}>
+              <div className="ch-match">
+                {nextMatch && (
+                  <div className="ch-match-row">
+                    <span className="ch-match-label next">{t('home.nextMatch')}</span>
+                    <span className="ch-match-teams">
+                      <TeamEmblem color={nextMatch.home.color} size={18} /> {nextMatch.home.short}
+                      <em>vs</em>
+                      <TeamEmblem color={nextMatch.away.color} size={18} /> {nextMatch.away.short}
+                    </span>
+                    <span className="ch-match-meta">{nextMatch.date} {nextMatch.time}</span>
+                  </div>
+                )}
+                {recentMatch && (
+                  <div className="ch-match-row">
+                    <span className="ch-match-label">{t('home.recentMatch')}</span>
+                    <span className="ch-match-teams">
+                      {recentMatch.home.short} <strong>{recentMatch.homeScore} : {recentMatch.awayScore}</strong> {recentMatch.away.short}
+                    </span>
+                    <span className="ch-match-meta">{recentMatch.date}</span>
+                  </div>
+                )}
+                {myRow && (
+                  <p className="ch-match-season">
+                    {t('home.seasonRecord', { rank: myRow.rank, w: myRow.win, d: myRow.draw, l: myRow.loss, pts: myRow.points })}
+                  </p>
+                )}
+                {!nextMatch && !recentMatch && !myRow && (
+                  <p className="ch-match-empty">{t('home.matchEmpty')}</p>
+                )}
+              </div>
+              {top5.length > 0 && (
+                <ul className="ch-standings" aria-label={t('home.standingsTitle')}>
+                  {top5.map(r => (
+                    <li key={r.team.id} className={r.team.id === team.id ? 'on' : ''}>
+                      <span className="ch-st-rank">{r.rank}</span>
+                      <TeamEmblem color={r.team.color} size={18} className="ch-st-emblem" />
+                      <span className="ch-st-name">{r.team.short}</span>
+                      <span className="ch-st-gd">{r.gd > 0 ? `+${r.gd}` : r.gd}</span>
+                      <span className="ch-st-pts">{r.points}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
 
             <Panel title={t('home.latestSurvey')} action={t('home.viewAll')}
               onAction={() => navigate(`/club/${team.id}/survey`)}>

@@ -214,7 +214,13 @@ npm run lint     # oxlint
 
 ### 실시간 데이터 아키텍처 / 캐시 (13차)
 - **캐시** — `src/lib/cache.js`: `withCache(key, fetcher, ttl=30000)` 인메모리 TTL 캐시(기본 30초). 진행 중 Promise 재사용, 실패 시 캐시 미저장. `invalidate(prefix)`/`clearCache()`. 순위/일정/홈 인기/관리자 KPI에 사용.
-- **경기센터** — `src/lib/matchRepo.js` + `src/lib/providers/leagueProvider.js`: K리그1 순위표(순위·팀·경기·승·무·패·득실·승점 12개 구단)와 경기 일정을 **Provider 우선 + Mock fallback**로 제공. `leagueProvider`는 `VITE_LEAGUE_API_BASE` 설정 시 실 API(`/standings`,`/fixtures/:teamId`) 호출, 미설정이면 null → Mock. `loadStandings()`/`loadMatchData(teamId)`(캐시 30초), `refreshMatch(teamId)`. **MatchCenterPage**: 스켈레톤 로딩 + 실패 시 EmptyState+새로고침 버튼, 순위표 전체 컬럼.
+- **League Provider 아키텍처 — `src/services/league/`** (K리그 순위/일정/결과)
+  - **구조**: `mockLeagueProvider.js`(데모 데이터) · `apiLeagueProvider.js`(실 API, 벤더 무관 normalize) · `leagueProvider.js`(**facade**: Provider 선택 + 5분 캐시 + 폴백). 화면은 `src/lib/matchRepo.js`(표시 어댑터: 표준 teamId → team 객체 변환)만 호출.
+  - **Provider 선택(요구사항 1/10)**: `LEAGUE_PROVIDER=mock`(기본) / `LEAGUE_PROVIDER=api` / 미지정 시 `VITE_LEAGUE_API_BASE` 있으면 자동 api. (`vite.config.js` `envPrefix: ['VITE_','LEAGUE_']`로 `LEAGUE_PROVIDER` 노출.)
+  - **표준 형태**: 순위 `{ rank, teamId, teamName, played, win, draw, loss, goalsFor, goalsAgainst, goalDiff, points }`, 경기 `{ id, date, kickoff, homeTeamId, awayTeamId, homeTeamName, awayTeamName, stadium, status('scheduled'|'live'|'finished'), homeScore, awayScore, finished }`, fixtures `{ next, live, upcoming[], recent[] }`. `getTeamSeason(teamId)`로 시즌 성적.
+  - **실제 API 교체(요구사항 7)**: `.env`에 `VITE_LEAGUE_API_BASE`/`VITE_LEAGUE_API_KEY` + `LEAGUE_PROVIDER=api`. 벤더(API-Football/Sportmonks/Football-data/K리그 공식/자체 수집) 응답이 표준과 다르면 `apiLeagueProvider.js`의 `normalizeStandings`/`normalizeMatch`만 교체. 화면 코드 불변.
+  - **캐시/폴백(요구사항 8)**: `leagueProvider`가 `getStandings`/`getFixtures`를 **5분 캐시(`withCache`)**. 실패 시 **마지막 성공 데이터(`lastGood`) → 없으면 Mock**. `refreshLeague(teamId)`로 무효화.
+  - **연동 화면**: **MatchCenterPage**(순위표·일정·결과, 스켈레톤/Error/EmptyState/새로고침) + **ClubHomePage**(다음 경기·최근 경기·리그 순위 top5·시즌 성적).
 - **홈 인기 콘텐츠** — `src/lib/homeRepo.js`: `getHomeContent(teamId)`가 Supabase `opinions_view` 1회 조회로 **인기 의견(공감순)·인기 카테고리(집계)·트렌딩 키워드(사전 매칭)** 계산, 실패/미설정 시 Mock. 캐시 30초. **ClubHomePage**가 비동기 로드(스켈레톤) — 클릭 네비게이션(의견 상세/카테고리·키워드 필터)은 유지.
 - **AI 키워드 선택** — `AIInsightsPage`: 키워드 클릭 시 **팬 의견 / 뉴스 선택 모달**(`.ai-kwmenu`) → `/opinions?keyword=` 또는 `/news?keyword=`로 이동(두 페이지 모두 query param 필터 적용).
 
@@ -297,7 +303,7 @@ npm run lint     # oxlint
 ## 5. 남은 TODO / 알려진 특이사항
 
 ### 실제 외부 연동 (Mock/Provider 골격 → 실서비스)
-- [ ] **실제 K리그 API 연동** — 경기센터 순위표·일정. 현재 `leagueProvider`(`VITE_LEAGUE_API_BASE` 설정 시 `/standings`·`/fixtures/:teamId` 호출) + Mock fallback 구조만 완비. 실 API 스펙에 맞춰 Provider 응답 매핑 필요.
+- [ ] **실제 K리그 API 연동** — League Provider 구조(`src/services/league/`) 완비: mock/api/facade + 5분 캐시 + lastGood/Mock 폴백 + 표준 형태. **남은 일**: (1) 실제 벤더 선택 후 `.env`에 `VITE_LEAGUE_API_BASE`/`VITE_LEAGUE_API_KEY` + `LEAGUE_PROVIDER=api`, (2) 벤더 응답 형태에 맞춰 `apiLeagueProvider.js`의 `normalizeStandings`/`normalizeMatch`/`/standings`·`/fixtures/:teamId` 경로 조정, (3) 팀 id 매핑(teams.jsx ↔ 벤더 team id) 확인.
 - [ ] **실제 팀별 뉴스 연동** — Team News Provider 구조(`src/lib/news/`) 완비: `newsSources`(12구단 소스) + `rss/newsApi/official` provider(구조만) + `mockNewsProvider`(fallback) + `teamNewsProvider`(우선순위·표준화·5분 캐시·폴백). **남은 일**: (1) 각 구단 실제 `rssUrl`/뉴스 페이지 경로 확인 후 `SOURCE_OVERRIDES` 채우기, (2) CORS 회피용 Edge Function(`scrape-club-news`/`fetch-club-news`)로 rss/official/newsApi provider의 `fetch` 실제 구현, (3) 외부 뉴스 이미지(`imageUrl`) 매핑.
 - [ ] **관리자 KPI 실집계 고도화** — 대시보드 KPI 8종은 Supabase `count(*)` 실집계 연동 완료(13차, 30초 캐시). **구단별 현황·최근 활동·차트(라인/바/도넛/감정)는 아직 Mock** → `date_trunc` 집계 등으로 실데이터 전환 필요.
 - [ ] **휴대폰 본인인증(PASS / NICE / KCB) 실제 연동** — 사용자 스키마·`VERIFICATION` 상태(`phone_verified`)·설정 UI 자리만 준비됨. 이메일 인증만 실동작. 실제 본인인증 게이트웨이 연동 필요.

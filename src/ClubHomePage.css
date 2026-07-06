@@ -443,3 +443,28 @@
 }
 .ch-notice-title { font-size: 15px; font-weight: 800; color: var(--ink); }
 .ch-notice-text { margin: 4px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.55; }
+
+/* ── 홈 경기/순위 패널 (League Provider) ── */
+.ch-match { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.ch-match-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ch-match-label {
+  flex-shrink: 0; font-size: 11.5px; font-weight: 800; color: var(--muted);
+  background: var(--page-bg); border: 1px solid var(--border); padding: 3px 9px; border-radius: 100px;
+}
+.ch-match-label.next { color: var(--team-deep); background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); border-color: transparent; }
+.ch-match-teams { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--ink); }
+.ch-match-teams em { color: var(--muted); font-style: normal; font-weight: 600; margin: 0 2px; }
+.ch-match-teams strong { color: var(--team-deep); }
+.ch-match-meta { margin-left: auto; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.ch-match-season { margin: 2px 0 0; font-size: 13px; font-weight: 700; color: var(--body); }
+.ch-match-empty { font-size: 13px; color: var(--muted); margin: 0; }
+
+.ch-standings { list-style: none; margin: 4px 0 0; padding: 12px 0 0; border-top: 1px solid var(--border-soft); display: flex; flex-direction: column; gap: 2px; }
+.ch-standings li { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; font-size: 13.5px; color: var(--body); }
+.ch-standings li.on { background: color-mix(in srgb, var(--team) 10%, var(--mix-base)); font-weight: 800; color: var(--ink); }
+.ch-st-rank { width: 18px; text-align: center; font-weight: 800; color: var(--muted); }
+.ch-standings li.on .ch-st-rank { color: var(--team-deep); }
+.ch-st-emblem { flex-shrink: 0; }
+.ch-st-name { flex: 1; min-width: 0; }
+.ch-st-gd { width: 42px; text-align: right; font-size: 12.5px; color: var(--muted); }
+.ch-st-pts { width: 34px; text-align: right; font-weight: 800; color: var(--ink); }

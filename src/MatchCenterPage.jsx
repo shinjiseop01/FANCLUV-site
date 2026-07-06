@@ -260,6 +260,8 @@ export default function MatchCenterPage() {
                       <th>{t('match.stWin')}</th>
                       <th>{t('match.stDraw')}</th>
                       <th>{t('match.stLoss')}</th>
+                      <th>{t('match.stGf')}</th>
+                      <th>{t('match.stGa')}</th>
                       <th>{t('match.stGd')}</th>
                       <th>{t('match.stPoints')}</th>
                     </tr>
@@ -273,6 +275,8 @@ export default function MatchCenterPage() {
                         <td>{s.win}</td>
                         <td>{s.draw}</td>
                         <td>{s.loss}</td>
+                        <td>{s.gf}</td>
+                        <td>{s.ga}</td>
                         <td className="mc-gd">{s.gd > 0 ? `+${s.gd}` : s.gd}</td>
                         <td className="mc-pts">{s.points}</td>
                       </tr>
