@@ -18,6 +18,21 @@ export const isSupabaseConfigured = Boolean(
   url && anonKey && !url.includes('your-project') && !anonKey.includes('your-anon'),
 )
 
+// Mock(localStorage 데모) 모드 판정 = Supabase 미설정. auth.js 의 데모 계정 시드 등
+// "운영에서 노출되면 안 되는" 로직은 이 값 + import.meta.env.DEV 로 이중 게이트한다.
+export const isMockMode = !isSupabaseConfigured
+
+// 운영(프로덕션) 빌드인데 Supabase 가 설정되지 않았으면 → 배포 설정 오류.
+// Mock 데모 데이터/계정으로 서비스가 뜨는 것을 막기 위해 크게 경고한다.
+// (앱을 강제 종료하진 않는다 — 의도된 데모 배포까지 깨뜨리지 않기 위해.)
+if (import.meta.env.PROD && !isSupabaseConfigured) {
+  console.error(
+    '[FANCLUV] 운영 빌드에서 Supabase 환경변수가 설정되지 않았습니다. ' +
+      'VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY 를 설정하세요. ' +
+      '설정 전까지는 실데이터 없이 동작하며 데모 계정은 생성되지 않습니다.',
+  )
+}
+
 // 설정되지 않았으면 client는 null (Mock 폴백 사용).
 export const supabase = isSupabaseConfigured
   ? createClient(url, anonKey, {

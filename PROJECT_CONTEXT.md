@@ -365,8 +365,59 @@ npm run lint     # oxlint
 - **Supabase 핵심 이관 완료**: Auth/Profile · 팬 의견/댓글/공감 · 설문 · 뉴스/알림 · 소셜로그인 · AI인사이트 · 온보딩 · 회원탈퇴 · 신고/공지 · **관리자 대시보드 실통계(RPC) · 공지/운영자메모 · 구단 리포트/전달 · B2B 고객관리**. 마이그레이션 `0001~0018`. 모든 데이터 레이어가 **Supabase-우선 + Mock 폴백** 구조라 키 없이도 앱 동작.
 - **소셜 로그인**: Google·Kakao = Supabase native, NAVER = 커스텀 Edge Function(`naver-callback`).
 
-## 6. 작업 시 참고
+## 6. 운영 안정화 체크리스트 (Production Readiness — 1단계)
+
+> 2026-07-06 Production Readiness Phase 1 점검 결과. **기존 기능 변경 없음**(감사·격리·문서화 중심).
+
+### 6.1 Mock 격리 (운영에서 Mock 데이터/계정/Provider 비노출)
+- **데모 계정 시드는 개발(dev) 빌드의 Mock 모드에서만** — `src/lib/auth.js`: `if (!isSupabaseConfigured && import.meta.env.DEV) ensureSeed()`. 운영 빌드에서 Supabase 미설정이어도 `admin@fancluv.kr`/`admin123` 같은 **고정 관리자 자격증명이 생성되지 않음**(보안 구멍 차단).
+- **운영 미설정 경고** — `src/lib/supabase.js`: `import.meta.env.PROD && !isSupabaseConfigured` 이면 `console.error`로 배포 설정 오류를 크게 알림(앱 강제 종료는 안 함 — 의도된 데모 배포 보호). `isMockMode` 플래그도 export.
+- **Mock Provider = graceful fallback**: 리그(`services/league/`)·뉴스(`lib/news/`) Provider는 실 API 실패/미설정 시 `lastGood → Mock` 순으로 폴백(앱이 안 깨지도록). 운영에서 "가짜 데이터 절대 금지"가 필요하면 각 provider의 Mock fallback을 비활성화하는 것이 결정 지점(현재는 UX 우선으로 유지).
+
+### 6.2 환경변수 분리 (`.env.example` 최신)
+- **클라이언트(VITE_, 공개 안전)**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_NAVER_CLIENT_ID`, `VITE_NAVER_CALLBACK_URL`, `VITE_LEAGUE_API_BASE`, `VITE_LEAGUE_API_KEY`, `VITE_NEWS_API_ENABLED`, `LEAGUE_PROVIDER`(vite.config `envPrefix`로 노출).
+- **서버 전용(VITE_ 없음, 절대 프론트 금지)**: `SUPABASE_SERVICE_ROLE_KEY`, `NAVER_CLIENT_SECRET`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `RESEND_API_KEY`, `EMAIL_FROM` → 모두 `supabase secrets set`.
+- **`VITE_OPENAI_MODEL`은 의도적으로 없음**: OpenAI 호출은 `analyze-insights` Edge Function(서버)에서만 → 모델명은 서버 시크릿 `OPENAI_MODEL`로만 관리(프론트 노출 무의미·불필요).
+
+### 6.3 Supabase 보안 (감사 결과: 양호)
+- **RLS**: 사용자 데이터 테이블 전부 RLS + 정책(총 46개). 본인 데이터(profiles/notifications/likes 등)는 `auth.uid()` 기준, 관리자 데이터(surveys/news/reports/notices/admin_notes/club_reports/report_deliveries/customers/customer_contract_history)는 `is_admin()` 기준.
+- **anon key만 클라이언트에 사용**(공개 안전). **`service_role`은 Edge Function 4곳에서만**(delete-account·naver-callback·send-email-code, analyze-insights) — 프론트/번들 미노출.
+- **권한 체크 이중 방어**: 클라이언트(`isAdmin()`) + 서버(RLS `is_admin()` / RPC `SECURITY DEFINER`). `admin_notes`·리포트·고객 repo는 API 진입 시 `isAdmin()` 선검사도 수행.
+- **회원정보 노출 최소화**(22차): 상세 식별정보는 `RequireAdmin` 내부에서만 렌더.
+
+### 6.4 Edge Function 배포 상태 (Supabase)
+| 함수 | JWT | 시크릿 | 배포 명령 |
+|------|-----|--------|-----------|
+| `send-email-code` | **--no-verify-jwt** | `RESEND_API_KEY`,`EMAIL_FROM`(선택, 없으면 devCode) | `supabase functions deploy send-email-code --no-verify-jwt` |
+| `send-welcome-email` | **--no-verify-jwt** | `RESEND_API_KEY`,`EMAIL_FROM`(선택, 없으면 미발송) | `supabase functions deploy send-welcome-email --no-verify-jwt` |
+| `naver-callback` | **--no-verify-jwt** | `NAVER_CLIENT_ID/SECRET`,`NAVER_REDIRECT_URI`,`SITE_URL`(선택) | `supabase functions deploy naver-callback --no-verify-jwt` |
+| `analyze-insights` | **verify_jwt=true**(기본) | `OPENAI_API_KEY`,`OPENAI_MODEL`(선택) | `supabase functions deploy analyze-insights` |
+| `delete-account` | **verify_jwt=true**(기본) | (없음 — 자동 주입) | `supabase functions deploy delete-account` |
+- `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY`는 플랫폼 자동 주입(로컬 실행 시만 수동). `--no-verify-jwt`는 외부 콜백(네이버)·비로그인 흐름(이메일 코드) 때문에 필요 → 함수 내부에서 `service_role`로 안전 처리. verify_jwt 유지 함수는 요청자 role/JWT를 서버에서 재확인.
+
+### 6.5 캐시 (in-memory TTL — `src/lib/cache.js`, `withCache`)
+| 캐시 키 | TTL | 폴백 |
+|---------|-----|------|
+| `home:{teamId}` (홈 인기 콘텐츠) | 30초 | 실패 시 Mock |
+| `admin:dashboard` (관리자 통계) | 30초 | RPC 실패 시 Mock, 비관리자 빈값 |
+| `teamnews:{clubId}` (팀 뉴스) | 5분 | 실 Provider→저장뉴스 병합→lastGood→Mock |
+| `league:standings` · `league:fixtures:{teamId}` | 5분 | 실패 시 lastGood→Mock |
+- 진행 중 Promise 재사용(중복 요청 합침), 실패는 캐시 미저장. `invalidate(prefix)`/`refresh*()`로 강제 갱신.
+
+### 6.6 에러 처리 / 상태 (감사 결과: 양호)
+- **repo는 throw 하지 않음** — 내부 try/catch 후 안전값(빈 배열/`{ ok:false, error/code }`) 반환(37개 파일). 화면은 반환값으로 상태 전환.
+- **모든 데이터 페이지 = Loading(Skeleton) + EmptyState** 보유(Opinions/Survey/AI/Match/News/Ranking/Activity/Home). **인증 폼 = 지역화 error 메시지**(Login/Signup). AI 인사이트는 `loading|ready|empty` 명시 상태.
+
+### 6.7 콘솔 정리
+- `src/` 내 `console.*` = 2건뿐. **welcomeEmail의 Mock 로그는 `import.meta.env.DEV`로 게이트**(운영 콘솔 노이즈 제거). adminStats의 `console.warn`은 Supabase 집계 실패 시에만 나오는 **운영 진단 로그라 유지**. `TODO`는 뉴스 Provider 3건(실 연동 지점, 의도된 골격).
+
+### 6.8 성능
+- **PDF 라이브러리(jspdf·html2canvas ~600KB)는 동적 import**(`generatePdf.js` 내부 `import('jspdf')`) → 관리자가 리포트 생성할 때만 로드, 메인 번들·팬 화면엔 미포함(별도 청크로 분리 확인).
+- 메인 번들 gzip ~237KB. 추가 최적화 여지: 라우트별 `lazy()` 코드 스플리팅(추후).
+
+## 7. 작업 시 참고
 
 - 페이지 추가 시: `src/XxxPage.jsx` + `src/XxxPage.css` 쌍 생성 → `main.jsx`에 `RequireAuth` 라우트 등록 → 내비 메뉴면 `teams.jsx`의 `MENU_ITEMS`/`menuPath` + `NAV_KEYS` 갱신.
 - **새 UI 텍스트는 반드시 ko/en 양쪽 locale에 키 추가** (911/911 동기화 유지).
 - 디자인 토큰/컬러/타이포는 `DESIGN.md` 기준을 따를 것.
+- **운영/개발 모드**: Supabase env 설정 시 실서비스, 미설정 시 Mock. 데모 계정은 dev 빌드에서만 시드(§6.1).

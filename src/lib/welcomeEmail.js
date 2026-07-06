@@ -19,7 +19,7 @@ export async function sendWelcomeEmail(email, nickname) {
       return { ok: false, error: String(e) }
     }
   }
-  // Mock fallback — 실제 발송 없음.
-  console.info(`[welcome-email:mock] to=${email} nickname=${nickname || ''}`)
+  // Mock fallback — 실제 발송 없음. (개발 환경에서만 로그 — 운영 콘솔 노이즈 방지)
+  if (import.meta.env.DEV) console.info(`[welcome-email:mock] to=${email} nickname=${nickname || ''}`)
   return { ok: true, mock: true }
 }
