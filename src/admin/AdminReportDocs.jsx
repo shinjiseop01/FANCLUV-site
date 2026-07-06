@@ -4,9 +4,12 @@ import { TEAMS, getTeam } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import Icon from '../components/Icon.jsx'
 import {
-  REPORT_STATUSES, adminListReports, createReport, updateReport,
-  setStatus, deleteReport, listDeliveries,
+  DELIVERY_METHODS, adminListReports, createReport, updateReport,
+  setStatus, deliverReport, deleteReport, listDeliveries,
 } from '../lib/admin/clubReportsRepo.js'
+
+// 운영자가 직접 바꾸는 상태 (전달 완료는 "구단에 전달"로만 도달)
+const EDITABLE_STATUSES = ['draft', 'review', 'approved']
 import { REPORT_PERIODS } from '../lib/ai/report/index.js'
 import { generateReportPdfFromDoc } from '../lib/ai/report/index.js'
 
@@ -105,10 +108,7 @@ export default function AdminReportDocs() {
     setBusy(true)
     const res = await setStatus(id, status)
     setBusy(false)
-    if (res.ok) {
-      setReports(list => list.map(r => (r.id === id ? res.report : r)))
-      if (status === 'delivered') listDeliveries().then(setDeliveries)
-    }
+    if (res.ok) setReports(list => list.map(r => (r.id === id ? res.report : r)))
   }
 
   async function remove(id) {
@@ -126,6 +126,27 @@ export default function AdminReportDocs() {
   }
 
   const canDownload = r => r && (r.status === 'approved' || r.status === 'delivered')
+
+  // ── 구단 전달 (승인된 리포트만) : 확인 모달 → 방식/메모 선택 → 전달 완료 ──
+  const [deliver, setDeliver] = useState(null)  // { report, method, memo } | null
+  function openDeliver(r) {
+    setMsg('')
+    setDeliver({ report: r, method: 'pdf', memo: r.deliveryMemo || r.content?.deliveryMemo || '' })
+  }
+  const setD = (k, v) => setDeliver(d => ({ ...d, [k]: v }))
+  async function confirmDeliver() {
+    setBusy(true)
+    const res = await deliverReport(deliver.report.id, { method: deliver.method, memo: deliver.memo })
+    setBusy(false)
+    if (!res.ok) { setMsg(res.code === 'not_approved' ? t('admin.rpt.errNotApproved') : t('admin.rpt.errCreate')); return }
+    const method = deliver.method
+    const delivered = res.report
+    setReports(list => list.map(r => (r.id === delivered.id ? delivered : r)))
+    listDeliveries().then(setDeliveries)
+    setDeliver(null)
+    setMsg(t('admin.rpt.deliveredMsg'))
+    if (method === 'pdf') downloadPdf(delivered)  // PDF 방식은 즉시 다운로드
+  }
 
   return (
     <div className="adm-page">
@@ -217,29 +238,40 @@ export default function AdminReportDocs() {
             <button className="adm-btn-sm" onClick={() => setEdit(null)}>{t('common.close')}</button>
           </div>
 
-          {/* 상태 + PDF */}
+          {/* 상태 + 전달 + PDF */}
           <div className="adm-rpt-statusbar">
             <div className="adm-rpt-statuses" role="group" aria-label={t('admin.rpt.colStatus')}>
-              {REPORT_STATUSES.map(s => (
-                <button key={s} className={`adm-filter${editing.status === s ? ' on' : ''}`} disabled={busy} onClick={() => changeStatus(editing.id, s)}>
+              {EDITABLE_STATUSES.map(s => (
+                <button key={s} className={`adm-filter${editing.status === s ? ' on' : ''}`} disabled={busy || editing.status === 'delivered'} onClick={() => changeStatus(editing.id, s)}>
                   {statusLabel(s)}
                 </button>
               ))}
+              {editing.status === 'delivered' && <span className="adm-badge delivered">{statusLabel('delivered')}</span>}
             </div>
-            <button
-              className="adm-btn-primary adm-rpt-pdf"
-              disabled={!canDownload(editing) || busy}
-              title={canDownload(editing) ? '' : t('admin.rpt.pdfLocked')}
-              onClick={() => downloadPdf(editing)}>
-              <Icon name="news" size={16} /> {t('admin.rpt.downloadPdf')}
-            </button>
+            <div className="adm-rpt-actions">
+              <button
+                className="adm-btn-primary adm-rpt-deliver"
+                disabled={editing.status !== 'approved' || busy}
+                title={editing.status === 'approved' ? '' : t('admin.rpt.deliverLocked')}
+                onClick={() => openDeliver(editing)}>
+                <Icon name="external" size={15} /> {t('admin.rpt.deliver')}
+              </button>
+              <button
+                className="adm-btn-ghost adm-rpt-pdf"
+                disabled={!canDownload(editing) || busy}
+                title={canDownload(editing) ? '' : t('admin.rpt.pdfLocked')}
+                onClick={() => downloadPdf(editing)}>
+                <Icon name="news" size={15} /> {t('admin.rpt.downloadPdf')}
+              </button>
+            </div>
           </div>
-          {!canDownload(editing) && <p className="adm-rpt-lockhint">{t('admin.rpt.pdfLocked')}</p>}
+          {editing.status !== 'approved' && editing.status !== 'delivered' && <p className="adm-rpt-lockhint">{t('admin.rpt.deliverLocked')}</p>}
 
-          {/* 전달 기록 */}
+          {/* 전달 완료 정보 */}
           {editing.status === 'delivered' && editing.deliveredAt && (
             <div className="adm-rpt-delivery">
               <Icon name="check" size={14} /> {t('admin.rpt.deliveredInfo', { date: fmt(editing.deliveredAt), by: editing.deliveredBy || '-' })}
+              {editing.deliveryMethod && <> · {t(`admin.rpt.method.${editing.deliveryMethod}`)}</>}
             </div>
           )}
 
@@ -296,23 +328,67 @@ export default function AdminReportDocs() {
         </section>
       )}
 
-      {/* 전달 기록 목록 */}
+      {/* 전달 기록 조회 (전달일 · 대상 구단 · 리포트 · 상태 · 전달자 · 방식) */}
       {deliveries.length > 0 && (
-        <section className="adm-panel adm-dash-section">
+        <section className="adm-dash-section">
           <div className="adm-panel-head"><h2 className="adm-panel-title">{t('admin.rpt.deliveryLog')}</h2></div>
-          <ul className="adm-recent">
-            {deliveries.map(d => (
-              <li key={d.id} className="adm-recent-item">
-                <span className="adm-recent-ic" aria-hidden="true"><Icon name="check" size={16} /></span>
-                <div className="adm-recent-body">
-                  <span className="adm-recent-title">{teamName(d.teamId)}</span>
-                  <span className="adm-recent-meta">{t('admin.rpt.deliveredBy', { by: d.operator || '-' })} · {t('admin.rpt.reportId')}: {String(d.reportId).slice(0, 10)}</span>
-                </div>
-                <span className="adm-recent-date">{fmt(d.deliveredAt)}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="adm-table-wrap">
+            <table className="adm-table">
+              <thead>
+                <tr>
+                  <th>{t('admin.rpt.dlDate')}</th>
+                  <th>{t('admin.rpt.colTeam')}</th>
+                  <th>{t('admin.rpt.dlReport')}</th>
+                  <th>{t('admin.rpt.colStatus')}</th>
+                  <th>{t('admin.rpt.dlOperator')}</th>
+                  <th>{t('admin.rpt.dlMethod')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deliveries.map(d => (
+                  <tr key={d.id}>
+                    <td className="adm-cell-muted">{fmt(d.deliveredAt)}</td>
+                    <td className="adm-cell-strong">{teamName(d.teamId)}</td>
+                    <td className="adm-cell-muted">{d.reportTitle || '-'}</td>
+                    <td><span className="adm-badge delivered">{statusLabel('delivered')}</span></td>
+                    <td className="adm-cell-muted">{d.operator || '-'}</td>
+                    <td><span className="adm-badge type">{t(`admin.rpt.method.${d.method || 'pdf'}`)}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
+      )}
+
+      {/* 전달 확인 모달 */}
+      {deliver && (
+        <div className="adm-modal-overlay" role="dialog" aria-modal="true" aria-label={t('admin.rpt.deliverTitle')}
+          onMouseDown={e => { if (e.target === e.currentTarget) setDeliver(null) }}>
+          <div className="adm-modal">
+            <h3 className="adm-modal-title">{t('admin.rpt.deliverTitle')}</h3>
+            <p className="adm-modal-desc">{t('admin.rpt.deliverConfirm', { team: teamName(deliver.report.teamId), title: deliver.report.title })}</p>
+            <p className="adm-modal-note">{t('admin.rpt.deliverNote')}</p>
+
+            <div className="adm-field">
+              <label>{t('admin.rpt.deliverMethod')}</label>
+              <select className="adm-input" value={deliver.method} onChange={e => setD('method', e.target.value)}>
+                {DELIVERY_METHODS.map(m => <option key={m} value={m}>{t(`admin.rpt.method.${m}`)}</option>)}
+              </select>
+              {deliver.method !== 'pdf' && <p className="adm-rpt-lockhint">{t('admin.rpt.methodPrep')}</p>}
+            </div>
+
+            <div className="adm-field">
+              <label>{t('admin.rpt.deliverMemo')} <span className="adm-rpt-tolabel">→ {t('admin.rpt.memoInPdf')}</span></label>
+              <textarea className="adm-input" rows={3} value={deliver.memo} onChange={e => setD('memo', e.target.value)} placeholder={t('admin.rpt.deliverMemoPh')} maxLength={500} />
+            </div>
+
+            <div className="adm-modal-actions">
+              <button className="adm-btn-ghost" onClick={() => setDeliver(null)} disabled={busy}>{t('common.cancel')}</button>
+              <button className="adm-btn-primary" onClick={confirmDeliver} disabled={busy}>{t('admin.rpt.deliverDo')}</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

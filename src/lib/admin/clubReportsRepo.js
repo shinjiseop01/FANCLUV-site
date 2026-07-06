@@ -31,8 +31,13 @@ function mapRow(r) {
     updatedAt: r.updated_at,
     deliveredAt: r.delivered_at || null,
     deliveredBy: r.delivered_by || null,
+    deliveryMethod: r.delivery_method || null,
+    deliveryMemo: r.delivery_memo || '',
   }
 }
+
+// 전달 방식 (이메일/링크는 구조만 — 실제 전송 미구현)
+export const DELIVERY_METHODS = ['pdf', 'email', 'link']
 
 // AI 인사이트 → 리포트 content 스냅샷 (집계 필드만).
 function contentFromModel(model) {
@@ -119,35 +124,61 @@ export async function updateReport(id, { title, content }) {
   return { ok: true, report: updated }
 }
 
-// ── 상태 변경 (전달 완료 시 전달 기록 저장) ──
+// ── 상태 변경 (초안/검토중/승인됨). 전달(delivered)은 deliverReport 로만 처리. ──
 export async function setStatus(id, status) {
   if (!isAdmin()) return { ok: false, error: 'forbidden' }
-  const me = getCurrentUser()
+  if (status === 'delivered') return { ok: false, error: 'use_deliver' }
   const now = new Date().toISOString()
-  const delivering = status === 'delivered'
-
   if (isSupabaseConfigured) {
-    const patch = { status, updated_at: now }
-    if (delivering) { patch.delivered_at = now; patch.delivered_by = me?.nickname || 'Admin' }
-    const { data, error } = await supabase.from('club_reports').update(patch).eq('id', id).select().single()
+    const { data, error } = await supabase.from('club_reports').update({ status, updated_at: now }).eq('id', id).select().single()
     if (error) return { ok: false, error: error.message }
-    if (delivering) {
-      await supabase.from('report_deliveries').insert({ report_id: id, team_id: data.team_id, operator: me?.nickname || 'Admin' })
-    }
     return { ok: true, report: mapRow(data) }
   }
-
   let updated = null
   writeMock(KEY, readMock(KEY).map(r => {
     if (r.id !== id) return r
-    updated = { ...r, status, updatedAt: now, ...(delivering ? { deliveredAt: now, deliveredBy: me?.nickname || 'Admin' } : {}) }
+    updated = { ...r, status, updatedAt: now }
     return updated
   }))
-  if (delivering && updated) {
-    const dl = readMock(DKEY)
-    dl.unshift({ id: 'dl' + Date.now(), reportId: id, teamId: updated.teamId, operator: me?.nickname || 'Admin', deliveredAt: now })
-    writeMock(DKEY, dl)
+  return { ok: true, report: updated }
+}
+
+// ── 구단 전달 (승인된 리포트만). 상태 → 전달 완료 + 전달 방식/메모 저장 + 전달 이력 기록 ──
+// method: 'pdf' | 'email' | 'link' (이메일/링크는 구조만). memo: 운영자 전달 메모(PDF 포함 가능).
+export async function deliverReport(id, { method = 'pdf', memo = '' } = {}) {
+  if (!isAdmin()) return { ok: false, error: 'forbidden' }
+  const me = getCurrentUser()
+  const operator = me?.nickname || 'Admin'
+  const now = new Date().toISOString()
+
+  if (isSupabaseConfigured) {
+    const cur = await getReport(id)
+    if (!cur) return { ok: false, error: 'not_found' }
+    if (cur.status !== 'approved') return { ok: false, code: 'not_approved' }
+    const { data, error } = await supabase.from('club_reports').update({
+      status: 'delivered', updated_at: now, delivered_at: now, delivered_by: operator,
+      delivery_method: method, delivery_memo: memo,
+    }).eq('id', id).select().single()
+    if (error) return { ok: false, error: error.message }
+    await supabase.from('report_deliveries').insert({
+      report_id: id, team_id: data.team_id, report_title: data.title,
+      operator, method, memo,
+    })
+    return { ok: true, report: mapRow(data) }
   }
+
+  const cur = readMock(KEY).find(r => r.id === id)
+  if (!cur) return { ok: false, error: 'not_found' }
+  if (cur.status !== 'approved') return { ok: false, code: 'not_approved' }
+  let updated = null
+  writeMock(KEY, readMock(KEY).map(r => {
+    if (r.id !== id) return r
+    updated = { ...r, status: 'delivered', updatedAt: now, deliveredAt: now, deliveredBy: operator, deliveryMethod: method, deliveryMemo: memo }
+    return updated
+  }))
+  const dl = readMock(DKEY)
+  dl.unshift({ id: 'dl' + Date.now(), reportId: id, teamId: updated.teamId, reportTitle: updated.title, operator, method, memo, deliveredAt: now })
+  writeMock(DKEY, dl)
   return { ok: true, report: updated }
 }
 
@@ -167,7 +198,10 @@ export async function listDeliveries() {
   if (!isAdmin()) return []
   if (isSupabaseConfigured) {
     const { data } = await supabase.from('report_deliveries').select('*').order('delivered_at', { ascending: false })
-    return (data || []).map(d => ({ id: d.id, reportId: d.report_id, teamId: d.team_id, operator: d.operator, deliveredAt: d.delivered_at }))
+    return (data || []).map(d => ({
+      id: d.id, reportId: d.report_id, teamId: d.team_id, reportTitle: d.report_title || '',
+      operator: d.operator, method: d.method || 'pdf', memo: d.memo || '', deliveredAt: d.delivered_at,
+    }))
   }
   return readMock(DKEY)
 }

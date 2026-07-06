@@ -72,6 +72,7 @@ export function buildModelFromReportDoc(doc) {
     summary: c.summary || '',
     finalSummary: c.finalSummary || '',
     operatorComment: c.operatorComment || '',
+    deliveryMemo: doc.deliveryMemo || c.deliveryMemo || '',
     sentiment: {
       positive: c.sentiment?.positive || 0,
       neutral: c.sentiment?.neutral || 0,

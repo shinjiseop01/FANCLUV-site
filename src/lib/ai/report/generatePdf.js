@@ -170,6 +170,7 @@ function bodyHtml(model, t) {
     ${block(t('aiReport.suggestions'), suggestionsHtml(model, color))}
     ${model.operatorComment ? block(t('aiReport.operatorComment'), `<p style="font-size:14px;color:#3A3F47;line-height:1.7;margin:0;border-left:4px solid ${color};padding:6px 0 6px 16px;">${esc(model.operatorComment)}</p>`) : ''}
     ${block(t('aiReport.kpi'), kpiHtml(model, t, color))}
+    ${model.deliveryMemo ? `<section style="margin-top:8px;page-break-before:always;padding-top:12px;border-top:2px solid ${FANCLUV_PRIMARY};">${sectionTitle(t('aiReport.deliveryMemo'), FANCLUV_PRIMARY)}<p style="font-size:15px;color:#2A2E35;line-height:1.8;margin:0;background:#F7F5FF;border-radius:12px;padding:20px 22px;white-space:pre-wrap;">${esc(model.deliveryMemo)}</p></section>` : ''}
     <div style="margin-top:40px;border-top:1px solid #E6E8EB;padding-top:14px;font-size:11.5px;color:#A0A5AC;text-align:center;">
       © ${new Date().getFullYear()} FANCLUV · ${esc(t('aiReport.confidential'))}
     </div>

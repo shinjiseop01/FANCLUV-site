@@ -420,3 +420,23 @@
 .adm-rpt-kpi { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--body);
   background: var(--page-bg); border: 1px solid var(--border-soft); border-radius: 10px; padding: 12px 14px; }
 .adm-rpt-kpi b { color: var(--ink); }
+
+/* ── 리포트 전달(Delivery) UI ── */
+.adm-rpt-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.adm-rpt-deliver { display: inline-flex; align-items: center; gap: 6px; }
+.adm-rpt-deliver:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 관리자 공용 모달 */
+.adm-modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.adm-modal {
+  width: 100%; max-width: 460px; background: var(--canvas); border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px; box-shadow: 0 20px 48px rgba(0,0,0,0.28);
+}
+.adm-modal-title { font-size: 18px; font-weight: 800; color: var(--ink); margin: 0 0 10px; }
+.adm-modal-desc { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.5; margin: 0 0 6px; }
+.adm-modal-note { font-size: 13px; color: var(--muted); margin: 0 0 18px; }
+.adm-modal .adm-field { margin-bottom: 16px; }
+.adm-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
