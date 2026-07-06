@@ -310,19 +310,65 @@ select:focus-visible {
   font-size: 15px; color: var(--muted, #8A909C); line-height: 1.7;
   margin-bottom: 26px;
 }
-.fc-404-btn {
-  background: var(--ink, #1A1D24);
-  color: var(--canvas, #fff);
-  border: none;
+/* 404 / 500 공통 액션 버튼 행 */
+.fc-404-actions, .fc-errpage-actions {
+  display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+}
+.fc-404-btn, .fc-errpage-btn {
+  background: var(--canvas, #fff);
+  color: var(--ink, #1A1D24);
+  border: 1px solid var(--line, #E5E7EB);
   border-radius: 12px;
   font-size: 15px; font-weight: 700;
   font-family: inherit;
   padding: 14px 26px;
   cursor: pointer;
-  transition: filter 0.15s, transform 0.1s;
+  transition: filter 0.15s, transform 0.1s, background 0.15s;
 }
-.fc-404-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-.fc-404-btn:active { transform: translateY(0); }
+.fc-404-btn.primary, .fc-errpage-btn.primary {
+  background: var(--ink, #1A1D24);
+  color: var(--canvas, #fff);
+  border-color: var(--ink, #1A1D24);
+}
+.fc-404-btn:hover, .fc-errpage-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+.fc-404-btn:active, .fc-errpage-btn:active { transform: translateY(0); }
+
+/* ───────────── 500 / 전역 오류 화면 (Error Boundary) ───────────── */
+.fc-errpage {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 32px;
+  background: var(--page-bg, #F6F7F9);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+}
+.fc-errpage-inner { text-align: center; max-width: 440px; }
+.fc-errpage-brand {
+  font-size: 15px; font-weight: 800; letter-spacing: 2px;
+  color: var(--muted, #8A909C); margin-bottom: 18px;
+}
+.fc-errpage-code {
+  font-size: 96px; font-weight: 900; line-height: 1; letter-spacing: -2px;
+  color: var(--ink, #1A1D24);
+  background: linear-gradient(180deg, var(--ink, #1A1D24), color-mix(in srgb, var(--ink, #1A1D24) 55%, var(--muted, #8A909C)));
+  -webkit-background-clip: text; background-clip: text;
+}
+.fc-errpage-title {
+  font-size: 22px; font-weight: 800; letter-spacing: -0.4px;
+  color: var(--ink, #1A1D24); margin: 14px 0 8px;
+}
+.fc-errpage-msg {
+  font-size: 15px; color: var(--muted, #8A909C); line-height: 1.7; margin-bottom: 26px;
+}
+
+/* ───────────── 이미지 로딩 실패 자리표시자 (LazyImage) ───────────── */
+.fc-img-ph {
+  display: inline-block;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--muted, #8A909C) 14%, transparent),
+    color-mix(in srgb, var(--muted, #8A909C) 6%, transparent));
+  border-radius: inherit;
+  min-width: 24px; min-height: 24px;
+}
 
 /* ───────────── Nickname validation status ───────────── */
 .nick-status {

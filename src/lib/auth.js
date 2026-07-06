@@ -10,6 +10,7 @@
 // 호출된다. Supabase 세션은 비동기이므로, AuthContext 가 세션/프로필을 로드해
 // 아래 동기 캐시(cachedUser)에 반영하고, 그 값을 동기로 반환한다.
 import { supabase, isSupabaseConfigured } from './supabase.js'
+import { invokeFunction } from './edgeFunctions.js'
 import { getProvider, SUPABASE_PROVIDER_CONFIG } from './oauth.js'
 import { sendWelcomeEmail } from './welcomeEmail.js'
 import { validateNicknameFormat } from './nicknameValidation.js'
@@ -323,7 +324,7 @@ export async function deleteAccount() {
   if (isSupabaseConfigured) {
     if (!cachedUser) return { ok: false, error: '로그인이 필요합니다.' }
     // 완전 삭제: delete-account Edge Function(service_role)이 auth.users 삭제.
-    const { data, error } = await supabase.functions.invoke('delete-account')
+    const { data, error } = await invokeFunction('delete-account')
     if (error || !data?.ok) {
       // 폴백: 완전 삭제 실패 시 최소한 비활성화(로그인 차단)라도 처리.
       await supabase.from('profiles').update({ deactivated_at: new Date().toISOString() }).eq('id', cachedUser.id)
@@ -455,7 +456,7 @@ export async function issueEmailCode(email) {
   if (isSupabaseConfigured) {
     const { data: exists } = await supabase.from('profiles').select('id').ilike('email', q).limit(1)
     if (exists && exists.length) return { ok: false, error: '이미 가입된 이메일입니다.' }
-    const { data, error } = await supabase.functions.invoke('send-email-code', { body: { action: 'send', email: q } })
+    const { data, error } = await invokeFunction('send-email-code', { body: { action: 'send', email: q } })
     if (error || !data?.ok) return { ok: false, error: '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.' }
     return { ok: true, code: data.devCode || null, sent: true } // devCode: 이메일 미설정 시 폴백
   }
@@ -467,7 +468,7 @@ export async function issueEmailCode(email) {
 // 이메일 인증번호 확인. Supabase: Edge Function 으로 검증. Mock: 화면이 보관한 코드와 비교.
 export async function confirmEmailCode(email, code) {
   if (!isSupabaseConfigured) return { ok: true } // Mock 은 SignupPage 에서 로컬 비교
-  const { data, error } = await supabase.functions.invoke('send-email-code', {
+  const { data, error } = await invokeFunction('send-email-code', {
     body: { action: 'verify', email: (email || '').trim(), code: (code || '').trim() },
   })
   if (error || !data?.ok) return { ok: false, error: '인증번호가 올바르지 않거나 만료되었습니다.' }

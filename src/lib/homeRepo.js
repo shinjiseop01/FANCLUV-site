@@ -3,6 +3,7 @@
 // Supabase 설정 시 실제 의견 데이터로 계산하고, 아니면 Mock 으로 fallback 한다.
 // 한 번의 조회로 세 가지를 모두 계산해 cache.js 로 30초 캐시한다.
 import { supabase, isSupabaseConfigured } from './supabase.js'
+import { retrySupabase } from './retry.js'
 import { withCache, invalidate } from './cache.js'
 
 function hoursSince(iso) {
@@ -81,12 +82,13 @@ function computeFromOpinions(rows) {
 export function getHomeContent(teamId) {
   return withCache(`home:${teamId}`, async () => {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      // 일시적 오류 시 최대 3회 재시도(retrySupabase).
+      const { data, error } = await retrySupabase(() => supabase
         .from('opinions_view')
         .select('id, title, body, category, likes_count, comments_count, author_nickname, created_at')
         .eq('team_id', teamId)
         .order('created_at', { ascending: false })
-        .limit(200)
+        .limit(200))
       if (!error && data && data.length) return computeFromOpinions(data)
     }
     return MOCK_CONTENT

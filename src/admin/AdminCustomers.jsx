@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { TEAMS, getTeam } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
 import AdminNoteBox from './AdminNoteBox.jsx'
 import {
@@ -154,7 +155,7 @@ export default function AdminCustomers() {
 
       {/* 목록 */}
       {loading ? (
-        <p className="adm-loading" role="status">{t('common.loading')}</p>
+        <SkeletonList count={5} lines={1} />
       ) : customers.length === 0 ? (
         <EmptyState iconName="users" title={t('admin.cust.emptyTitle')} message={t('admin.cust.emptyMsg')} />
       ) : (

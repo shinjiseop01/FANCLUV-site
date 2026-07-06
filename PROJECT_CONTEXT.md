@@ -415,9 +415,50 @@ npm run lint     # oxlint
 - **PDF 라이브러리(jspdf·html2canvas ~600KB)는 동적 import**(`generatePdf.js` 내부 `import('jspdf')`) → 관리자가 리포트 생성할 때만 로드, 메인 번들·팬 화면엔 미포함(별도 청크로 분리 확인).
 - 메인 번들 gzip ~237KB. 추가 최적화 여지: 라우트별 `lazy()` 코드 스플리팅(추후).
 
+## 6-2. 운영 안정화 체크리스트 (Production Readiness — 2단계)
+
+> 2026-07-06 Phase 2 점검 결과. 성능 최적화 · 모니터링 · 운영 안정성 강화. **기존 기능 변경 없음.**
+
+### 6-2.1 전역 Error Boundary — `src/components/ErrorBoundary.jsx`
+- 클래스 컴포넌트 Error Boundary. 예상치 못한 렌더 오류 시 **흰 화면 대신 500 스타일 안내**(제목 `err.heading` "예상치 못한 오류가 발생했습니다." + **새로고침** + **홈으로 이동**)를 표시하고 `logger.error` 로 기록.
+- `main.jsx` 배치: `LanguageProvider` 아래(그래서 fallback 에서 `useLang` 사용 가능) · `AuthProvider`/`BrowserRouter` 위(그들의 오류까지 포착). 이동/새로고침은 라우터 비의존 `window.location` 사용.
+
+### 6-2.2 404 / 500 페이지
+- **404**(`NotFoundPage.jsx`): FANCLUV 디자인 + **홈으로 돌아가기**(primary) + **이전 페이지**(`navigate(-1)`, 이력 없으면 홈). i18n `nf.*`.
+- **500**(ErrorBoundary fallback): 서버 오류 안내 + **새로고침**(`reload`) + **홈으로 이동**. i18n `err.*`. 스타일 `.fc-errpage*`(404와 공통 토큰).
+
+### 6-2.3 이미지 최적화 — `src/components/LazyImage.jsx`
+- `loading="lazy"` + `decoding="async"` + **로딩 실패 시 placeholder 폴백**(onError). placeholder 미지정 시 `.fc-img-ph` 회색 자리표시자.
+- 적용: **프로필 아바타**(`Avatar.jsx` → 실패 시 이니셜), **설정 아바타**(`SettingsPage`), **뉴스 이미지**(`TeamNewsPage` Thumb → 실패 시 구단 엠블럼). 로고/팀 엠블럼은 SVG(래스터 아님)라 대상 외.
+
+### 6-2.4 코드 스플리팅 (초기 번들 축소) — `main.jsx`
+- 랜딩(`LoginPage`)만 즉시 로드, **나머지 팬/관리자 페이지 전부 `React.lazy` + `<Suspense>`**(fallback = `SkeletonList`). 관리자 콘솔은 별도 청크(운영자만 로드).
+- **메인 번들 894KB → 560KB (gzip 237KB → 162KB)**. 페이지별 2~19KB 청크로 분리. PDF 라이브러리(jspdf/html2canvas)는 기존대로 동적 import(리포트 생성 시만).
+
+### 6-2.5 Loading UX (Skeleton)
+- 팬 데이터 화면(홈/뉴스/의견/AI/랭킹/활동/설문)은 이미 Skeleton 사용. **관리자 신고·리포트·고객 페이지의 텍스트 로딩("불러오는 중")을 `SkeletonList` 로 교체**. 라우트 청크 로딩 중에도 `SkeletonList` 표시.
+
+### 6-2.6 API 재시도(Retry) — `src/lib/retry.js`
+- `withRetry(fn, {retries=3, baseDelay, factor, shouldRetry})` — 지수 백오프 + 지터, **최대 3회 재시도**. 4xx 등은 `shouldRetry` 로 즉시 중단.
+- `retrySupabase(queryFn)` — Supabase `{data,error}` 를 재시도(일시적 pg 오류만; 권한/제약 위반 23/42/28xxx 은 중단).
+- 적용 지점: **Edge Function**(`lib/edgeFunctions.js` `invokeFunction` — analyze-insights·send-email-code·send-welcome-email·delete-account), **리그 Provider**(`apiLeagueProvider` fetch), **Supabase 읽기**(`adminStats` RPC·`homeRepo` 조회), **뉴스 Provider**(실 연동 시 `invokeFunction` 경유 → 재시도 자동). 캐시(`withCache`) + lastGood/Mock 폴백과 함께 동작.
+
+### 6-2.7 성능/사용성 측정 구조 — `src/services/analytics/`
+- `analytics.pageView()/track()/identify()` 인터페이스 + Provider 교체 구조. 현재 **`mockAnalyticsProvider`**(개발 콘솔 로그만, 운영 no-op). `main.jsx` 가 `initAnalytics()` + 라우트 변경마다 `pageView` 호출.
+- 향후 `VITE_ANALYTICS=ga|clarity` 로 GA4/Clarity Provider 추가 시 `pickProvider()` 한 곳만 확장(화면 코드 불변).
+
+### 6-2.8 운영 로그 — `src/lib/logger.js`
+- `logger.debug/info/warn/error(message, { error, context })` Wrapper. **개발=전체 레벨, 운영=warn/error 만** 콘솔 출력. warn/error 는 등록된 sink 로도 전달 → `addSink()` 로 Sentry 등 원격 수집 연결 준비.
+- 앱 내 직접 `console.*` 제거(logger 경유로 일원화). supabase 미설정 경고·관리자 통계 실패·Edge Function 실패 등이 logger 로 기록.
+
+### 6-2.9 접근성(A11y)
+- 이미지: 모든 `<img>` 에 `alt`(장식용은 `alt=""`). 아이콘 버튼: 비밀번호 표시 토글에 `aria-label`(`common.showPassword/hidePassword`) + `aria-pressed` 추가. 헤더 아이콘 버튼은 기존 `aria-label` 유지.
+- 폼: 라벨 텍스트 제공, `autoComplete` 지정(로그인/비밀번호). 전역 `:focus-visible` 링(Phase 1)으로 키보드 내비 가시성 확보. 로딩/빈/오류 영역에 `role="status"`/`role="alert"`.
+
 ## 7. 작업 시 참고
 
-- 페이지 추가 시: `src/XxxPage.jsx` + `src/XxxPage.css` 쌍 생성 → `main.jsx`에 `RequireAuth` 라우트 등록 → 내비 메뉴면 `teams.jsx`의 `MENU_ITEMS`/`menuPath` + `NAV_KEYS` 갱신.
+- 페이지 추가 시: `src/XxxPage.jsx` + `src/XxxPage.css` 쌍 생성 → `main.jsx`에 `RequireAuth` 라우트 등록(코드 스플리팅: `const X = lazy(() => import('./X.jsx'))`) → 내비 메뉴면 `teams.jsx`의 `MENU_ITEMS`/`menuPath` + `NAV_KEYS` 갱신.
+- **console.* 대신 `logger.*`**, 이미지엔 `LazyImage`, 외부 요청엔 `withRetry`/`retrySupabase`/`invokeFunction` 사용.
 - **새 UI 텍스트는 반드시 ko/en 양쪽 locale에 키 추가** (911/911 동기화 유지).
 - 디자인 토큰/컬러/타이포는 `DESIGN.md` 기준을 따를 것.
 - **운영/개발 모드**: Supabase env 설정 시 실서비스, 미설정 시 Mock. 데모 계정은 dev 빌드에서만 시드(§6.1).

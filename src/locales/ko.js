@@ -14,6 +14,8 @@ export default {
   'common.noNotifications': '알림이 없습니다',
   'common.markAllRead': '전체 읽음',
   'common.close': '닫기',
+  'common.showPassword': '비밀번호 표시',
+  'common.hidePassword': '비밀번호 숨기기',
   'common.loading': '불러오는 중…',
   'common.refresh': '새로고침',
 
@@ -550,10 +552,15 @@ export default {
   'empty.activityCta': '의견 작성하기',
   // Misc
   'common.loadMore': '더 보기',
-  // 404
+  // 404 / 500
   'nf.heading': '페이지를 찾을 수 없습니다',
   'nf.msg': '요청하신 페이지가 사라졌거나 주소가 잘못되었습니다.',
   'nf.home': '홈으로 돌아가기',
+  'nf.back': '이전 페이지',
+  'err.heading': '예상치 못한 오류가 발생했습니다.',
+  'err.msg': '일시적인 서버 오류일 수 있습니다. 잠시 후 새로고침하거나 홈으로 이동해 주세요.',
+  'err.refresh': '새로고침',
+  'err.home': '홈으로 이동',
   // Survey list status filter
   'survey.filterAll': '전체',
   'survey.filterOngoing': '진행 중',

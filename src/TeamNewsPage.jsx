@@ -9,6 +9,7 @@ import Icon from './components/Icon.jsx'
 import { getTeamNews } from './lib/news/teamNewsProvider.js'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
+import LazyImage from './components/LazyImage.jsx'
 import './ClubHomePage.css'
 import './TeamNewsPage.css'
 
@@ -174,7 +175,7 @@ export default function TeamNewsPage() {
                 <>
                 {hero && (
                   <article className="tn-hero" onClick={() => openNews(hero)}>
-                    <Thumb team={team} category={hero.category} hero />
+                    <Thumb team={team} category={hero.category} imageUrl={hero.imageUrl} hero />
                     <div className="tn-hero-body">
                       <div className="tn-meta">
                         <span className="tn-cat-pill">{hero.category}</span>
@@ -198,7 +199,7 @@ export default function TeamNewsPage() {
                 <div className="tn-list">
                   {rest.map(n => (
                     <article key={n.id} className="tn-card" onClick={() => openNews(n)}>
-                      <Thumb team={team} category={n.category} />
+                      <Thumb team={team} category={n.category} imageUrl={n.imageUrl} />
                       <div className="tn-card-body">
                         <div className="tn-meta">
                           <span className="tn-cat-pill">{n.category}</span>
@@ -285,10 +286,14 @@ export default function TeamNewsPage() {
   )
 }
 
-function Thumb({ team, category, hero }) {
+function Thumb({ team, category, hero, imageUrl }) {
+  const emblem = <TeamEmblem color={team.color} size={hero ? 72 : 44} className="tn-thumb-emblem" />
   return (
     <div className={`tn-thumb${hero ? ' hero' : ''}`}>
-      <TeamEmblem color={team.color} size={hero ? 72 : 44} className="tn-thumb-emblem" />
+      {/* 외부 뉴스 이미지가 있으면 지연 로딩(실패 시 구단 엠블럼으로 폴백), 없으면 엠블럼. */}
+      {imageUrl
+        ? <LazyImage src={imageUrl} alt="" className="tn-thumb-img" placeholder={emblem} />
+        : emblem}
       <span className="tn-thumb-cat">{category}</span>
     </div>
   )
@@ -303,7 +308,7 @@ function NewsDetail({ news, team, t, onBack, onWrite, onSurvey }) {
         <span className="tn-date">{news.date}</span>
       </div>
       <h1 className="tn-detail-title">{news.title}</h1>
-      <Thumb team={team} category={news.category} hero />
+      <Thumb team={team} category={news.category} imageUrl={news.imageUrl} hero />
       <div className="tn-reactions tn-detail-reactions">
         <span className="ic-txt"><Icon name="comment" size={13} /> 팬 의견 {news.opinions}개</span>
         <span className="ic-txt"><Icon name="chart" size={13} /> 설문 참여 {news.survey}명</span>

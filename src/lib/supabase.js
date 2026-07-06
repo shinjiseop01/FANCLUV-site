@@ -9,6 +9,7 @@
 //   VITE_SUPABASE_URL=https://xxxx.supabase.co
 //   VITE_SUPABASE_ANON_KEY=eyJhbGciOi...   (anon/public key — 클라이언트 공개용, 노출 안전)
 import { createClient } from '@supabase/supabase-js'
+import { logger } from './logger.js'
 
 const url = import.meta.env.VITE_SUPABASE_URL
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -26,8 +27,8 @@ export const isMockMode = !isSupabaseConfigured
 // Mock 데모 데이터/계정으로 서비스가 뜨는 것을 막기 위해 크게 경고한다.
 // (앱을 강제 종료하진 않는다 — 의도된 데모 배포까지 깨뜨리지 않기 위해.)
 if (import.meta.env.PROD && !isSupabaseConfigured) {
-  console.error(
-    '[FANCLUV] 운영 빌드에서 Supabase 환경변수가 설정되지 않았습니다. ' +
+  logger.error(
+    '운영 빌드에서 Supabase 환경변수가 설정되지 않았습니다. ' +
       'VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY 를 설정하세요. ' +
       '설정 전까지는 실데이터 없이 동작하며 데모 계정은 생성되지 않습니다.',
   )

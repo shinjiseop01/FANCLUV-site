@@ -5,6 +5,7 @@
 //    이 파일은 그 함수를 호출하거나(runAnalysis), 저장된 결과를 읽어온다(getLatestInsight).
 //    Supabase 미설정(Mock) 시엔 로컬 간이 분석으로 폴백해 앱이 그대로 동작한다.
 import { supabase, isSupabaseConfigured } from '../supabase.js'
+import { invokeFunction } from '../edgeFunctions.js'
 import { listOpinions } from '../opinionsRepo.js'
 
 export const MIN_OPINIONS = 30
@@ -73,7 +74,7 @@ function buildLocalInsight(clubId, ops) {
 // ── 분석 실행 (관리자) ──
 export async function runAnalysis(clubId = 'all') {
   if (isSupabaseConfigured) {
-    const { data, error } = await supabase.functions.invoke('analyze-insights', { body: { clubId } })
+    const { data, error } = await invokeFunction('analyze-insights', { body: { clubId } })
     // 처리된 실패는 함수가 200 + { ok:false, code } 로 반환 → data 로 전달됨.
     // error 는 네트워크/함수 미배포 등 예외 상황.
     if (error) return { ok: false, code: 'network' }

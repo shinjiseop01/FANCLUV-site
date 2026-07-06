@@ -68,6 +68,12 @@
   flex-shrink: 0;
 }
 .tn-thumb-emblem { opacity: 0.92; }
+.tn-thumb-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
 .tn-thumb-cat {
   position: absolute; left: 12px; bottom: 12px;
   font-size: 11.5px; font-weight: 700; color: #fff;

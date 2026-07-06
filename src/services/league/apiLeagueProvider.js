@@ -10,17 +10,30 @@
 //      → 화면(MatchCenterPage/ClubHomePage) 코드는 그대로.
 //   지원 대상 예: API-Football, Sportmonks, Football-data, K리그 공식 데이터, 자체 수집 데이터.
 import { getTeam } from '../../teams.jsx'
+import { withRetry } from '../../lib/retry.js'
 
 const BASE = import.meta.env?.VITE_LEAGUE_API_BASE || ''
 const KEY = import.meta.env?.VITE_LEAGUE_API_KEY || ''
 export const isApiConfigured = !!BASE
 
+// 일시적 오류(네트워크/5xx)만 최대 3회 재시도. 4xx(클라이언트 오류)는 즉시 중단.
 async function fetchJson(path) {
   const headers = { Accept: 'application/json' }
   if (KEY) { headers.Authorization = `Bearer ${KEY}`; headers['X-API-Key'] = KEY }
-  const res = await fetch(`${BASE}${path}`, { headers })
-  if (!res.ok) throw new Error(`league api ${res.status}`)
-  return res.json()
+  return withRetry(async () => {
+    const res = await fetch(`${BASE}${path}`, { headers })
+    if (!res.ok) {
+      const err = new Error(`league api ${res.status}`)
+      err.status = res.status
+      throw err
+    }
+    return res.json()
+  }, {
+    retries: 3,
+    label: `league:${path}`,
+    // 4xx 는 재시도 무의미(요청 자체 문제) → 5xx/네트워크만 재시도.
+    shouldRetry: err => !err?.status || err.status >= 500,
+  })
 }
 
 // 벤더 순위 응답 → 표준 순위 행.

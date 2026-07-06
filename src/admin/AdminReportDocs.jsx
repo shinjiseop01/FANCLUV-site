@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { TEAMS, getTeam } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
 import {
   DELIVERY_METHODS, adminListReports, createReport, updateReport,
@@ -191,7 +192,7 @@ export default function AdminReportDocs() {
 
       {/* 목록 */}
       {loading ? (
-        <p className="adm-loading" role="status">{t('common.loading')}</p>
+        <SkeletonList count={5} lines={1} />
       ) : reports.length === 0 ? (
         <EmptyState iconName="clipboard" title={t('admin.rpt.emptyTitle')} message={t('admin.rpt.emptyMsg')} />
       ) : (

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
 import AdminNoteBox from './AdminNoteBox.jsx'
 import { adminListReports, resolveReport, rejectReport, deleteReport, moderateTarget } from '../lib/reportsRepo.js'
@@ -120,7 +121,7 @@ export default function AdminReports() {
       </div>
 
       {loading ? (
-        <p className="adm-loading" role="status">{t('common.loading')}</p>
+        <SkeletonList count={5} lines={1} />
       ) : visible.length === 0 ? (
         <EmptyState iconName="flag" title={t('admin.rp.emptyTitle')} message={t('admin.rp.emptyMsg')} />
       ) : (

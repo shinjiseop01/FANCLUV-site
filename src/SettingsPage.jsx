@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
+import LazyImage from './components/LazyImage.jsx'
 import { useTheme } from './contexts/ThemeContext.jsx'
 import { logout, getCurrentUser, deleteAccount } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
@@ -158,7 +159,8 @@ export default function SettingsPage() {
           <h2 className="st-card-title">{t('set.account')}</h2>
           <div className="st-profile">
             {user?.avatarUrl
-              ? <img className="st-avatar" src={user.avatarUrl} alt="" />
+              ? <LazyImage className="st-avatar" src={user.avatarUrl} alt=""
+                  placeholder={<span className="st-avatar" aria-hidden="true">{nickname[0]}</span>} />
               : <span className="st-avatar" aria-hidden="true">{nickname[0]}</span>}
             <div className="st-profile-info">
               <span className="st-profile-name">{nickname}</span>

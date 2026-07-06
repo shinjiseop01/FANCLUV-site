@@ -14,6 +14,8 @@ export default {
   'common.noNotifications': 'No notifications',
   'common.markAllRead': 'Mark all read',
   'common.close': 'Close',
+  'common.showPassword': 'Show password',
+  'common.hidePassword': 'Hide password',
   'common.loading': 'Loading…',
   'common.refresh': 'Refresh',
 
@@ -550,10 +552,15 @@ export default {
   'empty.activityCta': 'Write an opinion',
   // Misc
   'common.loadMore': 'Load more',
-  // 404
+  // 404 / 500
   'nf.heading': 'Page not found',
   'nf.msg': 'The page you requested has moved or the address is wrong.',
   'nf.home': 'Back to Home',
+  'nf.back': 'Previous page',
+  'err.heading': 'Something went wrong.',
+  'err.msg': 'This may be a temporary server error. Please refresh in a moment or go back home.',
+  'err.refresh': 'Refresh',
+  'err.home': 'Go to Home',
   // Survey list status filter
   'survey.filterAll': 'All',
   'survey.filterOngoing': 'Open',

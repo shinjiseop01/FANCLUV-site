@@ -17,6 +17,8 @@
 //   - refreshAdminDashboard() 가 캐시를 무효화하고 즉시 재계산(새로고침 버튼).
 
 import { supabase, isSupabaseConfigured } from '../supabase.js'
+import { retrySupabase } from '../retry.js'
+import { logger } from '../logger.js'
 import { withCache, invalidate } from '../cache.js'
 import { isAdmin } from '../auth.js'
 import { TEAMS } from '../../teams.jsx'
@@ -46,7 +48,7 @@ async function loadDashboard() {
       return await loadFromSupabase()
     } catch (e) {
       // RPC 미배포/네트워크 오류 등: 데모 Mock 으로 폴백해 대시보드 자체는 유지.
-      console.warn('[adminStats] Supabase 집계 실패 → Mock 폴백:', e?.message || e)
+      logger.warn('관리자 통계 집계 실패 → Mock 폴백', { error: e })
       return mockDashboard()
     }
   }
@@ -55,7 +57,8 @@ async function loadDashboard() {
 
 // ── Supabase 실집계 (RPC 1회 호출) ──
 async function loadFromSupabase() {
-  const { data, error } = await supabase.rpc('admin_dashboard_stats', { days: ACTIVE_DAYS })
+  // 일시적 오류 시 최대 3회 재시도(retrySupabase).
+  const { data, error } = await retrySupabase(() => supabase.rpc('admin_dashboard_stats', { days: ACTIVE_DAYS }))
   if (error) throw error
   if (!data) throw new Error('empty rpc result')
   return shapeDashboard(data, 'supabase')
