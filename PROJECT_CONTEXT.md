@@ -1,7 +1,7 @@
 # FANCLUV — 프로젝트 컨텍스트 (핸드오프 문서)
 
 > 새 채팅에서 이 파일을 읽으면 바로 이어서 작업할 수 있도록 정리한 문서입니다.
-> 최종 정리: 2026-07-05 / `main` 브랜치 기준 (회원정보 노출범위 정리 22차 + 로고 리프레시 23차)
+> 최종 정리: 2026-07-06 / `main` 브랜치 기준 (B2B 고객관리 30차까지 — 관리자 운영도구·AI 리포트·구단 리포트 전달·B2B 고객관리 포함)
 
 ## 1. 프로젝트 개요
 
@@ -61,7 +61,10 @@ npm run lint     # oxlint
 | `/admin/opinions` | AdminOpinions (의견/댓글 관리) |
 | `/admin/surveys` | AdminSurveys (설문 관리) |
 | `/admin/news` | AdminNews (뉴스 관리) |
+| `/admin/notices` | AdminNotices (공지사항 관리 — 25차) |
 | `/admin/reports` | AdminReports (신고 관리) |
+| `/admin/report-docs` | AdminReportDocs (구단 전달용 AI 리포트 관리 — 27~28차) |
+| `/admin/customers` | AdminCustomers (B2B 고객/계약 관리 — 30차) |
 | `/admin/settings` | AdminSettings (설정) |
 
 - 레이아웃: `src/admin/AdminLayout.jsx` · 목 데이터: `src/admin/adminData.js` · 스타일: `src/admin/admin.css`
@@ -152,7 +155,7 @@ npm run lint     # oxlint
 ### 다국어 — `src/contexts/LanguageContext.jsx` + `src/locales/{ko,en}.js`
 - `useLang()` → `{ lang, setLang, t }`. `t(key, vars?)`는 `{token}` 보간 지원, 누락 시 ko 폴백 → raw key 폴백.
 - localStorage 키: `fancluv_lang` (기본 `ko`).
-- **ko/en 각각 233개 키** (현재 동기화됨).
+- **ko/en 각각 911개 키** (현재 동기화됨).
 - `NAV_KEYS`: 한글 내비 라벨 → 번역 키 매핑. **메뉴 배열은 한글을 canonical 키로 유지**(라우팅/active 판정용), 표시 라벨만 번역.
 
 ### 구단 데이터 — `src/teams.jsx`
@@ -208,9 +211,32 @@ npm run lint     # oxlint
 - `RequireAdmin` 가드로 보호. `AdminLayout` + 중첩 라우트(대시보드/회원/의견/설문/뉴스/신고/설정).
 - 데이터는 `adminData.js`의 Mock. 댓글 관리 기능 포함, 토스트 없이 인라인 피드백.
 - **회원 관리(AdminMembers) — 운영자 전용 상세 정보(22차)**: 회원 테이블은 요약(닉네임·이메일·가입일·응원팀·인증·상태)만, 행별 **"상세" 버튼 → 인라인 상세 패널**에서 **Member ID·닉네임·이메일·가입일·로그인 방식·응원팀·성별·나이대·이메일 인증 여부·계정 상태·마지막 활동일** 표시. `MOCK_MEMBERS`에 `provider`/`gender`/`ageGroup`/`lastActiveAt` 보강. 상세 정보는 **`RequireAdmin` 가드 내부에서만 렌더** → 일반 사용자 화면·URL 직접 접근으로는 노출 안 됨. 패널은 신고 상세와 동일한 `adm-report-dl` 토큰 재사용(라이트/다크 자동). **Member ID·로그인 방식·마지막 활동일 등 상세 식별 정보는 일반 사용자 설정/프로필 화면엔 절대 표시하지 않음.**
-- **대시보드 고도화**(`AdminDashboard.jsx` + `AdminCharts.jsx`): KPI 8종, 구단별 현황 테이블(만족도·참여율 미니바), 최근 활동(가입/의견/댓글/신고), 차트(라인·바·도넛·감정 누적바 — 순수 SVG, 라이브러리 없음), 빠른 작업 4종.
-- **KPI는 Supabase 집계 연동(13차 강화)**: `getDashboardStats()`가 Supabase 설정 시 `count(*)` 쿼리(회원/의견/댓글/오늘 의견/진행 설문/좋아요/응답/**미처리 신고**/**7일 내 활성**)로 계산, 아니면 Mock. **`withCache('admin:stats')` 30초 캐시**. 나머지 대시보드 데이터(구단별/최근/차트)는 아직 Mock.
-- **관리자 CRUD가 Supabase에 반영**: 설문(`surveysRepo`)·뉴스(`newsRepo`)는 관리자 RLS(`is_admin()`)로 서버 반영. `/admin` 접근은 `RequireAdmin`+`isAdmin()`(profiles.role) → 일반 사용자 차단.
+- **대시보드 고도화**(`AdminDashboard.jsx` + `AdminCharts.jsx`): KPI 10종, 구단별 현황 테이블(만족도·참여율 미니바), 최근 활동(가입/의견/댓글/설문/신고), 차트(라인·바·도넛·감정 누적바 — 순수 SVG, 라이브러리 없음), 빠른 작업, **AI 인사이트 분석 실행 패널**, **AI 리포트 PDF 생성 패널**.
+- **대시보드 전체가 실집계로 전환(24차) — `src/lib/admin/adminStats.js`**: `getAdminDashboard()` 하나가 KPI·구단별·최근 활동·차트를 모두 반환. Supabase 설정 시 **RPC `admin_dashboard_stats(days)` 1회 호출**(`0013_admin_dashboard_stats.sql`, `SECURITY DEFINER`+`is_admin()`)로 서버 집계, 아니면 결정적 시드 Mock. **비관리자면 빈 통계(0)** 반환(이중 방어). `withCache('admin:dashboard')` 30초, `refreshAdminDashboard()`로 무효화. → 이전 "구단별/최근/차트는 Mock" TODO 해소.
+- **관리자 CRUD가 Supabase에 반영**: 설문(`surveysRepo`)·뉴스(`newsRepo`)·공지(`noticesRepo`)·리포트(`clubReportsRepo`)·고객(`customersRepo`)은 관리자 RLS(`is_admin()`)로 서버 반영. `/admin` 접근은 `RequireAdmin`+`isAdmin()`(profiles.role) → 일반 사용자 차단.
+- **CSV 내보내기 — `src/lib/admin/csv.js`**: `exportCsv(baseName, columns, rows)` = `buildCsv`+`downloadCsv`. UTF-8 BOM(엑셀 한글 깨짐 방지) + 파일명 날짜 접미사. 회원/의견 등 관리자 목록 다운로드에 사용.
+
+### 관리자 공지사항 — `src/lib/noticesRepo.js` + `admin/AdminNotices.jsx` (25차)
+- **공지 관리 페이지(AdminNotices)** + **사용자 노출(홈 배너 · 알림)**의 단일 소스. Supabase `notices` 테이블(`0014_admin_ops.sql`, insert 트리거가 대상 팬에게 `notice` 알림 broadcast) 또는 Mock(localStorage, 시드 2건).
+- 공지 필드: 제목·내용·**중요 공지 여부**(`is_important`, `0015_notice_important.sql`)·노출 시작/종료일·**상단 고정(pinned)**·숨김. 사용자에겐 `listActiveNotices(teamId)`가 숨김 제외 + 노출 기간 내 + (전체 또는 내 구단) 공지를 **고정→중요→최신** 정렬로 반환.
+- 관리자 API: `adminListNotices`/`createNotice`/`updateNotice`/`setNoticeHidden`/`setNoticePinned`/`deleteNotice`. **공지는 이동 페이지가 없어 알림 클릭 시 벨에서 모달로 본문 표시**(NotificationBell). `createNotice`가 숨김이 아니면 알림 생성(Mock은 `pushMockNotification`).
+
+### 운영자 내부 메모 — `src/lib/adminNotesRepo.js` (25차)
+- 회원·의견·댓글·신고·고객 각 대상에 **운영자만 보는 메모**(예: "반복 신고 사용자"). `listNotes/addNote/deleteNote(entityType, entityId)`. **일반 사용자에게 절대 미노출**: Supabase `admin_notes` RLS `is_admin()`(`0014`) + 모든 API `isAdmin()` 사전검사(이중 방어). `AdminNoteBox.jsx`(공용 UI 컴포넌트)로 각 관리자 상세 패널에 삽입.
+
+### AI 리포트(PDF) 생성 — `src/lib/ai/report/` (26차)
+- **관리자용 AI 팬 인사이트 PDF 리포트**. 진입점 `report/index.js`: `generateAiReport({clubId, periodType, t})`(최신 인사이트로 즉시 생성) / `generateReportPdfFromDoc(doc, t)`(저장된 리포트 문서로 생성).
+- `reportModel.js` — `getLatestInsight`(`ai_insights`) + `getAdminDashboard`(집계)를 모아 PDF가 그릴 정규화 모델 생성. **기간 유형 `REPORT_PERIODS`**(current/monthly/quarterly/yearly) → 표지 라벨·파일명 토큰(YYYY-MM / YYYY-Qn / YYYY) 분기. 향후 기간별 데이터는 `buildReportModel` 내부만 교체.
+- `generatePdf.js` — jspdf + html2canvas(package.json 의존성 추가)로 표지·감정·키워드·카테고리·만족도·개선제안·KPI 렌더. **content엔 집계/요약만 담겨 개인정보(이메일/닉네임/원본 의견) 미포함.**
+
+### 구단 전달용 리포트 관리 — `src/lib/admin/clubReportsRepo.js` + `admin/AdminReportDocs.jsx` (27~28차)
+- 운영자가 AI 인사이트를 **스냅샷해 리포트 초안 생성 → 검토·수정 → 승인 → 구단 전달**하는 워크플로우. Supabase `club_reports`/`report_deliveries`(`0016_club_reports.sql`·`0017_report_delivery.sql`) 또는 Mock.
+- 상태 `REPORT_STATUSES` = draft/review/approved/delivered. API: `adminListReports`/`createReport`(구단+기간 선택, 인사이트 없으면 `no_insight`)/`getReport`/`updateReport`(제목·본문 수정)/`setStatus`/`deliverReport`/`deleteReport`/`listDeliveries`.
+- **전달(`deliverReport`)은 승인된 리포트만**. 전달 방식 `DELIVERY_METHODS` = pdf/email/link(이메일·링크는 구조만, 실전송 미구현) + 전달 메모 → 상태 delivered + 전달 이력(`report_deliveries`) 기록. **content 스냅샷은 집계 필드만**(개인정보 제외). `operatorComment`/`finalSummary`는 운영자가 검토·수정.
+
+### B2B 고객(구단) 관리 — `src/lib/admin/customersRepo.js` + `admin/AdminCustomers.jsx` (30차)
+- 계약 구단(고객)의 **상태·플랜·담당자·계약 이력** 관리. Supabase `customers`/`customer_contract_history`(`0018_customers.sql`) 또는 Mock(시드 2건: FC서울 active/professional, 울산 pilot/basic).
+- 상태 `CONTRACT_STATUSES` = pilot/negotiating/active/ended/terminated, 플랜 `SERVICE_PLANS` = basic/professional/enterprise. API: `adminListCustomers`/`createCustomer`/`updateCustomer`/`deleteCustomer` + 계약 이력 `listHistory`/`addHistory`. **상태·플랜 변경 시 이력 자동 기록**(`autoHistory`). 운영자 메모는 `adminNotesRepo`(entityType `customer`) 재사용. 모든 API `isAdmin()` 방어.
 
 ### 실시간 데이터 아키텍처 / 캐시 (13차)
 - **캐시** — `src/lib/cache.js`: `withCache(key, fetcher, ttl=30000)` 인메모리 TTL 캐시(기본 30초). 진행 중 Promise 재사용, 실패 시 캐시 미저장. `invalidate(prefix)`/`clearCache()`. 순위/일정/홈 인기/관리자 KPI에 사용.
@@ -239,7 +265,18 @@ npm run lint     # oxlint
 
 ## 4. 완료된 작업 (git 히스토리, 최신 → 과거)
 
-**Supabase 백엔드 연동 시리즈 (최신)**
+**관리자 운영 콘솔 확장 시리즈 (최신)**
+
+0. B2B 고객 관리 — 30차: `AdminCustomers` + `customersRepo`(customers/customer_contract_history, `0018`). 계약 상태·플랜·담당자·이력 CRUD + 상태/플랜 변경 시 이력 자동기록, 운영자 메모 재사용 (`7801fe2` Add B2B customer management).
+0. 실 팀뉴스 Provider 아키텍처 — 29차: `src/lib/news/` provider(rss/newsApi/official 구조 + mock fallback) + `teamNewsProvider` 오케스트레이터(우선순위·표준화·5분 캐시·폴백), `newsRepo` 정리 (`1265f20` Add real team news provider architecture).
+0. 리그 데이터 Provider 아키텍처 — 29차: `src/services/league/`(mock/api/facade + 5분 캐시 + lastGood/Mock 폴백), `matchRepo` 표시 어댑터화, `ClubHomePage` 경기/순위 연동, `.env` `VITE_LEAGUE_API_BASE`/`LEAGUE_PROVIDER` (`a7205ba` Add league data provider architecture).
+0. 리포트 전달(delivery) 관리 — 28차: `AdminReportDocs` 전달 워크플로 + `clubReportsRepo.deliverReport`/`listDeliveries`(방식 pdf/email/link·메모·이력), `report_deliveries`(`0017`) (`90b8949` Add report delivery management workflow).
+0. 구단 전달용 리포트 관리 — 27차: `AdminReportDocs` + `clubReportsRepo`(AI 인사이트 스냅샷→초안→검토→승인, `club_reports` `0016`) (`20d12d9` Add admin report management workflow).
+0. AI 리포트(PDF) 생성 + 알림전용 공지(중요 플래그) — 26차: `src/lib/ai/report/`(reportModel·generatePdf, jspdf/html2canvas), 대시보드 리포트 생성 패널, `0015_notice_important` (`263e850` Add AI report generation and notification-only admin announcements).
+0. 관리자 운영 도구 강화 — 25차: 공지 관리(`AdminNotices`+`noticesRepo`)·운영자 내부 메모(`AdminNoteBox`+`adminNotesRepo`)·CSV 내보내기(`lib/admin/csv.js`), AdminMembers/Opinions/Reports 개선, `0014_admin_ops` (`9a6ba30` Enhance admin operation tools).
+0. 실제 관리자 대시보드 통계 — 24차: `src/lib/admin/adminStats.js` = 대시보드 전체(KPI 10종·구단별·최근·차트)를 RPC `admin_dashboard_stats`(`0013`) 1회 집계 or Mock, 30초 캐시·비관리자 빈통계 (`e2df910` Implement real admin dashboard statistics).
+
+**Supabase 백엔드 연동 시리즈**
 
 0. 브랜드 로고 리프레시 — 23차: 소스 로고를 `FANCLUV logo.jpeg`로 교체 → `public/icon-192/512.png`·`public/logo.png` 재생성(헤더/로그인 로고는 텍스트 워드마크라 불변, favicon.svg는 유지). PROJECT_CONTEXT 최신화 동반 (`Update project context and refresh FANCLUV logo`).
 0. 회원정보 노출범위 정리 — 22차: 일반 사용자 설정/프로필에서 상세 회원 식별정보(Member ID·로그인 방식·다음 닉네임 변경일 등) 미노출 확정, 프로필 수정 화면 **활동 통계 카드 제거**(수정 기능만), 운영자 **회원 상세 패널**에 Member ID·로그인 방식·성별·나이대·마지막 활동일 등 11개 필드 추가(`RequireAdmin` 가드 내부 전용). 응원팀 카드는 구단 변경 기능으로 유지 (`978eec7` Restrict detailed member info to admin).
@@ -298,14 +335,15 @@ npm run lint     # oxlint
 23. Vercel 404 수정: 클라이언트 라우팅 + SPA fallback (`d150b0e`)
 24. 초기 커밋 (`b22a591`)
 
-→ **팬 화면 8개 + 계정 복구/인증/정보 페이지 + 관리자 콘솔 구현 완료 + Supabase 백엔드 1~10차 연동 완료(Auth/Profile·의견/댓글/공감·설문·뉴스/알림·소셜로그인·AI인사이트·온보딩·회원탈퇴).** 모든 데이터 레이어는 **Supabase-우선 + Mock 폴백** 어댑터 구조라 키 없이도 앱이 동작.
+→ **팬 화면 8개 + 계정 복구/인증/정보 페이지 + 관리자 콘솔 10섹션 + Supabase 백엔드 1~30차 연동 완료**(Auth/Profile·의견/댓글/공감·설문·뉴스/알림·소셜로그인·AI인사이트·온보딩·회원탈퇴·신고/공지·**관리자 실통계·운영도구·AI 리포트·구단 리포트 전달·B2B 고객관리**). 모든 데이터 레이어는 **Supabase-우선 + Mock 폴백** 어댑터 구조라 키 없이도 앱이 동작.
 
 ## 5. 남은 TODO / 알려진 특이사항
 
 ### 실제 외부 연동 (Mock/Provider 골격 → 실서비스)
 - [ ] **실제 K리그 API 연동** — League Provider 구조(`src/services/league/`) 완비: mock/api/facade + 5분 캐시 + lastGood/Mock 폴백 + 표준 형태. **남은 일**: (1) 실제 벤더 선택 후 `.env`에 `VITE_LEAGUE_API_BASE`/`VITE_LEAGUE_API_KEY` + `LEAGUE_PROVIDER=api`, (2) 벤더 응답 형태에 맞춰 `apiLeagueProvider.js`의 `normalizeStandings`/`normalizeMatch`/`/standings`·`/fixtures/:teamId` 경로 조정, (3) 팀 id 매핑(teams.jsx ↔ 벤더 team id) 확인.
 - [ ] **실제 팀별 뉴스 연동** — Team News Provider 구조(`src/lib/news/`) 완비: `newsSources`(12구단 소스) + `rss/newsApi/official` provider(구조만) + `mockNewsProvider`(fallback) + `teamNewsProvider`(우선순위·표준화·5분 캐시·폴백). **남은 일**: (1) 각 구단 실제 `rssUrl`/뉴스 페이지 경로 확인 후 `SOURCE_OVERRIDES` 채우기, (2) CORS 회피용 Edge Function(`scrape-club-news`/`fetch-club-news`)로 rss/official/newsApi provider의 `fetch` 실제 구현, (3) 외부 뉴스 이미지(`imageUrl`) 매핑.
-- [ ] **관리자 KPI 실집계 고도화** — 대시보드 KPI 8종은 Supabase `count(*)` 실집계 연동 완료(13차, 30초 캐시). **구단별 현황·최근 활동·차트(라인/바/도넛/감정)는 아직 Mock** → `date_trunc` 집계 등으로 실데이터 전환 필요.
+- [x] **관리자 대시보드 실집계** — 완료(24차). KPI 10종·구단별 현황·최근 활동·차트 전부 Supabase RPC `admin_dashboard_stats`(`0013`) 실집계 or Mock, 30초 캐시(`adminStats.js`). **남은 여지**: RPC 미배포 환경 검증, 기간별(월/분기) 세분화.
+- [ ] **리포트 실제 전달 채널** — 구단 리포트 전달(`deliverReport`)의 `email`/`link` 방식은 구조만 있고 실제 전송 미구현(현재 pdf 다운로드만 실동작). 이메일/공유링크 발송 연동 필요.
 - [ ] **휴대폰 본인인증(PASS / NICE / KCB) 실제 연동** — 사용자 스키마·`VERIFICATION` 상태(`phone_verified`)·설정 UI 자리만 준비됨. 이메일 인증만 실동작. 실제 본인인증 게이트웨이 연동 필요.
 
 ### Edge Function 배포 확인 (Supabase)
@@ -324,11 +362,11 @@ npm run lint     # oxlint
 - [ ] 루트/작업 잔재: `log-in page.docx`, `tmp/`, `.DS_Store` 등 정리 여지.
 
 ### 상태 요약
-- **Supabase 핵심 이관 완료**: Auth/Profile · 팬 의견/댓글/공감 · 설문 · 뉴스/알림 · 소셜로그인 · AI인사이트 · 온보딩 · 회원탈퇴 · 신고/공지. 모든 데이터 레이어가 **Supabase-우선 + Mock 폴백** 구조라 키 없이도 앱 동작.
+- **Supabase 핵심 이관 완료**: Auth/Profile · 팬 의견/댓글/공감 · 설문 · 뉴스/알림 · 소셜로그인 · AI인사이트 · 온보딩 · 회원탈퇴 · 신고/공지 · **관리자 대시보드 실통계(RPC) · 공지/운영자메모 · 구단 리포트/전달 · B2B 고객관리**. 마이그레이션 `0001~0018`. 모든 데이터 레이어가 **Supabase-우선 + Mock 폴백** 구조라 키 없이도 앱 동작.
 - **소셜 로그인**: Google·Kakao = Supabase native, NAVER = 커스텀 Edge Function(`naver-callback`).
 
 ## 6. 작업 시 참고
 
 - 페이지 추가 시: `src/XxxPage.jsx` + `src/XxxPage.css` 쌍 생성 → `main.jsx`에 `RequireAuth` 라우트 등록 → 내비 메뉴면 `teams.jsx`의 `MENU_ITEMS`/`menuPath` + `NAV_KEYS` 갱신.
-- **새 UI 텍스트는 반드시 ko/en 양쪽 locale에 키 추가** (233/233 동기화 유지).
+- **새 UI 텍스트는 반드시 ko/en 양쪽 locale에 키 추가** (911/911 동기화 유지).
 - 디자인 토큰/컬러/타이포는 `DESIGN.md` 기준을 따를 것.
