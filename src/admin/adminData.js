@@ -16,6 +16,7 @@ export const ADMIN_MENU = [
   { key: 'notices',   path: '/admin/notices',  labelKey: 'admin.menu.notices',   roles: null },
   { key: 'reports',   path: '/admin/reports',  labelKey: 'admin.menu.reports',   roles: null },
   { key: 'reportDocs', path: '/admin/report-docs', labelKey: 'admin.menu.reportDocs', roles: null },
+  { key: 'customers', path: '/admin/customers', labelKey: 'admin.menu.customers', roles: null },
   { key: 'settings',  path: '/admin/settings', labelKey: 'admin.menu.settings',  roles: null },
 ]
 

@@ -440,3 +440,15 @@
 .adm-modal-note { font-size: 13px; color: var(--muted); margin: 0 0 18px; }
 .adm-modal .adm-field { margin-bottom: 16px; }
 .adm-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+
+/* ── B2B 고객 관리 ── */
+.adm-cust-subhead { font-size: 13px; font-weight: 800; color: var(--ink); margin: 22px 0 12px; padding-top: 16px; border-top: 1px solid var(--border-soft); }
+.adm-cust-reports { display: flex; flex-direction: column; gap: 10px; }
+.adm-cust-report-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.adm-cust-report-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: 10px; background: var(--page-bg); }
+.adm-cust-report-list li .adm-cell-strong { flex: 1; min-width: 0; }
+.adm-cust-history { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.adm-cust-history li { display: flex; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
+.adm-cust-history li:last-child { border-bottom: none; }
+.adm-cust-hist-date { flex-shrink: 0; font-size: 12.5px; font-weight: 800; color: var(--team-deep); font-variant-numeric: tabular-nums; }
+.adm-cust-hist-desc { font-size: 13.5px; color: var(--ink); }
