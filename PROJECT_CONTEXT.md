@@ -242,13 +242,14 @@ npm run lint     # oxlint
 
 ### 실시간 데이터 아키텍처 / 캐시 (13차)
 - **캐시** — `src/lib/cache.js`: `withCache(key, fetcher, ttl=30000)` 인메모리 TTL 캐시(기본 30초). 진행 중 Promise 재사용, 실패 시 캐시 미저장. `invalidate(prefix)`/`clearCache()`. 순위/일정/홈 인기/관리자 KPI에 사용.
-- **League Provider 아키텍처 — `src/services/league/`** (K리그 순위/일정/결과)
-  - **구조**: `mockLeagueProvider.js`(데모 데이터) · `apiLeagueProvider.js`(실 API, 벤더 무관 normalize) · `leagueProvider.js`(**facade**: Provider 선택 + 5분 캐시 + 폴백). 화면은 `src/lib/matchRepo.js`(표시 어댑터: 표준 teamId → team 객체 변환)만 호출.
-  - **Provider 선택(요구사항 1/10)**: `LEAGUE_PROVIDER=mock`(기본) / `LEAGUE_PROVIDER=api` / 미지정 시 `VITE_LEAGUE_API_BASE` 있으면 자동 api. (`vite.config.js` `envPrefix: ['VITE_','LEAGUE_']`로 `LEAGUE_PROVIDER` 노출.)
-  - **표준 형태**: 순위 `{ rank, teamId, teamName, played, win, draw, loss, goalsFor, goalsAgainst, goalDiff, points }`, 경기 `{ id, date, kickoff, homeTeamId, awayTeamId, homeTeamName, awayTeamName, stadium, status('scheduled'|'live'|'finished'), homeScore, awayScore, finished }`, fixtures `{ next, live, upcoming[], recent[] }`. `getTeamSeason(teamId)`로 시즌 성적.
-  - **실제 API 교체(요구사항 7)**: `.env`에 `VITE_LEAGUE_API_BASE`/`VITE_LEAGUE_API_KEY` + `LEAGUE_PROVIDER=api`. 벤더(API-Football/Sportmonks/Football-data/K리그 공식/자체 수집) 응답이 표준과 다르면 `apiLeagueProvider.js`의 `normalizeStandings`/`normalizeMatch`만 교체. 화면 코드 불변.
-  - **캐시/폴백(요구사항 8)**: `leagueProvider`가 `getStandings`/`getFixtures`를 **5분 캐시(`withCache`)**. 실패 시 **마지막 성공 데이터(`lastGood`) → 없으면 Mock**. `refreshLeague(teamId)`로 무효화.
-  - **연동 화면**: **MatchCenterPage**(순위표·일정·결과, 스켈레톤/Error/EmptyState/새로고침) + **ClubHomePage**(다음 경기·최근 경기·리그 순위 top5·시즌 성적).
+- **League Provider 아키텍처 — `src/services/league/`** (K리그 순위/일정/결과, 실제 연동 — Edge Function)
+  - **구조**: `mockLeagueProvider.js`(데모) · `apiLeagueProvider.js`(클라이언트 직접 API, 공개키/키없는 소스용) · **`edgeLeagueProvider.js`(실제 연동, 운영 기본 — Edge Function `league-fetcher` 호출)** · `leagueProvider.js`(**facade**: Provider 선택 + 캐시 + 폴백). 화면은 `src/lib/matchRepo.js`(표시 어댑터)만 호출.
+  - **Provider 선택(요구사항 1/2)**: `VITE_LEAGUE_PROVIDER=edge`(운영 권장) / `LEAGUE_PROVIDER=api`(직접) / `mock`(기본). 미지정 시 edge 가능하면 edge → api base 있으면 api → mock. facade 우선순위: **edge → api → mock**.
+  - **Edge Function `league-fetcher`(Deno)**: 요청 `{resource:'standings'|'fixtures', teamId?}` → **① `league_cache` 캐시 확인(순위 5분/경기 5분) → ② 외부 API 호출(키는 서버 시크릿 `LEAGUE_API_KEY`) → ③ 표준 정규화 → 캐시 저장**. 실패 시 stale 캐시 → 없으면 `{ok:false}`(클라이언트 Mock 폴백). 벤더 무관 normalizer(rank/position, team.name, goals.for 등 폭넓게 수용) + **팀명→clubId 매핑**(CLUB_ALIASES). `verify_jwt` 기본 유지. **API 키 프론트 미노출**(서버 시크릿). 캐시 테이블 `0020_league_cache.sql`(RLS on·service_role 전용).
+  - **표준 형태(요구사항 4)** — 외부 계약(정규화): 순위 `{ rank, clubId, teamName, played, wins, draws, losses, goalsFor, goalsAgainst, goalDifference, points, form }`, 경기 `{ id, homeClubId, awayClubId, homeTeamName, awayTeamName, matchDate, matchTime, stadium, status, homeScore, awayScore, round, competition }`. **내부 Provider 표준**(화면용): 순위 `{rank, teamId, teamName, played, win, draw, loss, goalsFor, goalsAgainst, goalDiff, points, form}`, 경기 `{id, date, kickoff, homeTeamId, awayTeamId, ..., status, homeScore, awayScore, finished, round, competition}`, fixtures `{next, live, upcoming[], recent[]}`. `edgeLeagueProvider`가 외부계약→내부표준 매핑 → **화면 코드 불변.**
+  - **벤더 교체(요구사항 2)**: API-Football / Sportmonks / Football-data / K리그 공식 / 자체 수집 등 어떤 소스든 `league-fetcher`의 `normalizeStandings`/`normalizeMatch`(또는 `LEAGUE_API_VENDOR` 분기)만 맞추면 됨. 특정 벤더 응답이 앱에 퍼지지 않음(정규화 경계 = Edge Function).
+  - **캐시/폴백(요구사항 8/10/11)**: 클라이언트 `withCache` 순위 5분/경기 5분 + Edge `league_cache`(동일 TTL). 실패 시 **lastGood → Mock**. 사용자에겐 에러 대신 폴백 데이터 자연 노출. `refreshLeague(teamId)`로 무효화.
+  - **연동 화면(요구사항 5~9)**: **MatchCenterPage**(순위표·일정·결과, 스켈레톤/Error/EmptyState/새로고침) + **ClubHomePage**(다음/최근 경기·리그 순위·시즌 성적). 둘 다 `matchRepo`→facade 경유라 **데이터 소스만 바뀌고 UI 불변**.
 - **홈 인기 콘텐츠** — `src/lib/homeRepo.js`: `getHomeContent(teamId)`가 Supabase `opinions_view` 1회 조회로 **인기 의견(공감순)·인기 카테고리(집계)·트렌딩 키워드(사전 매칭)** 계산, 실패/미설정 시 Mock. 캐시 30초. **ClubHomePage**가 비동기 로드(스켈레톤) — 클릭 네비게이션(의견 상세/카테고리·키워드 필터)은 유지.
 - **AI 키워드 선택** — `AIInsightsPage`: 키워드 클릭 시 **팬 의견 / 뉴스 선택 모달**(`.ai-kwmenu`) → `/opinions?keyword=` 또는 `/news?keyword=`로 이동(두 페이지 모두 query param 필터 적용).
 
@@ -269,6 +270,7 @@ npm run lint     # oxlint
 
 **운영 준비 · 실연동 시리즈 (최신)**
 
+0. 실제 K리그 데이터 연동 — 32차: Edge Function `league-fetcher`(외부 API→표준 정규화·순위/경기 5분 캐시·API 키 서버 보관·벤더 무관 normalizer) + `edgeLeagueProvider`(`VITE_LEAGUE_PROVIDER=edge`) + `league_cache`(`0020`) + facade edge 모드 + form/round/competition 표준 필드. UI 불변, Mock 폴백 유지 ("Implement production K League integration").
 0. 실제 팀 뉴스 연동 — 31차: Edge Function `news-fetcher`(RSS/공식홈 스크래핑·10분 캐시·CORS 우회) + `edgeNewsProvider`(`VITE_NEWS_PROVIDER=edge`) + `news_cache`(`0019`) + 12구단 소스 등록(`SOURCE_OVERRIDES`) + 관리자 뉴스 우선 병합(덮어쓰기 방지). UI 불변, Mock 폴백 유지 ("Implement production team news integration").
 0. Production Readiness 2단계 — Error Boundary·404/500·LazyImage·코드 스플리팅·Skeleton·Retry(`retry.js`/`edgeFunctions.js`)·Analytics(`services/analytics`)·Logger(`logger.js`)·A11y ("Production readiness phase 2").
 0. Production Readiness 1단계 — Mock 격리(데모계정 dev 전용)·환경변수 정리·RLS/보안 감사·Edge Function 점검·캐시·에러처리·콘솔 정리 ("Production readiness phase 1").
@@ -348,7 +350,7 @@ npm run lint     # oxlint
 ## 5. 남은 TODO / 알려진 특이사항
 
 ### 실제 외부 연동 (Mock/Provider 골격 → 실서비스)
-- [ ] **실제 K리그 API 연동** — League Provider 구조(`src/services/league/`) 완비: mock/api/facade + 5분 캐시 + lastGood/Mock 폴백 + 표준 형태. **남은 일**: (1) 실제 벤더 선택 후 `.env`에 `VITE_LEAGUE_API_BASE`/`VITE_LEAGUE_API_KEY` + `LEAGUE_PROVIDER=api`, (2) 벤더 응답 형태에 맞춰 `apiLeagueProvider.js`의 `normalizeStandings`/`normalizeMatch`/`/standings`·`/fixtures/:teamId` 경로 조정, (3) 팀 id 매핑(teams.jsx ↔ 벤더 team id) 확인.
+- [x] **실제 K리그 API 연동** — 완료(32차). Edge Function `league-fetcher`(외부 API→표준 정규화·순위/경기 5분 캐시·키 서버 보관) + `edgeLeagueProvider`(`VITE_LEAGUE_PROVIDER=edge`) + `league_cache`(`0020`). **남은 일**: (1) 실제 벤더 선택 후 시크릿 `LEAGUE_API_BASE`/`LEAGUE_API_KEY` 설정 + `league-fetcher` 배포 + `VITE_LEAGUE_PROVIDER=edge`, (2) 벤더 응답이 표준과 다르면 `league-fetcher`의 `normalizeStandings`/`normalizeMatch`(또는 `LEAGUE_API_VENDOR` 분기) 조정, (3) 팀명↔clubId 매핑(`CLUB_ALIASES`) 검증.
 - [x] **실제 팀별 뉴스 연동** — 완료(31차). Edge Function `news-fetcher`(RSS→공식 홈 스크래핑, 10분 캐시) + `edgeNewsProvider`(VITE_NEWS_PROVIDER=edge) + `news_cache`(`0019`). **남은 일**: (1) 각 구단 실제 `rssUrl`/정확한 뉴스 경로를 `SOURCE_OVERRIDES`에 확정(현재 newsUrl best-effort, 실패 시 Mock 폴백), (2) 사이트별 스크래핑 셀렉터 정교화(현재 범용 앵커 추출), (3) `news-fetcher` 배포 + `VITE_NEWS_PROVIDER=edge` 설정.
 - [x] **관리자 대시보드 실집계** — 완료(24차). KPI 10종·구단별 현황·최근 활동·차트 전부 Supabase RPC `admin_dashboard_stats`(`0013`) 실집계 or Mock, 30초 캐시(`adminStats.js`). **남은 여지**: RPC 미배포 환경 검증, 기간별(월/분기) 세분화.
 - [ ] **리포트 실제 전달 채널** — 구단 리포트 전달(`deliverReport`)의 `email`/`link` 방식은 구조만 있고 실제 전송 미구현(현재 pdf 다운로드만 실동작). 이메일/공유링크 발송 연동 필요.
@@ -402,6 +404,7 @@ npm run lint     # oxlint
 | `analyze-insights` | **verify_jwt=true**(기본) | `OPENAI_API_KEY`,`OPENAI_MODEL`(선택) | `supabase functions deploy analyze-insights` |
 | `delete-account` | **verify_jwt=true**(기본) | (없음 — 자동 주입) | `supabase functions deploy delete-account` |
 | `news-fetcher` | **verify_jwt=true**(기본) | (없음 — 자동 주입) | `supabase functions deploy news-fetcher` (+ `0019_news_cache.sql`, `VITE_NEWS_PROVIDER=edge`) |
+| `league-fetcher` | **verify_jwt=true**(기본) | `LEAGUE_API_BASE`,`LEAGUE_API_KEY`,`LEAGUE_API_VENDOR`(선택) | `supabase functions deploy league-fetcher` (+ `0020_league_cache.sql`, `VITE_LEAGUE_PROVIDER=edge`) |
 - `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY`는 플랫폼 자동 주입(로컬 실행 시만 수동). `--no-verify-jwt`는 외부 콜백(네이버)·비로그인 흐름(이메일 코드) 때문에 필요 → 함수 내부에서 `service_role`로 안전 처리. verify_jwt 유지 함수는 요청자 role/JWT를 서버에서 재확인.
 
 ### 6.5 캐시 (in-memory TTL — `src/lib/cache.js`, `withCache`)

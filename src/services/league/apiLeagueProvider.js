@@ -1,10 +1,14 @@
-// FANCLUV — API League Provider (실제 리그 데이터 API 연결 지점).
+// FANCLUV — API League Provider (클라이언트 직접 호출 옵션).
 //
 // 특정 벤더에 종속되지 않도록 표준 형태(mockLeagueProvider 와 동일)로 정규화만 맞추면
-// 어떤 API 든 교체 가능하다. API Key/Base 는 환경변수로 주입한다.
+// 어떤 API 든 교체 가능하다. API Base 는 환경변수로 주입한다.
 //
-// ▶ 실제 API 연결 방법 (요구사항 7)
-//   1) .env 에 VITE_LEAGUE_API_BASE, VITE_LEAGUE_API_KEY 를 넣고 LEAGUE_PROVIDER=api 로 지정.
+// ⚠️ 보안: VITE_LEAGUE_API_KEY 는 번들에 노출된다. **비밀 키가 필요한 벤더는 이 Provider 를
+//    쓰지 말고 `VITE_LEAGUE_PROVIDER=edge`(league-fetcher Edge Function, 키 서버 보관)를 사용**하라.
+//    이 Provider 는 공개 데이터/키 불필요/자체 수집 엔드포인트 등 "키 노출이 문제되지 않는" 소스용.
+//
+// ▶ 사용법
+//   1) .env 에 VITE_LEAGUE_API_BASE (+ 공개 키면 VITE_LEAGUE_API_KEY) + LEAGUE_PROVIDER=api.
 //   2) fetchJson() 이 `${BASE}${path}` 를 호출(인증 헤더 자동 첨부).
 //   3) 벤더 응답이 표준과 다르면 normalizeStandings/normalizeFixtures 만 교체.
 //      → 화면(MatchCenterPage/ClubHomePage) 코드는 그대로.
@@ -56,6 +60,8 @@ function normalizeStandings(raw) {
       goalsAgainst: ga,
       goalDiff: r.goalDiff ?? r.gd ?? (gf - ga),
       points: r.points ?? r.pts ?? 0,
+      form: Array.isArray(r.form) ? r.form.slice(-5)
+        : (typeof r.form === 'string' ? r.form.slice(-5).split('') : []),
     }
   })
 }
@@ -78,6 +84,8 @@ function normalizeMatch(m) {
     homeScore: m.homeScore ?? m.home_score ?? null,
     awayScore: m.awayScore ?? m.away_score ?? null,
     finished: status === 'finished',
+    round: m.round ?? m.matchday ?? '',
+    competition: m.competition ?? m.league?.name ?? 'K League 1',
     dday: m.dday,
     minute: m.minute,
   }

@@ -8,7 +8,8 @@ import { getStandings, getFixtures, getTeamSeason, refreshLeague, leagueMode } f
 import { stadiumOf } from '../services/league/mockLeagueProvider.js'
 
 export { stadiumOf, getTeamSeason, leagueMode }
-export const isLeagueApiConfigured = leagueMode() === 'api'
+// 실데이터(비-Mock: edge/api) 활성 여부.
+export const isLeagueApiConfigured = leagueMode() !== 'mock'
 
 // 표준 경기 → 화면 경기(홈/원정 team 객체 포함)
 function toDisplayMatch(m) {

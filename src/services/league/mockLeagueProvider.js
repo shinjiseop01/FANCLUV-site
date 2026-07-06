@@ -35,11 +35,14 @@ export async function getStandings() {
     const loss = played - win - draw
     const goalsFor = win * 2 + draw + (s % 7)
     const goalsAgainst = loss * 2 + draw + ((s >> 3) % 6)
+    // 최근 5경기 폼(데모, 결정적) — 표준 필드 form.
+    const forms = [['W', 'W', 'D', 'L', 'W'], ['D', 'W', 'W', 'L', 'D'], ['L', 'D', 'W', 'W', 'W'], ['W', 'L', 'L', 'D', 'W']]
     return {
       teamId: team.id, teamName: team.name,
       played, win, draw, loss,
       goalsFor, goalsAgainst, goalDiff: goalsFor - goalsAgainst,
       points: win * 3 + draw,
+      form: forms[s % forms.length],
     }
   })
   rows.sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor)
@@ -61,6 +64,8 @@ function match(o) {
     homeScore: o.homeScore ?? null,
     awayScore: o.awayScore ?? null,
     finished: o.status === 'finished',
+    round: o.round || '2026 K리그1',
+    competition: o.competition || 'K League 1',
     dday: o.dday,
     minute: o.minute,
   }
