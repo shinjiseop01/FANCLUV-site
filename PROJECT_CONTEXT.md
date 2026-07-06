@@ -172,16 +172,18 @@ npm run lint     # oxlint
 - **URL query 필터(4차 탐색)**: `?category=<카테고리>` / `?keyword=<검색어>`를 `useSearchParams`로 읽어 카테고리 선택·검색어를 자동 적용(직접 접속/새로고침 대응). 홈의 인기 카테고리·주제, 사이드바 인기 카테고리·키워드 클릭이 이 필터로 연결됨. 기존 검색/카테고리/정렬 UI는 그대로.
 - **홈(ClubHomePage) 탐색 링크(4차)**: 인기 의견 카드 클릭 → 해당 의견 상세(`/opinions/:id`), 인기 카테고리 → `/opinions?category=`, 인기 주제(키워드) → `/opinions?keyword=`, "전체 보기/더 보기" → 목록. 홈 데이터의 카테고리/키워드를 의견 페이지 분류와 일치시킴.
 
-### 팀 뉴스 Provider 아키텍처 — `src/lib/news/` (실제 뉴스 연동 구조)
-- **팀 뉴스 페이지는 `getTeamNews(clubId)`(서비스) 하나만 호출**한다. `TeamNewsPage`는 Supabase/Mock을 직접 부르지 않고 Provider를 통해 뉴스를 받는다.
+### 팀 뉴스 Provider 아키텍처 — `src/lib/news/` (실제 뉴스 연동 — Edge Function)
+- **팀 뉴스 페이지는 `getTeamNews(clubId)`(서비스) 하나만 호출**한다. `TeamNewsPage`는 Supabase/Mock/외부를 직접 부르지 않고 Provider를 통해 뉴스를 받는다. **UI 불변.**
 - **구조**
-  - `src/lib/news/newsSources.js` — 12개 구단 뉴스 소스 설정: `clubId·clubName·officialWebsite·newsUrl·rssUrl·instagramUrl·youtubeUrl`. 공식/SNS URL은 `clubLinks.js` 재사용, **공개 RSS 없는 구단은 `rssUrl: null`**. 실제 소스 확인 시 `SOURCE_OVERRIDES`만 채우면 됨.
-  - `src/lib/news/providers/` — `rssProvider`·`officialWebsiteProvider`·`newsApiProvider`(모두 **구조만**, 현재 `[]` 반환) + `mockNewsProvider`(fallback 데모 뉴스, `sourceUrl`=구단 공식 → 클릭 시 새 탭).
-  - `src/lib/news/teamNewsProvider.js` — 오케스트레이터: 우선순위 조합 + 표준화 + 캐시 + 폴백.
-- **실제 뉴스 연동 방식**: `REAL_PROVIDERS = [rss, newsApi, official]`을 순서대로 시도 → 처음으로 결과가 있는 Provider 사용. (RSS/스크래핑은 CORS 때문에 Edge Function 프록시로 구현 예정 — 각 provider에 TODO 주석.)
-- **우선순위(요구사항)**: ① 실제 Provider → ② Supabase 저장 뉴스(`team_news`)/관리자 등록 뉴스(**항상 병합**) → ③ **Mock fallback**(실제 Provider 없거나 전부 비었을 때). 관리자 등록 뉴스는 `sourceUrl` 없음 → **내부 상세**, 외부/공식 뉴스는 `sourceUrl` 있음 → **원본 새 탭**.
-- **표준 뉴스 형태(내부 통일)**: `{ id, clubId, title, summary, source, sourceUrl, imageUrl, publishedAt, category, isOfficial }` (+ 기존 UI 호환 필드 date/body/views/opinions/survey/important).
-- **캐시**: 구단별 5분(`withCache('teamnews:'+clubId, …, 5m)`). **실패 시 마지막 성공 데이터(`lastGood`) → 없으면 Mock**. 각 소스 실패는 개별 catch → 페이지 안 깨짐(Loading/Error/Empty/Mock 폴백 모두 처리).
+  - `src/lib/news/newsSources.js` — **12개 구단 뉴스 소스 등록**: `clubId·clubName·officialWebsite·newsUrl·rssUrl·instagramUrl·youtubeUrl`. 공식/SNS URL은 `clubLinks.js` 재사용, 구단별 `SOURCE_OVERRIDES`에 실제 뉴스 페이지(newsUrl)를 채움. **공개 RSS 없는 구단은 `rssUrl: null`**(공식 홈 스크래핑/ Mock 폴백).
+  - `src/lib/news/providers/` — **`edgeNewsProvider`(실제 연동, 운영 기본)** = Edge Function `news-fetcher` 호출(`invokeFunction`, 재시도 3회). + `rss/official/newsApi`(클라이언트 직접, CORS로 보통 `[]` — 구조 유지) + `mockNewsProvider`(fallback 데모 뉴스).
+  - `src/lib/news/teamNewsProvider.js` — 오케스트레이터: 우선순위 조합 + 표준화 + 10분 캐시 + 폴백.
+- **Edge Function `news-fetcher`(Deno)** — 브라우저 CORS 우회. 요청 `{clubId, clubName, rssUrl, newsUrl, officialWebsite}` → **① `news_cache` 10분 캐시 확인 → ② RSS 파싱(우선) → ③ 공식 홈페이지 HTML 스크래핑(best-effort) → 표준화 → 캐시 저장**. 실패 시 마지막 캐시(stale) → 없으면 `items:[]`. RSS/Atom 정규식 파싱(title/link/description/pubDate/이미지 enclosure·media). `verify_jwt` 기본 유지(로그인 사용자만). 시크릿 불필요(SERVICE_ROLE 자동 주입). 캐시 테이블 `0019_news_cache.sql`(RLS on·공개 정책 없음 → service_role 전용).
+- **활성 조건**: `VITE_NEWS_PROVIDER=edge` + Supabase 설정 시 `edgeNewsProvider` 사용. 미설정이면 저장 뉴스 + Mock 폴백(기존 동작 유지).
+- **우선순위**: ① 실제 Provider(edge→rss→newsApi→official) → ② **관리자 저장 뉴스(`team_news`) 항상 병합** → ③ **Mock fallback**. **dedupe 시 관리자(stored) 뉴스가 앞 → 외부 뉴스가 관리자 공지를 덮어쓰지 못함(요구사항 6).** 관리자 뉴스는 `sourceUrl` 없음 → 내부 상세, 외부 뉴스는 `sourceUrl` 있음 → 원본 새 탭.
+- **표준 뉴스 형태**: `{ id, clubId, title, summary, imageUrl, source, sourceUrl, publishedAt, category, isOfficial }` (+ 기존 UI 호환 필드 date/body/views/opinions/survey/important). `imageUrl` 은 `LazyImage`(지연 로딩·실패 시 구단 엠블럼 폴백)로 표시.
+- **캐시/에러**: 클라이언트 `withCache('teamnews:'+clubId, 10m)` + Edge `news_cache`(10분). **실패 시 lastGood → Mock**. 각 소스 개별 catch → 페이지 안 깨짐(Loading/Error/Empty/Mock 폴백 모두 처리).
+- **향후 확장**: 새 소스는 provider 하나 추가 후 `REAL_PROVIDERS`에 넣으면 됨. 뉴스 API 붙이면 `news-fetcher`에 fetch 분기 추가. 각 구단 실제 RSS 확인 시 `SOURCE_OVERRIDES.rssUrl`만 채우면 RSS 우선 사용.
 
 ### 팀 뉴스 저장소 — `src/lib/newsRepo.js` (Supabase-우선 + Mock 폴백)
 - **Supabase 이관 완료(3차)**. `AdminNews`(관리자) + Provider의 저장 뉴스 소스. Supabase 설정 시 `team_news` 테이블(제목·내용·team_id·category·image_url·author·status·is_important), 아니면 Mock. `listNews(teamId)`는 Supabase `team_news`(published) 또는 Mock 관리자 등록 뉴스를 반환(팬 데모 뉴스는 `mockNewsProvider`로 분리됨).
@@ -265,7 +267,13 @@ npm run lint     # oxlint
 
 ## 4. 완료된 작업 (git 히스토리, 최신 → 과거)
 
-**관리자 운영 콘솔 확장 시리즈 (최신)**
+**운영 준비 · 실연동 시리즈 (최신)**
+
+0. 실제 팀 뉴스 연동 — 31차: Edge Function `news-fetcher`(RSS/공식홈 스크래핑·10분 캐시·CORS 우회) + `edgeNewsProvider`(`VITE_NEWS_PROVIDER=edge`) + `news_cache`(`0019`) + 12구단 소스 등록(`SOURCE_OVERRIDES`) + 관리자 뉴스 우선 병합(덮어쓰기 방지). UI 불변, Mock 폴백 유지 ("Implement production team news integration").
+0. Production Readiness 2단계 — Error Boundary·404/500·LazyImage·코드 스플리팅·Skeleton·Retry(`retry.js`/`edgeFunctions.js`)·Analytics(`services/analytics`)·Logger(`logger.js`)·A11y ("Production readiness phase 2").
+0. Production Readiness 1단계 — Mock 격리(데모계정 dev 전용)·환경변수 정리·RLS/보안 감사·Edge Function 점검·캐시·에러처리·콘솔 정리 ("Production readiness phase 1").
+
+**관리자 운영 콘솔 확장 시리즈**
 
 0. B2B 고객 관리 — 30차: `AdminCustomers` + `customersRepo`(customers/customer_contract_history, `0018`). 계약 상태·플랜·담당자·이력 CRUD + 상태/플랜 변경 시 이력 자동기록, 운영자 메모 재사용 (`7801fe2` Add B2B customer management).
 0. 실 팀뉴스 Provider 아키텍처 — 29차: `src/lib/news/` provider(rss/newsApi/official 구조 + mock fallback) + `teamNewsProvider` 오케스트레이터(우선순위·표준화·5분 캐시·폴백), `newsRepo` 정리 (`1265f20` Add real team news provider architecture).
@@ -341,7 +349,7 @@ npm run lint     # oxlint
 
 ### 실제 외부 연동 (Mock/Provider 골격 → 실서비스)
 - [ ] **실제 K리그 API 연동** — League Provider 구조(`src/services/league/`) 완비: mock/api/facade + 5분 캐시 + lastGood/Mock 폴백 + 표준 형태. **남은 일**: (1) 실제 벤더 선택 후 `.env`에 `VITE_LEAGUE_API_BASE`/`VITE_LEAGUE_API_KEY` + `LEAGUE_PROVIDER=api`, (2) 벤더 응답 형태에 맞춰 `apiLeagueProvider.js`의 `normalizeStandings`/`normalizeMatch`/`/standings`·`/fixtures/:teamId` 경로 조정, (3) 팀 id 매핑(teams.jsx ↔ 벤더 team id) 확인.
-- [ ] **실제 팀별 뉴스 연동** — Team News Provider 구조(`src/lib/news/`) 완비: `newsSources`(12구단 소스) + `rss/newsApi/official` provider(구조만) + `mockNewsProvider`(fallback) + `teamNewsProvider`(우선순위·표준화·5분 캐시·폴백). **남은 일**: (1) 각 구단 실제 `rssUrl`/뉴스 페이지 경로 확인 후 `SOURCE_OVERRIDES` 채우기, (2) CORS 회피용 Edge Function(`scrape-club-news`/`fetch-club-news`)로 rss/official/newsApi provider의 `fetch` 실제 구현, (3) 외부 뉴스 이미지(`imageUrl`) 매핑.
+- [x] **실제 팀별 뉴스 연동** — 완료(31차). Edge Function `news-fetcher`(RSS→공식 홈 스크래핑, 10분 캐시) + `edgeNewsProvider`(VITE_NEWS_PROVIDER=edge) + `news_cache`(`0019`). **남은 일**: (1) 각 구단 실제 `rssUrl`/정확한 뉴스 경로를 `SOURCE_OVERRIDES`에 확정(현재 newsUrl best-effort, 실패 시 Mock 폴백), (2) 사이트별 스크래핑 셀렉터 정교화(현재 범용 앵커 추출), (3) `news-fetcher` 배포 + `VITE_NEWS_PROVIDER=edge` 설정.
 - [x] **관리자 대시보드 실집계** — 완료(24차). KPI 10종·구단별 현황·최근 활동·차트 전부 Supabase RPC `admin_dashboard_stats`(`0013`) 실집계 or Mock, 30초 캐시(`adminStats.js`). **남은 여지**: RPC 미배포 환경 검증, 기간별(월/분기) 세분화.
 - [ ] **리포트 실제 전달 채널** — 구단 리포트 전달(`deliverReport`)의 `email`/`link` 방식은 구조만 있고 실제 전송 미구현(현재 pdf 다운로드만 실동작). 이메일/공유링크 발송 연동 필요.
 - [ ] **휴대폰 본인인증(PASS / NICE / KCB) 실제 연동** — 사용자 스키마·`VERIFICATION` 상태(`phone_verified`)·설정 UI 자리만 준비됨. 이메일 인증만 실동작. 실제 본인인증 게이트웨이 연동 필요.
@@ -393,6 +401,7 @@ npm run lint     # oxlint
 | `naver-callback` | **--no-verify-jwt** | `NAVER_CLIENT_ID/SECRET`,`NAVER_REDIRECT_URI`,`SITE_URL`(선택) | `supabase functions deploy naver-callback --no-verify-jwt` |
 | `analyze-insights` | **verify_jwt=true**(기본) | `OPENAI_API_KEY`,`OPENAI_MODEL`(선택) | `supabase functions deploy analyze-insights` |
 | `delete-account` | **verify_jwt=true**(기본) | (없음 — 자동 주입) | `supabase functions deploy delete-account` |
+| `news-fetcher` | **verify_jwt=true**(기본) | (없음 — 자동 주입) | `supabase functions deploy news-fetcher` (+ `0019_news_cache.sql`, `VITE_NEWS_PROVIDER=edge`) |
 - `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY`는 플랫폼 자동 주입(로컬 실행 시만 수동). `--no-verify-jwt`는 외부 콜백(네이버)·비로그인 흐름(이메일 코드) 때문에 필요 → 함수 내부에서 `service_role`로 안전 처리. verify_jwt 유지 함수는 요청자 role/JWT를 서버에서 재확인.
 
 ### 6.5 캐시 (in-memory TTL — `src/lib/cache.js`, `withCache`)

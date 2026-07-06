@@ -13,13 +13,15 @@
 import { withCache } from '../cache.js'
 import { getNewsSource } from './newsSources.js'
 import { listNews } from '../newsRepo.js'
+import { edgeNewsProvider } from './providers/edgeNewsProvider.js'
 import { rssProvider } from './providers/rssProvider.js'
 import { newsApiProvider } from './providers/newsApiProvider.js'
 import { officialWebsiteProvider } from './providers/officialWebsiteProvider.js'
 import { fetchMockNews } from './providers/mockNewsProvider.js'
 
-const TTL = 5 * 60 * 1000            // 5분 캐시
-const REAL_PROVIDERS = [rssProvider, newsApiProvider, officialWebsiteProvider]
+const TTL = 10 * 60 * 1000           // 10분 캐시(Edge Function 캐시 TTL 과 정렬)
+// 실제 뉴스 Provider 우선순위: Edge Function(운영 실연동) → RSS/뉴스API/공식(클라이언트 직접, CORS 로 보통 [])
+const REAL_PROVIDERS = [edgeNewsProvider, rssProvider, newsApiProvider, officialWebsiteProvider]
 const lastGood = new Map()           // clubId -> 마지막 성공 표준 뉴스 배열
 
 function fmtDate(v) {
@@ -84,8 +86,9 @@ async function loadTeamNews(clubId) {
       listNews(clubId).catch(() => []),        // Supabase team_news / Mock 관리자 뉴스
     ])
     // 실제 Provider 결과가 있으면 우선, 없으면 Mock. 관리자(stored) 뉴스는 항상 병합.
+    // dedupe 시 stored(관리자 공지)를 앞에 둬 외부 뉴스가 관리자 공지를 덮어쓰지 못하게 한다(요구사항 6).
     const external = real.length ? real : await fetchMockNews(clubId)
-    let items = dedupeById([...external, ...stored]).map(n => standardize(n, clubId))
+    let items = dedupeById([...stored, ...external]).map(n => standardize(n, clubId))
     if (items.length === 0) {
       items = (await fetchMockNews(clubId)).map(n => standardize(n, clubId))
     }
