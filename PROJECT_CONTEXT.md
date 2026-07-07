@@ -131,9 +131,9 @@ npm run lint     # oxlint
 - **회원탈퇴(10차 — 완전 삭제)**: 설정 버튼 → 확인 모달(‘탈퇴합니다’ 입력) → `deleteAccount()`. Supabase는 **Edge Function `delete-account`**(service_role)가 profiles 익명화 후 `auth.admin.deleteUser(본인 JWT의 user.id)` → FK CASCADE로 개인 데이터 삭제, 콘텐츠 author는 NULL 익명화. 실패 시 비활성화 폴백. Mock은 레코드 삭제. → 세션 제거 후 로그인 이동. **본인 계정만 삭제**(삭제 id = 검증된 JWT). 스키마: `0010_account_hardening.sql`. 배포: `supabase functions deploy delete-account`(시크릿 불필요, 자동 주입).
 - **온보딩 닉네임**: 소셜 임시 닉네임으로 채우지 않고 **빈칸으로 시작**(사용자가 직접 입력).
 - localStorage 키(Mock 모드): `fancluv_users`(가입자 배열), `fancluv_session`(현재 로그인 email).
-- 데모 시드 계정(Mock 모드 전용): **`fan@fancluv.kr` / `1234`** (닉네임 `민준`), `admin@fancluv.kr` / `admin123`.
+- 데모 시드 계정(Mock 모드 전용): **`fan@fancluv.kr` / `1234`**(닉네임 `민준`), **`admin@fancluv.kr` / `admin123`**(admin), **`club.seoul@fancluv.kr` / `club1234`**(role=`club`, 구단=FC 서울 → `/executive`).
 - export 함수: `signup`, `login`, `logout`, `getCurrentUser`, `isAuthenticated`, `setSelectedTeam` 등 + `isAdmin()`(관리자 판정).
-- **권한 체계(`ROLES`/`ADMIN_ROLES`)**: `fan`(기본) / `admin`, 그리고 예정 `superadmin`·`staff`(FANCLUV 직원)·`club_admin`(구단 관리자). 관리자 접근 판정은 `ADMIN_ROLES` 배열 한 곳으로 일원화 → 역할 추가 시 배열만 확장.
+- **권한 체계(`ROLES`/`ADMIN_ROLES`/`CLUB_ROLES`)**: `fan`(기본) / `admin`(+예정 `superadmin`·`staff`·`club_admin`) / **`club`(B2B 구단 고객 — 38차)**. 관리자 판정 `isAdmin()`=`ADMIN_ROLES`. **구단 고객 판정 `isClub()`=`CLUB_ROLES`(admin과 완전 분리)**, `getClubId()`=담당 구단(자기 구단만). 로그인 이메일 인증 없이 가능한 역할 `NO_VERIFY_ROLES`(=admin+club, 운영자 발급).
 - **본인인증 체계(`VERIFICATION`)**: `unverified` / `email_verified` / `phone_verified`. MVP는 **이메일 Mock 인증만 동작**. 사용자 객체에 `isEmailVerified`/`emailVerifiedAt`/`isPhoneVerified`/`isPhoneVerifiedAt` 플래그 보관 → 향후 휴대폰 본인인증(PASS/NICE/KCB)을 그대로 얹을 수 있게 구조 선반영.
 - ⚠️ 비밀번호 평문 저장 (MVP 한정). 실서비스 전 반드시 교체.
 
@@ -253,6 +253,16 @@ npm run lint     # oxlint
 - **운영자 메모(요구사항 10)**: `result_note`(`0025_club_action_result.sql`) — 인라인 편집·저장(`saveResultNote`).
 - **Dashboard 연동(요구사항 12)**: `AdminDashboard`에 "최근 Club Action 효과" 패널(`getRecentActionEffects` — 제목·만족도Δ·등급·Intelligence Score) + "전체 보기".
 
+### Club Executive Dashboard (B2B 구단 고객) — `src/club/ClubExecutiveDashboard.jsx` + `src/lib/club/clubDashboardRepo.js` (38차)
+- **계약 구단 담당자(고객)용 대시보드**. `/executive`(별도 헤더 — 관리자 콘솔/팬 앱과 분리). FANCLUV는 팬 목소리를 AI 분석 → 운영자 검토 → 구단에 인사이트/KPI/리포트 제공하는 **B2B Fan Intelligence Platform**.
+- **⚠️ 보안 핵심**: 구단은 **원본 팬 데이터(닉네임·댓글 원문·이메일·회원정보·설문 원본·신고)를 절대 볼 수 없음**. `clubDashboardRepo`가 **운영자 검토 AI 분석 + 집계 KPI + 전달된 리포트만** 제공. `sanitizeInsight`가 인사이트에서 원본 의견 제목/작성자를 제거하고 요약·감정·키워드(태그)·추천·카테고리 이슈만 남김.
+- **권한 분리(요구사항 1/11)**: `role='club'`(`CLUB_ROLES`, admin과 완전 분리). `RequireClub` 가드(=club + admin 허용). **club 계정은 `/admin` 접근 시 AccessDenied**, **팬 화면(`RequireAuth`) 접근 시 `/executive`로 리다이렉트**(원본 데이터 차단). admin은 구단 대시보드 확인 가능(구단 선택 셀렉터).
+- **자기 구단만(요구사항 4)**: 모든 조회가 `canAccess(clubId)`=`isAdmin() || (isClub() && getClubId()===clubId)`로 제한. club-safe 리더 `listActionsForClub`·`getClubActionEffects`·`listDeliveredReports`.
+- **표시(요구사항 2/3)**: **Executive Brief**(AI 자동생성 3문장 — 만족도 변화·주요 원인 조치·개선 우선 항목) 최상단 + KPI 카드(Fan Satisfaction/NPS/Complaint/Engagement/Participation/Club Intelligence + 변화량) + 이번 주 AI Summary(정제) + 이번 달 핵심 이슈 + 최근 Club Action & KPI 변화 + KPI Trend + Report Center + Benchmark.
+- **KPI Trend(요구사항 6)**: 이번 주/이번 달/최근 3개월/시즌 전체 — `getKpiTrend`(KPI 히스토리). **Report Center(요구사항 8)**: 전달된 리포트 PDF 다운로드(`generateReportPdfFromDoc`). **Benchmark(요구사항 9)**: 우리 구단 vs **리그 평균**(집계) — 다른 구단 상세 KPI 미공개.
+- **디자인**: `ClubExecutive.css`(테마 토큰 기반) → 반응형·다크모드·다국어(ko/en) 자동.
+- **테스트 계정(Mock)**: `club.seoul@fancluv.kr` / `club1234` (role=`club`, 구단=FC 서울). 로그인 시 `/executive`로 이동.
+
 ### 통합 상태 대시보드 — `src/lib/admin/integrationHealthRepo.js` + `admin/AdminSystemStatus.jsx` (34차)
 - **외부 서비스 8종 상태를 운영자가 한눈에**. `/admin/system`. Supabase `integration_health`/`integration_logs`(`0022`, 관리자 RLS) 또는 Mock(localStorage).
 - **서비스**: Supabase Database · Supabase Auth · Edge Functions · Team News · League API · OpenAI API · Email Service · Push Notification.
@@ -322,6 +332,7 @@ npm run lint     # oxlint
 
 **운영 준비 · 실연동 시리즈 (최신)**
 
+0. Club Executive Dashboard(B2B) — 38차: `ClubExecutiveDashboard`(`/executive`) + `clubDashboardRepo` + `role='club'`(`CLUB_ROLES`, admin 완전 분리) + `RequireClub` 가드. 구단 고객이 **원본 팬 데이터 없이** 운영자 검토 AI 인사이트·집계 KPI·전달 리포트·Benchmark만 확인. Executive Brief(AI 자동생성)·KPI Trend·Club Action 효과·Report Center. 테스트 계정 `club.seoul@fancluv.kr`/`club1234`(FC 서울) ("Implement club executive dashboard").
 0. Club Action Tracker(핵심 기능) — 37차: `AdminActionTracker`(`/admin/tracker`) + `actionTracker.js` + `result_note`(`0025`). 팬 의견→AI 분석→구단 Action→KPI 변화→AI 효과 분석 전체 루프 연결. Timeline·Before/After KPI 변화량·AI 효과 서술·영향 카테고리·효과 등급·Club Intelligence Score·기간비교·운영자 메모 + Dashboard "최근 Club Action 효과" 패널 ("Implement club action tracker").
 0. 구단 액션 관리 — 36차: `AdminClubActions`(`/admin/actions`) + `clubActionsRepo` + `club_actions`(`0024`). 구단 조치 등록/수정/삭제/상태변경 + **생성 시 before KPI 자동 스냅샷·완료 후 after KPI 기록**(Club Action Tracker 전후 비교 기반) + AI인사이트/리포트/주차 연결 + 구단/상태/카테고리/기간 검색 ("Implement club action management").
 0. Fan Insight KPI Engine — 35차: `src/lib/kpi/`(kpiEngine·kpiCategories·kpiHistoryRepo) + `club_kpi_history`(`0023`). 팬 의견/설문 기반 10개 핵심 KPI + 12 카테고리 점수 + 지난주 대비 변화량 실계산, 주차 히스토리 저장(Club Action 전후 비교 대비). Dashboard "Fan Insight KPI" 패널 + AI Report(reportModel/generatePdf) 실 KPI 연동 ("Implement fan insight KPI engine").

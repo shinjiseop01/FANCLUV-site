@@ -5,9 +5,14 @@
 //   - Supabase: club_actions 테이블(0024, 관리자 RLS).
 //   - Mock: localStorage(`fancluv_club_actions`).
 import { supabase, isSupabaseConfigured } from '../supabase.js'
-import { isAdmin, getCurrentUser } from '../auth.js'
+import { isAdmin, isClub, getClubId, getCurrentUser } from '../auth.js'
 import { getKpis } from '../kpi/kpiEngine.js'
 import { getLatestInsight } from '../ai/analyzeFanInsights.js'
+
+// 접근 제어: 관리자는 모든 구단, 구단(고객) 계정은 자기 구단만.
+export function canAccessClub(clubId) {
+  return isAdmin() || (isClub() && getClubId() === clubId)
+}
 
 // 카테고리(요구사항 3) — 라벨은 locale admin.action.cat.*
 export const ACTION_CATEGORIES = ['match', 'ticket', 'md', 'store', 'stadium', 'event', 'marketing', 'fanservice', 'squad', 'etc']
@@ -67,6 +72,20 @@ export async function adminListActions(filters = {}) {
   if (from) list = list.filter(a => a.actionDate && a.actionDate >= from)
   if (to) list = list.filter(a => a.actionDate && a.actionDate <= to)
   return list.sort((a, b) => String(b.actionDate || b.createdAt).localeCompare(String(a.actionDate || a.createdAt)))
+}
+
+// ── 구단(고객) 전용: 자기 구단 액션만 조회 (읽기 전용) ──
+export async function listActionsForClub(clubId) {
+  if (!clubId || !canAccessClub(clubId)) return []
+  if (isSupabaseConfigured) {
+    const { data, error } = await supabase.from('club_actions').select('*')
+      .eq('club_id', clubId)
+      .order('action_date', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false })
+    if (error) return []
+    return (data || []).map(mapRow)
+  }
+  return readMock().filter(a => a.clubId === clubId)
+    .sort((a, b) => String(b.actionDate || b.createdAt).localeCompare(String(a.actionDate || a.createdAt)))
 }
 
 // ── 생성 (before KPI 자동 스냅샷) ──

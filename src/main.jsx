@@ -1,7 +1,7 @@
 import { StrictMode, lazy, Suspense, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { isAuthenticated, isAdmin } from './lib/auth.js'
+import { isAuthenticated, isAdmin, isClub, getClubId } from './lib/auth.js'
 import { isSupabaseConfigured } from './lib/supabase.js'
 import { LanguageProvider } from './contexts/LanguageContext.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
@@ -57,6 +57,8 @@ const AdminCustomers = lazy(() => import('./admin/AdminCustomers.jsx'))
 const AdminSystemStatus = lazy(() => import('./admin/AdminSystemStatus.jsx'))
 const AdminSettings = lazy(() => import('./admin/AdminSettings.jsx'))
 const AccessDenied = lazy(() => import('./admin/AccessDenied.jsx'))
+// 구단(고객) Executive Dashboard
+const ClubExecutiveDashboard = lazy(() => import('./club/ClubExecutiveDashboard.jsx'))
 
 // 세션 로딩 중 표시(잠깐). Supabase 모드에서 초기 세션 확인 동안 노출.
 function AuthGate() {
@@ -86,23 +88,31 @@ function RouteAnalytics() {
 // - Mock 모드: 기존처럼 동기 isAuthenticated() 로 즉시 판단.
 function RequireAuth({ children }) {
   const { user, loading } = useAuth()
-  if (!isSupabaseConfigured) return isAuthenticated() ? children : <Navigate to="/" replace />
-  if (loading) return <AuthGate />
-  return user ? children : <Navigate to="/" replace />
+  if (isSupabaseConfigured && loading) return <AuthGate />
+  if (!isAuthenticated()) return <Navigate to="/" replace />
+  // 구단(고객) 계정은 팬 화면(원본 데이터)에 접근 불가 → Executive Dashboard 로.
+  if (isClub()) return <Navigate to="/executive" replace />
+  return children
 }
 
-// 운영자 전용 라우트: 비로그인 → 로그인, 로그인했지만 일반 사용자 → 접근 거부 안내
+// 운영자 전용 라우트: 비로그인 → 로그인, 로그인했지만 일반 사용자/구단 → 접근 거부 안내
 function RequireAdmin({ children }) {
   const { user, loading } = useAuth()
-  if (!isSupabaseConfigured) {
-    if (!isAuthenticated()) return <Navigate to="/" replace />
-    if (!isAdmin()) return <AccessDenied />
-    return children
-  }
-  if (loading) return <AuthGate />
-  if (!user) return <Navigate to="/" replace />
+  if (isSupabaseConfigured && loading) return <AuthGate />
+  if (!isAuthenticated()) return <Navigate to="/" replace />
   if (!isAdmin()) return <AccessDenied />
   return children
+}
+
+// 구단(고객) Executive Dashboard 전용: 구단 계정 + 관리자(구단 대시보드 확인 가능)만.
+// 비로그인 → 로그인, 일반 팬 → 자기 구단 홈.
+function RequireClub({ children }) {
+  const { user, loading } = useAuth()
+  if (isSupabaseConfigured && loading) return <AuthGate />
+  if (!isAuthenticated()) return <Navigate to="/" replace />
+  if (isClub() || isAdmin()) return children
+  const team = getClubId()
+  return <Navigate to={team ? `/club/${team}` : '/team-select'} replace />
 }
 
 createRoot(document.getElementById('root')).render(
@@ -158,6 +168,9 @@ createRoot(document.getElementById('root')).render(
           <Route path="system" element={<AdminSystemStatus />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
+
+        {/* ── Club Executive Dashboard (B2B 구단 고객 전용) ── */}
+        <Route path="/executive" element={<RequireClub><ClubExecutiveDashboard /></RequireClub>} />
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

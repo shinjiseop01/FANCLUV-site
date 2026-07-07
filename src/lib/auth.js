@@ -24,9 +24,14 @@ export const ROLES = {
   ADMIN: 'admin',
   SUPER_ADMIN: 'superadmin', // 예정
   STAFF: 'staff',            // 예정 (FANCLUV 직원)
-  CLUB_ADMIN: 'club_admin',  // 예정 (구단 관리자)
+  CLUB_ADMIN: 'club_admin',  // 예정 (구단 관리자 — FANCLUV 내부)
+  CLUB: 'club',              // B2B 구단 담당자(고객) — Admin 과 완전 분리, Executive Dashboard 전용
 }
 export const ADMIN_ROLES = [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.STAFF, ROLES.CLUB_ADMIN]
+// 구단(고객) 계정 역할 — 관리자 권한과 완전 분리. 원본 팬 데이터 접근 불가, 자기 구단만.
+export const CLUB_ROLES = [ROLES.CLUB]
+// 이메일 인증 없이 로그인 가능한 역할(관리자/구단 계정은 운영자가 발급).
+const NO_VERIFY_ROLES = [...ADMIN_ROLES, ...CLUB_ROLES]
 
 // 본인인증(Verification) 체계.
 export const VERIFICATION = {
@@ -57,7 +62,8 @@ function mapSupabaseUser(authUser, profile) {
     gender: p.gender || null,
     ageGroup: p.age_group || null,
     avatarUrl: p.avatar_url || null,
-    role: p.role === 'admin' ? ROLES.ADMIN : ROLES.FAN,
+    role: p.role === 'admin' ? ROLES.ADMIN : p.role === 'club' ? ROLES.CLUB : ROLES.FAN,
+    clubId: p.club_id || p.selected_team || null,
     provider: p.provider || 'email',
     providerUserId: p.provider_user_id || null,
     nicknameUpdatedAt: p.nickname_updated_at || null,
@@ -143,7 +149,14 @@ function ensureSeed() {
       joinedAt: '2025-01-01T00:00:00.000Z', selectedTeam: null, role: ROLES.ADMIN }
     users.push(admin); changed = true
   }
-  for (const u of [fan, admin]) {
+  // B2B 구단(고객) 테스트 계정 — FC 서울 담당자. role=club, 자기 구단(seoul)만.
+  let club = users.find(u => u.email === 'club.seoul@fancluv.kr')
+  if (!club) {
+    club = { nickname: 'FC 서울 담당자', email: 'club.seoul@fancluv.kr', password: 'club1234',
+      joinedAt: '2025-02-01T00:00:00.000Z', selectedTeam: 'seoul', clubId: 'seoul', role: ROLES.CLUB }
+    users.push(club); changed = true
+  }
+  for (const u of [fan, admin, club]) {
     if (u.verificationStatus == null) { Object.assign(u, seededEmailVerified(u.joinedAt)); changed = true }
     if (!('gender' in u)) { u.gender = null; changed = true }
     if (!('ageGroup' in u)) { u.ageGroup = u === fan ? '20' : null; changed = true }
@@ -178,7 +191,7 @@ function mockLogin({ email, password }) {
   const users = readUsers()
   const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password)
   if (!user) return { ok: false, error: '이메일 또는 비밀번호가 올바르지 않습니다.' }
-  if (!ADMIN_ROLES.includes(user.role) && !user.isEmailVerified)
+  if (!NO_VERIFY_ROLES.includes(user.role) && !user.isEmailVerified)
     return { ok: false, error: '이메일 인증이 완료되지 않은 계정입니다.', code: 'unverified' }
   setSession(email)
   return { ok: true, user: publicUser(user) }
@@ -418,10 +431,14 @@ export function getCurrentUser() {
 export function isAuthenticated() { return !!getCurrentUser() }
 export function getRole() { return getCurrentUser()?.role || ROLES.FAN }
 export function isAdmin() { return ADMIN_ROLES.includes(getRole()) }
+// B2B 구단(고객) 계정 여부 — Executive Dashboard 전용, 관리자와 완전 분리.
+export function isClub() { return CLUB_ROLES.includes(getRole()) }
+// 구단 계정이 담당하는 구단 id(자기 구단만 조회 가능).
+export function getClubId() { const u = getCurrentUser(); return u?.clubId || u?.selectedTeam || null }
 
 export function requiresEmailVerification(user) {
   if (!user) return false
-  if (ADMIN_ROLES.includes(user.role)) return false
+  if (NO_VERIFY_ROLES.includes(user.role)) return false
   return !user.isEmailVerified
 }
 

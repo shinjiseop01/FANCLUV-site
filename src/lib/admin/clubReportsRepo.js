@@ -7,7 +7,7 @@
 //   summary · sentiment · keywords · categories · satisfaction · suggestions · kpi ·
 //   operatorComment · finalSummary — 이메일/닉네임/원본 의견/댓글/신고는 저장하지 않는다.
 import { supabase, isSupabaseConfigured } from '../supabase.js'
-import { getCurrentUser, isAdmin } from '../auth.js'
+import { getCurrentUser, isAdmin, isClub, getClubId } from '../auth.js'
 import { buildReportModel } from '../ai/report/reportModel.js'
 
 export const REPORT_STATUSES = ['draft', 'review', 'approved', 'delivered']
@@ -64,6 +64,21 @@ export async function adminListReports() {
     return (data || []).map(mapRow)
   }
   return readMock(KEY).slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+}
+
+// ── 구단(고객) Report Center: 자기 구단에 전달(delivered)된 리포트만 ──
+// 원본 팬 데이터 없음(집계/요약 content 만). 관리자 또는 해당 구단 계정만 접근.
+export async function listDeliveredReports(clubId) {
+  const allowed = isAdmin() || (isClub() && getClubId() === clubId)
+  if (!clubId || !allowed) return []
+  if (isSupabaseConfigured) {
+    const { data, error } = await supabase.from('club_reports').select('*')
+      .eq('team_id', clubId).eq('status', 'delivered').order('delivered_at', { ascending: false })
+    if (error) return []
+    return (data || []).map(mapRow)
+  }
+  return readMock(KEY).filter(r => r.teamId === clubId && r.status === 'delivered')
+    .sort((a, b) => String(b.deliveredAt || b.createdAt).localeCompare(String(a.deliveredAt || a.createdAt)))
 }
 
 // ── 생성 (AI 인사이트 초안) ──

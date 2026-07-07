@@ -1,0 +1,89 @@
+/* FANCLUV — Club Executive Dashboard (B2B 구단 고객). 테마 토큰 기반 → 라이트/다크 자동. */
+.exec-root { min-height: 100vh; background: var(--page-bg, #F6F7F9); font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif; }
+
+.exec-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 24px; background: var(--canvas, #fff); border-bottom: 1px solid var(--border, #E5E7EB); }
+.exec-brand { font-size: 18px; font-weight: 900; color: var(--ink, #15171C); letter-spacing: -0.5px; }
+.exec-brand span { color: var(--team-deep, #863bff); }
+.exec-head-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.exec-club { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; color: var(--ink); }
+.exec-club-select { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; background: var(--canvas); color: var(--ink); font-family: inherit; font-size: 13px; }
+.exec-icon-btn { min-width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 8px; background: var(--canvas); color: var(--body, #3A3F47); font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.exec-logout { border: 1px solid var(--border); border-radius: 8px; padding: 7px 14px; background: var(--canvas); color: var(--body); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+.exec-main { max-width: 1100px; margin: 0 auto; padding: 24px 24px 60px; }
+.exec-title-row { margin-bottom: 18px; }
+.exec-title { font-size: 26px; font-weight: 900; color: var(--ink); letter-spacing: -0.6px; margin: 0; }
+.exec-sub { font-size: 14px; color: var(--muted, #8A909C); margin: 4px 0 0; }
+
+/* Executive Brief */
+.exec-brief { background: linear-gradient(135deg, color-mix(in srgb, var(--team-deep, #863bff) 12%, var(--canvas)), var(--canvas)); border: 1px solid color-mix(in srgb, var(--team-deep, #863bff) 30%, transparent); border-radius: 16px; padding: 20px 22px; margin-bottom: 20px; }
+.exec-brief-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 900; color: var(--team-deep, #863bff); letter-spacing: 0.3px; margin-bottom: 10px; }
+.exec-brief-line { font-size: 16px; line-height: 1.7; color: var(--ink); margin: 0 0 4px; font-weight: 600; }
+
+/* KPI 카드 */
+.exec-kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px; margin-bottom: 22px; }
+.exec-kpi-card { background: var(--canvas); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+.exec-kpi-val { font-size: 28px; font-weight: 900; color: var(--ink); letter-spacing: -1px; display: flex; align-items: baseline; gap: 7px; }
+.exec-kpi-chg { font-size: 14px; font-weight: 800; }
+.exec-kpi-chg.up { color: #16A34A; } .exec-kpi-chg.down { color: #DC2626; } .exec-kpi-chg.flat { color: var(--muted); }
+.exec-kpi-label { font-size: 12.5px; color: var(--muted); font-weight: 700; margin-top: 4px; }
+.exec-intel { background: linear-gradient(135deg, color-mix(in srgb, var(--team-deep, #863bff) 14%, var(--canvas)), var(--canvas)); border-color: color-mix(in srgb, var(--team-deep, #863bff) 30%, transparent); }
+.exec-intel .exec-kpi-val { color: var(--team-deep, #863bff); }
+.exec-intel-max { font-size: 15px; color: var(--muted); font-weight: 800; }
+
+.exec-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.exec-panel { background: var(--canvas); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; margin-bottom: 16px; }
+.exec-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.exec-panel-title { display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 800; color: var(--ink); margin: 0 0 12px; }
+.exec-panel-head .exec-panel-title { margin: 0; }
+.exec-summary { font-size: 14px; line-height: 1.7; color: var(--body); margin: 0 0 10px; }
+.exec-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.exec-kw { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--team-deep, #863bff) 10%, transparent); color: var(--team-deep, #863bff); }
+.exec-sub2 { font-size: 13px; font-weight: 800; color: var(--ink); margin: 6px 0 8px; }
+.exec-issues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.exec-issues li { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--body); }
+
+.tr-period { display: inline-flex; gap: 3px; background: var(--page-bg); border: 1px solid var(--border); border-radius: 9px; padding: 3px; }
+.tr-period-btn { border: none; background: none; padding: 5px 11px; border-radius: 7px; font-size: 12.5px; font-weight: 700; color: var(--muted); cursor: pointer; font-family: inherit; }
+.tr-period-btn.on { background: var(--team-deep, #863bff); color: #fff; }
+.exec-trend-note { font-size: 11.5px; color: var(--muted); margin: 8px 0 0; }
+
+.exec-actions { display: flex; flex-direction: column; gap: 10px; }
+.exec-action { border: 1px solid var(--border-soft, #EEF0F2); border-radius: 12px; padding: 12px 14px; background: var(--page-bg); }
+.exec-action-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.exec-action-title { font-weight: 800; color: var(--ink); }
+.exec-action-deltas { display: flex; flex-wrap: wrap; gap: 8px; }
+.exec-ad { font-size: 12.5px; font-weight: 800; padding: 3px 9px; border-radius: 8px; background: color-mix(in srgb, var(--muted) 12%, transparent); color: var(--body); }
+.exec-ad.up { background: rgba(22,163,74,0.12); color: #16A34A; }
+.exec-ad.down { background: rgba(220,38,38,0.12); color: #DC2626; }
+
+.tr-rating { font-size: 11.5px; font-weight: 800; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.tr-r-excellent { background: rgba(22,163,74,0.14); color: #16A34A; }
+.tr-r-effective { background: rgba(37,99,235,0.12); color: #2563EB; }
+.tr-r-nochange { background: color-mix(in srgb, var(--muted) 16%, transparent); color: var(--muted); }
+.tr-r-monitor { background: rgba(234,179,8,0.16); color: #B7791F; }
+
+.exec-reports { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.exec-report { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: 10px; }
+.exec-report-title { font-weight: 700; color: var(--ink); font-size: 14px; }
+.exec-report-date { font-size: 12px; color: var(--muted); margin-left: 8px; }
+.exec-dl { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; background: var(--canvas); color: var(--team-deep, #863bff); font-size: 12.5px; font-weight: 800; cursor: pointer; font-family: inherit; }
+
+.exec-bench { display: flex; flex-direction: column; gap: 8px; }
+.exec-bench-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
+.exec-bench-row:last-of-type { border-bottom: none; }
+.exec-bench-name { flex: 1; font-size: 13.5px; font-weight: 700; color: var(--body); }
+.exec-bench-own { font-size: 18px; font-weight: 900; color: var(--team-deep, #863bff); font-variant-numeric: tabular-nums; }
+.exec-bench-vs { font-size: 11px; color: var(--muted); }
+.exec-bench-league { font-size: 15px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.exec-bench-delta { font-size: 13px; font-weight: 800; }
+.exec-bench-delta.up { color: #16A34A; } .exec-bench-delta.down { color: #DC2626; } .exec-bench-delta.flat { color: var(--muted); }
+.exec-bench-note { font-size: 11.5px; color: var(--muted); margin: 8px 0 0; }
+
+@media (max-width: 820px) {
+  .exec-cols { grid-template-columns: 1fr; }
+  .exec-main { padding: 18px 16px 48px; }
+  .exec-header { padding: 12px 16px; }
+  .exec-title { font-size: 22px; }
+  .exec-brief-line { font-size: 15px; }
+}

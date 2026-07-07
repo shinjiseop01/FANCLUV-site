@@ -7,7 +7,7 @@
 // 각 Action 에 대해: 전후 KPI 변화량, AI 효과 분석(규칙 기반 서술), 영향 카테고리,
 // 효과 평가 등급, Club Intelligence Score(종합 점수), 관련 데이터 연결(인사이트/리포트/
 // 주차/의견/설문/KPI 히스토리)을 계산한다. Supabase/Mock 공통(clubActionsRepo 경유).
-import { adminListActions } from './clubActionsRepo.js'
+import { adminListActions, listActionsForClub } from './clubActionsRepo.js'
 import { getKpis } from '../kpi/kpiEngine.js'
 import { getKpiHistory } from '../kpi/kpiHistoryRepo.js'
 import { listOpinions } from '../opinionsRepo.js'
@@ -111,21 +111,17 @@ async function clubContext(clubId, cache) {
   return ctx
 }
 
-// ── Action 효과 목록(타임라인 순) ──
-// filters: { clubId, category, periodDays } — periodDays 로 최근 기간만.
-export async function getActionEffects(filters = {}) {
-  const { periodDays, ...rest } = filters
-  const actions = await adminListActions(rest)
-  // 기간 필터(요구사항 8): action_date 가 최근 periodDays 이내.
-  let list = actions
-  if (periodDays) {
-    const cutoff = Date.now() - periodDays * 86400000
-    list = actions.filter(a => {
-      const d = a.actionDate ? new Date(a.actionDate).getTime() : new Date(a.createdAt).getTime()
-      return !isNaN(d) && d >= cutoff
-    })
-  }
+function withinPeriod(actions, periodDays) {
+  if (!periodDays) return actions
+  const cutoff = Date.now() - periodDays * 86400000
+  return actions.filter(a => {
+    const d = a.actionDate ? new Date(a.actionDate).getTime() : new Date(a.createdAt).getTime()
+    return !isNaN(d) && d >= cutoff
+  })
+}
 
+// 액션 배열 → 효과 계산 결과 배열(공통 로직).
+async function computeEffects(list) {
   const cache = new Map()
   const results = []
   for (const a of list) {
@@ -155,6 +151,20 @@ export async function getActionEffects(filters = {}) {
     })
   }
   return results
+}
+
+// ── Action 효과 목록(관리자 — 타임라인 순) ──
+// filters: { clubId, category, periodDays } — periodDays 로 최근 기간만.
+export async function getActionEffects(filters = {}) {
+  const { periodDays, ...rest } = filters
+  const actions = await adminListActions(rest)
+  return computeEffects(withinPeriod(actions, periodDays))
+}
+
+// ── 구단(고객) 전용: 자기 구단 액션 효과만 ──
+export async function getClubActionEffects(clubId, { periodDays } = {}) {
+  const actions = await listActionsForClub(clubId)
+  return computeEffects(withinPeriod(actions, periodDays))
 }
 
 // 대시보드용 최근 효과 요약(상위 N개).
