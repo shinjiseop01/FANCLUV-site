@@ -47,6 +47,7 @@ const AdminMembers = lazy(() => import('./admin/AdminMembers.jsx'))
 const AdminOpinions = lazy(() => import('./admin/AdminOpinions.jsx'))
 const AdminSurveys = lazy(() => import('./admin/AdminSurveys.jsx'))
 const AdminNews = lazy(() => import('./admin/AdminNews.jsx'))
+const AdminNewsSources = lazy(() => import('./admin/AdminNewsSources.jsx'))
 const AdminNotices = lazy(() => import('./admin/AdminNotices.jsx'))
 const AdminReports = lazy(() => import('./admin/AdminReports.jsx'))
 const AdminReportDocs = lazy(() => import('./admin/AdminReportDocs.jsx'))
@@ -144,6 +145,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="opinions" element={<AdminOpinions />} />
           <Route path="surveys" element={<AdminSurveys />} />
           <Route path="news" element={<AdminNews />} />
+          <Route path="news-sources" element={<AdminNewsSources />} />
           <Route path="notices" element={<AdminNotices />} />
           <Route path="reports" element={<AdminReports />} />
           <Route path="report-docs" element={<AdminReportDocs />} />

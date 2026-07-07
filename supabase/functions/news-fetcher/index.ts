@@ -147,41 +147,80 @@ Deno.serve(async (req) => {
   const clubId = String(body.clubId || '').trim()
   const clubName = String(body.clubName || '')
   const rssUrl = body.rssUrl ? String(body.rssUrl) : ''
-  const newsUrl = body.newsUrl ? String(body.newsUrl) : ''
+  // 복수 뉴스 URL 지원(newsUrls 배열) + 단일(newsUrl) 하위호환.
+  const newsUrls: string[] = Array.isArray(body.newsUrls)
+    ? body.newsUrls.map((u: unknown) => String(u)).filter(Boolean)
+    : (body.newsUrl ? [String(body.newsUrl)] : [])
+  const force = !!body.force   // 연결 테스트 등: 캐시 무시하고 즉시 수집
   if (!clubId) return json({ ok: false, error: 'no_club', items: [] })
 
-  // 1) 캐시 확인 (10분 이내면 그대로 반환)
+  // 1) 캐시 확인 (force 면 건너뜀)
   const { data: cached } = await admin.from('news_cache').select('*').eq('club_id', clubId).maybeSingle()
-  if (cached && Date.now() - new Date(cached.fetched_at).getTime() < CACHE_TTL_MIN * 60000) {
+  if (!force && cached && Date.now() - new Date(cached.fetched_at).getTime() < CACHE_TTL_MIN * 60000) {
     return json({ ok: true, items: cached.items || [], source: 'cache', cachedAt: cached.fetched_at })
   }
 
-  // 2) 실제 수집: RSS 우선 → 공식 홈페이지 스크래핑
+  // 2) 실제 수집: RSS 우선 → 뉴스 URL(복수)을 순서대로 스크래핑
   let items: Record<string, unknown>[] = []
   let source = 'empty'
+  let errorReason = ''
   try {
     if (rssUrl) {
       const xml = await fetchText(rssUrl)
       items = parseFeed(xml).slice(0, MAX_ITEMS).map(r => toStandard(r, clubId, clubName))
       if (items.length) source = 'rss'
     }
-    if (!items.length && newsUrl) {
-      const html = await fetchText(newsUrl)
-      items = scrapeOfficial(html, newsUrl).slice(0, MAX_ITEMS).map(r => toStandard(r, clubId, clubName))
-      if (items.length) source = 'official'
+    for (const url of newsUrls) {
+      if (items.length) break
+      try {
+        const html = await fetchText(url)
+        items = scrapeOfficial(html, url).slice(0, MAX_ITEMS).map(r => toStandard(r, clubId, clubName))
+        if (items.length) source = 'official'
+      } catch (e) { errorReason = String((e as Error)?.message || e) }
     }
-  } catch (_e) {
-    // 네트워크/파싱 실패 → 마지막 캐시(있으면 stale 이라도) 반환, 없으면 빈 배열.
+  } catch (e) {
+    errorReason = String((e as Error)?.message || e)
+    await recordStatus(admin, clubId, clubName, false, 0, errorReason || 'fetch_error')
     if (cached?.items?.length) return json({ ok: true, items: cached.items, source: 'stale', cachedAt: cached.fetched_at })
-    return json({ ok: true, items: [], source: 'error' })
+    return json({ ok: false, code: 'error', items: [], source: 'error' })
   }
 
-  // 3) 성공 시 캐시 갱신. 결과가 비면 캐시하지 않고(다음에 재시도) 마지막 캐시로 폴백.
+  // 3) 성공 시 캐시 갱신 + 상태 기록. 실패면 상태 기록 후 stale/empty 폴백.
   const now = new Date().toISOString()
   if (items.length) {
     await admin.from('news_cache').upsert({ club_id: clubId, items, source, fetched_at: now })
-    return json({ ok: true, items, source, cachedAt: now })
+    await recordStatus(admin, clubId, clubName, true, items.length, null)
+    return json({ ok: true, items, source, count: items.length, cachedAt: now })
   }
+  await recordStatus(admin, clubId, clubName, false, 0, errorReason || 'empty')
   if (cached?.items?.length) return json({ ok: true, items: cached.items, source: 'stale', cachedAt: cached.fetched_at })
-  return json({ ok: true, items: [], source: 'empty' })
+  return json({ ok: false, code: 'empty', items: [], source: 'empty' })
 })
+
+// news_sources 상태 기록 + 실패 임계(3회) 시 관리자 알림. news_sources 테이블(0021)이
+// 없으면 조용히 무시(뉴스 흐름은 계속). service_role 로 실행되므로 RLS 우회.
+const FAILURE_THRESHOLD = 3
+async function recordStatus(
+  admin: ReturnType<typeof createClient>,
+  clubId: string, clubName: string, ok: boolean, count: number, error: string | null,
+) {
+  try {
+    const now = new Date().toISOString()
+    const { data: cur } = await admin.from('news_sources').select('failure_count,alerted_at').eq('club_id', clubId).maybeSingle()
+    const failureCount = ok ? 0 : (cur?.failure_count || 0) + 1
+    const patch: Record<string, unknown> = { club_id: clubId, updated_at: now }
+    if (ok) { patch.last_success_at = now; patch.failure_count = 0; patch.alerted_at = null; patch.last_error = null }
+    else { patch.last_failure_at = now; patch.failure_count = failureCount; patch.last_error = error }
+    await admin.from('news_sources').upsert(patch)
+
+    if (!ok && failureCount >= FAILURE_THRESHOLD && !cur?.alerted_at) {
+      const { data: admins } = await admin.from('profiles').select('id').in('role', ['admin', 'superadmin', 'staff'])
+      const rows = (admins || []).map((a: { id: string }) => ({
+        user_id: a.id, type: 'notice', title: '뉴스 연결 실패',
+        body: `${clubName || clubId} 뉴스 연결 실패 ${failureCount}회`, is_read: false,
+      }))
+      if (rows.length) await admin.from('notifications').insert(rows)
+      await admin.from('news_sources').update({ alerted_at: now }).eq('club_id', clubId)
+    }
+  } catch (_e) { /* news_sources 미마이그레이션 등 → 무시 */ }
+}

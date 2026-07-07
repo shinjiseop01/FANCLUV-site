@@ -24,6 +24,7 @@ export async function fetchEdgeNews(source, clubId) {
       clubName: source.clubName || '',
       rssUrl: source.rssUrl || null,
       newsUrl: source.newsUrl || null,
+      newsUrls: Array.isArray(source.sources) ? source.sources.map(s => s.url).filter(Boolean) : undefined,
       officialWebsite: source.officialWebsite || null,
     },
   })

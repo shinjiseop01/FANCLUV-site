@@ -61,6 +61,7 @@ npm run lint     # oxlint
 | `/admin/opinions` | AdminOpinions (의견/댓글 관리) |
 | `/admin/surveys` | AdminSurveys (설문 관리) |
 | `/admin/news` | AdminNews (뉴스 관리) |
+| `/admin/news-sources` | AdminNewsSources (뉴스 소스 관리 — 33차) |
 | `/admin/notices` | AdminNotices (공지사항 관리 — 25차) |
 | `/admin/reports` | AdminReports (신고 관리) |
 | `/admin/report-docs` | AdminReportDocs (구단 전달용 AI 리포트 관리 — 27~28차) |
@@ -185,6 +186,15 @@ npm run lint     # oxlint
 - **캐시/에러**: 클라이언트 `withCache('teamnews:'+clubId, 10m)` + Edge `news_cache`(10분). **실패 시 lastGood → Mock**. 각 소스 개별 catch → 페이지 안 깨짐(Loading/Error/Empty/Mock 폴백 모두 처리).
 - **향후 확장**: 새 소스는 provider 하나 추가 후 `REAL_PROVIDERS`에 넣으면 됨. 뉴스 API 붙이면 `news-fetcher`에 fetch 분기 추가. 각 구단 실제 RSS 확인 시 `SOURCE_OVERRIDES.rssUrl`만 채우면 RSS 우선 사용.
 
+### 뉴스 소스 관리 (관리자) — `src/lib/news/newsSourcesRepo.js` + `admin/AdminNewsSources.jsx` (33차)
+- **관리자가 코드 수정 없이** 구단별 뉴스 소스를 관리. `/admin/news-sources`. Supabase `news_sources`(`0021`, 읽기=로그인·쓰기=관리자·상태기록=service_role) 또는 Mock(localStorage `fancluv_news_sources`).
+- **관리 항목**: 공식 홈페이지 · **뉴스 URL(복수 `sources: [{label,url}]`)** · RSS URL · 사용여부(enable/disable) + **수집 상태**(마지막 성공/실패 시간·실패 횟수·마지막 테스트 결과).
+- **유효 소스** = `getEffectiveSource(clubId)` = 코드 기본값(`newsSources.js` `SOURCE_OVERRIDES`, 12구단 실제 뉴스 URL) 위에 DB 오버라이드 병합. `teamNewsProvider`가 이걸로 사용여부·URL 참조(disabled면 실 Provider 건너뜀 → 저장뉴스+Mock).
+- **상태 배지**(SVG 아이콘, 이모지 없음): 정상(check)·RSS 없음(rss)·연결 실패(alert)·비활성화(power). `statusOf(src)`.
+- **연결 테스트**(`testSource`): Supabase는 `news-fetcher(force:true)` 실제 수집 → 개수/실패사유, Mock은 설정 기반 시뮬레이션(데모 개수). 결과=성공여부·뉴스개수·테스트시간·실패사유.
+- **자동 실패 감지**(`FAILURE_THRESHOLD=3`): 수집/테스트 실패가 3회 이상이면 **관리자 알림 생성**("{구단} 뉴스 연결 실패 3회") + 관리 화면 상단 경고 배너. Supabase는 `news-fetcher`(service_role)가 매 수집 시 상태 기록 + admin 사용자에게 notifications insert, Mock은 `pushMockNotification`.
+- **복수 URL**: `news-fetcher`가 `newsUrls` 배열을 순서대로 시도(RSS 우선 → 각 뉴스 URL). 울산(구단소식+리뷰/프리뷰)·포항(공지+보도자료) 등.
+
 ### 팀 뉴스 저장소 — `src/lib/newsRepo.js` (Supabase-우선 + Mock 폴백)
 - **Supabase 이관 완료(3차)**. `AdminNews`(관리자) + Provider의 저장 뉴스 소스. Supabase 설정 시 `team_news` 테이블(제목·내용·team_id·category·image_url·author·status·is_important), 아니면 Mock. `listNews(teamId)`는 Supabase `team_news`(published) 또는 Mock 관리자 등록 뉴스를 반환(팬 데모 뉴스는 `mockNewsProvider`로 분리됨).
 - 팬 API: `listNews(teamId)`(구단 필터, 최신순/중요 뉴스 정렬). 관리자 API: `adminListNews`/`createNews`/`updateNews`/`deleteNews`(관리자 RLS `is_admin()`). SQL: `0006_news_notifications.sql`.
@@ -270,6 +280,7 @@ npm run lint     # oxlint
 
 **운영 준비 · 실연동 시리즈 (최신)**
 
+0. 뉴스 소스 관리(관리자) — 33차: `AdminNewsSources`(`/admin/news-sources`) + `newsSourcesRepo` + `news_sources`(`0021`). 구단별 뉴스 URL(복수)/RSS/사용여부 관리·연결 테스트·상태 배지(SVG)·실패 3회 자동 알림. `news-fetcher` 확장(newsUrls 배열·force·상태기록·admin 알림), 12구단 실제 뉴스 URL 기본값. 기존 Provider/Mock 폴백 유지 ("Add admin news source management").
 0. 실제 K리그 데이터 연동 — 32차: Edge Function `league-fetcher`(외부 API→표준 정규화·순위/경기 5분 캐시·API 키 서버 보관·벤더 무관 normalizer) + `edgeLeagueProvider`(`VITE_LEAGUE_PROVIDER=edge`) + `league_cache`(`0020`) + facade edge 모드 + form/round/competition 표준 필드. UI 불변, Mock 폴백 유지 ("Implement production K League integration").
 0. 실제 팀 뉴스 연동 — 31차: Edge Function `news-fetcher`(RSS/공식홈 스크래핑·10분 캐시·CORS 우회) + `edgeNewsProvider`(`VITE_NEWS_PROVIDER=edge`) + `news_cache`(`0019`) + 12구단 소스 등록(`SOURCE_OVERRIDES`) + 관리자 뉴스 우선 병합(덮어쓰기 방지). UI 불변, Mock 폴백 유지 ("Implement production team news integration").
 0. Production Readiness 2단계 — Error Boundary·404/500·LazyImage·코드 스플리팅·Skeleton·Retry(`retry.js`/`edgeFunctions.js`)·Analytics(`services/analytics`)·Logger(`logger.js`)·A11y ("Production readiness phase 2").

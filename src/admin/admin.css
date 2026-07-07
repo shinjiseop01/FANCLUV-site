@@ -452,3 +452,51 @@
 .adm-cust-history li:last-child { border-bottom: none; }
 .adm-cust-hist-date { flex-shrink: 0; font-size: 12.5px; font-weight: 800; color: var(--team-deep); font-variant-numeric: tabular-nums; }
 .adm-cust-hist-desc { font-size: 13.5px; color: var(--ink); }
+
+/* ───────────── 뉴스 소스 관리 (AdminNewsSources) ───────────── */
+.ns-banner { display: flex; align-items: center; gap: 9px; background: rgba(220,38,38,0.1); border: 1px solid rgba(220,38,38,0.3); color: #DC2626; border-radius: 10px; padding: 11px 14px; font-size: 13.5px; font-weight: 600; margin-bottom: 16px; }
+.ns-table { min-width: 900px; }
+.ns-club { font-weight: 700; color: var(--ink); }
+.ns-link { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--team-deep, #863bff); text-decoration: none; margin-top: 3px; }
+.ns-link:hover { text-decoration: underline; }
+.ns-src { margin-right: 10px; }
+.ns-muted { color: var(--muted); font-size: 12.5px; }
+.ns-time { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ns-fcount { color: #DC2626; font-weight: 700; }
+
+.ns-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.ns-badge.ns-ok   { background: rgba(22,163,74,0.12); color: #16A34A; }
+.ns-badge.ns-warn { background: rgba(234,179,8,0.14); color: #B7791F; }
+.ns-badge.ns-fail { background: rgba(220,38,38,0.12); color: #DC2626; }
+.ns-badge.ns-off  { background: color-mix(in srgb, var(--muted) 16%, transparent); color: var(--muted); }
+.ns-testres { font-size: 11.5px; margin-top: 5px; display: flex; flex-direction: column; }
+.ns-testres.ok { color: #16A34A; }
+.ns-testres.fail { color: #DC2626; }
+.ns-testat { color: var(--muted); font-size: 11px; }
+
+/* 사용여부 토글 */
+.ns-toggle { width: 40px; height: 22px; border-radius: 999px; border: none; background: color-mix(in srgb, var(--muted) 40%, transparent); position: relative; cursor: pointer; transition: background 0.16s; padding: 0; }
+.ns-toggle.on { background: var(--team-deep, #863bff); }
+.ns-toggle-dot { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform 0.16s; }
+.ns-toggle.on .ns-toggle-dot { transform: translateX(18px); }
+
+.ns-actions-col { white-space: nowrap; }
+.ns-actions-col .adm-btn-sm { margin-left: 6px; }
+
+/* 수정 모달 */
+.ns-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+.ns-modal { background: var(--canvas); border: 1px solid var(--border); border-radius: 16px; padding: 22px; width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto; }
+.ns-modal-title { font-size: 17px; font-weight: 800; color: var(--ink); margin: 0 0 16px; }
+.ns-src-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+.ns-src-label { flex: 0 0 90px; }
+.ns-src-url { flex: 1; min-width: 0; }
+.ns-src-del { flex-shrink: 0; width: 30px; height: 34px; border: 1px solid var(--border); background: var(--canvas); border-radius: 8px; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; }
+.ns-src-del:hover { color: #DC2626; border-color: #DC2626; }
+.ns-add { margin-top: 4px; }
+.ns-check { display: flex; align-items: center; gap: 8px; margin: 6px 0 4px; font-size: 14px; color: var(--body); cursor: pointer; }
+.ns-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+@media (max-width: 640px) {
+  .ns-modal { padding: 18px; }
+  .ns-src-label { flex: 0 0 70px; }
+}

@@ -12,6 +12,7 @@
 // 에러 (요구사항 8): 각 소스 실패를 개별 catch → 페이지는 절대 깨지지 않는다.
 import { withCache } from '../cache.js'
 import { getNewsSource } from './newsSources.js'
+import { getEffectiveSource, reportFetchOutcome } from './newsSourcesRepo.js'
 import { listNews } from '../newsRepo.js'
 import { edgeNewsProvider } from './providers/edgeNewsProvider.js'
 import { rssProvider } from './providers/rssProvider.js'
@@ -79,12 +80,19 @@ async function fetchReal(source, clubId) {
 }
 
 async function loadTeamNews(clubId) {
-  const source = getNewsSource(clubId)
+  // 유효 소스(관리자 오버라이드 병합) — 조회 실패 시 코드 기본값으로 폴백.
+  const source = await getEffectiveSource(clubId).catch(() => getNewsSource(clubId))
+  // 사용 안 함(disabled)이면 실제 Provider 를 건너뛰고 저장 뉴스 + Mock 으로만 구성.
+  const sourceEnabled = !source || source.enabled !== false
   try {
     const [real, stored] = await Promise.all([
-      fetchReal(source, clubId).catch(() => []),
+      sourceEnabled ? fetchReal(source, clubId).catch(() => []) : Promise.resolve([]),
       listNews(clubId).catch(() => []),        // Supabase team_news / Mock 관리자 뉴스
     ])
+    // Mock 모드 자동 실패 감지: 실제 Provider 가 활성인데 결과가 없으면 실패로 기록.
+    if (sourceEnabled && (source?.rssUrl || source?.sources?.length)) {
+      reportFetchOutcome(clubId, real.length > 0, real.length)
+    }
     // 실제 Provider 결과가 있으면 우선, 없으면 Mock. 관리자(stored) 뉴스는 항상 병합.
     // dedupe 시 stored(관리자 공지)를 앞에 둬 외부 뉴스가 관리자 공지를 덮어쓰지 못하게 한다(요구사항 6).
     const external = real.length ? real : await fetchMockNews(clubId)
