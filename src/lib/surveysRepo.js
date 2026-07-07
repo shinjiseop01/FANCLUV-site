@@ -125,6 +125,26 @@ export async function submitResponse(surveyId, teamId, answers) {
   return { ok: true }
 }
 
+// 설문 응답 목록(KPI 엔진용). Supabase 는 survey_responses.answers 를, Mock 은 참여수만
+// 알 수 있어 빈 배열을 반환한다(KPI 엔진이 의견 기반으로 폴백). answers = {satisfaction,revisit,...}
+export async function listSurveyResponses(teamId) {
+  if (isSupabaseConfigured) {
+    let q = supabase.from('survey_responses').select('answers, team_id, created_at')
+    if (teamId && teamId !== 'all') q = q.eq('team_id', teamId)
+    const { data, error } = await q.order('created_at', { ascending: false }).limit(1000)
+    if (error) return []
+    return (data || []).map(r => ({ ...(r.answers || {}), createdAt: r.created_at }))
+  }
+  return []
+}
+
+// 설문 참여 총계(KPI 참여율용). Supabase 는 응답수 합, Mock 은 관리자 설문 응답수 합.
+export async function countSurveyResponses(teamId) {
+  const surveys = await adminListSurveys()
+  const filtered = (teamId && teamId !== 'all') ? surveys : surveys
+  return filtered.reduce((s, sv) => s + (sv.responses || sv.participants || 0), 0)
+}
+
 // ════════════════════════════════════════════════════════════════════════
 //  관리자 API
 // ════════════════════════════════════════════════════════════════════════

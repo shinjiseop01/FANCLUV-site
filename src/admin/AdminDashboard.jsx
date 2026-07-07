@@ -7,6 +7,7 @@ import { LineChart, BarChart } from './AdminCharts.jsx'
 import { TEAMS, getTeam } from '../teams.jsx'
 import { runAnalysis } from '../lib/ai/analyzeFanInsights.js'
 import { generateAiReport, REPORT_PERIODS } from '../lib/ai/report/index.js'
+import { getKpisWithChange } from '../lib/kpi/kpiHistoryRepo.js'
 import { createNotice } from '../lib/noticesRepo.js'
 import EmptyState from '../components/EmptyState.jsx'
 import Icon from '../components/Icon.jsx'
@@ -109,6 +110,16 @@ export default function AdminDashboard() {
     }
     setAiMsg(t(map[res.code] || 'admin.ai.failed'))
   }
+
+  // Fan Insight KPI Engine — 선택 구단의 실제 KPI(팬 의견/설문 기반) + 지난주 대비 변화량.
+  const [kpiData, setKpiData] = useState(null)
+  const [kpiLoading, setKpiLoading] = useState(true)
+  useEffect(() => {
+    let active = true
+    setKpiLoading(true)
+    getKpisWithChange(aiClub).then(k => { if (active) { setKpiData(k); setKpiLoading(false) } })
+    return () => { active = false }
+  }, [aiClub])
 
   // AI 리포트(PDF) 생성 — 선택 구단의 최신 인사이트 기반. 향후 월간/분기/연간 확장.
   const [reportPeriod, setReportPeriod] = useState('monthly')
@@ -216,6 +227,15 @@ export default function AdminDashboard() {
           </div>
           {reportMsg && <p className="adm-ai-msg" role="status">{reportMsg}</p>}
         </div>
+      </section>
+
+      {/* Fan Insight KPI Engine — 실제 데이터 기반 핵심 KPI */}
+      <section className="adm-panel adm-dash-section">
+        <div className="adm-panel-head">
+          <h2 className="adm-panel-title"><Icon name="chart" size={17} /> {t('admin.kpi.title')}</h2>
+          <span className="adm-kpi-sub">{kpiData?.week || ''}{kpiData?.previousWeek ? ` · vs ${kpiData.previousWeek}` : ''}</span>
+        </div>
+        {kpiLoading ? <p className="adm-ai-msg" role="status">{t('common.loading')}</p> : <KpiPanel k={kpiData} t={t} />}
       </section>
 
       {/* 관리자 공지 발송 */}
@@ -332,5 +352,61 @@ export default function AdminDashboard() {
         )}
       </section>
     </div>
+  )
+}
+
+// ── Fan Insight KPI 패널 (10개 핵심 KPI + 12개 카테고리 점수 + 변화량) ──
+function changeBadge(v, invert = false) {
+  if (v == null || v === 0) return <span className="adm-kpi-chg flat">—</span>
+  const good = invert ? v < 0 : v > 0
+  return <span className={`adm-kpi-chg ${good ? 'up' : 'down'}`}>{v > 0 ? `+${v}` : v}</span>
+}
+
+function KpiPanel({ k, t }) {
+  if (!k) return null
+  const metrics = [
+    { label: t('admin.kpi.satisfaction'), value: k.satisfaction, ck: 'satisfaction' },
+    { label: t('admin.kpi.positive'), value: `${k.sentiment.positive}%`, ck: null },
+    { label: t('admin.kpi.neutral'), value: `${k.sentiment.neutral}%`, ck: null },
+    { label: t('admin.kpi.negative'), value: `${k.sentiment.negative}%`, ck: null },
+    { label: t('admin.kpi.nps'), value: k.nps, ck: 'nps' },
+    { label: t('admin.kpi.complaint'), value: k.complaintIndex, ck: 'complaintIndex', invert: true },
+    { label: t('admin.kpi.engagement'), value: k.engagement, ck: 'engagement' },
+    { label: t('admin.kpi.participation'), value: `${k.participationRate}%`, ck: 'participationRate' },
+    { label: t('admin.kpi.recommendation'), value: k.recommendation, ck: 'recommendation' },
+  ]
+  const cats = (k.categories || []).filter(c => c.score != null)
+  return (
+    <>
+      <div className="adm-kpi-grid">
+        {metrics.map((m, i) => (
+          <div key={i} className="adm-kpi-cell">
+            <div className="adm-kpi-value">{m.value}{m.ck && changeBadge(k.change?.[m.ck], m.invert)}</div>
+            <div className="adm-kpi-label">{m.label}</div>
+          </div>
+        ))}
+      </div>
+      {cats.length > 0 && (
+        <div className="adm-kpi-cats">
+          <div className="adm-kpi-cats-title">{t('admin.kpi.byCategory')}</div>
+          {cats.map(c => (
+            <div key={c.key} className="adm-kpi-cat-row">
+              <span className="adm-kpi-cat-name">{c.name}</span>
+              <span className="adm-kpi-cat-bar"><span style={{ width: `${c.score}%` }} /></span>
+              <span className="adm-kpi-cat-score">{c.score}{c.change != null && c.change !== 0 && changeBadge(c.change)}</span>
+              <span className="adm-kpi-cat-count">{c.count}건</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {k.topicTrend?.length > 0 && (
+        <div className="adm-kpi-topics">
+          <span className="adm-kpi-cats-title">{t('admin.kpi.topicTrend')}:</span>
+          {k.topicTrend.map(tp => (
+            <span key={tp.key} className={`adm-kpi-topic ${tp.direction}`}>{tp.topic} {tp.direction === 'up' ? '▲' : tp.direction === 'down' ? '▼' : ''}</span>
+          ))}
+        </div>
+      )}
+    </>
   )
 }

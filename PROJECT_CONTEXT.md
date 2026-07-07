@@ -221,6 +221,15 @@ npm run lint     # oxlint
 - **AIInsightsPage**: 최신 `ai_insights` 로드 → 표시. 결과 없으면(Supabase) "의견 30개 이상 모이면 분석 시작" Empty State. **Mock 모드**는 별점/카테고리 기반 로컬 간이 분석으로 폴백(앱 유지). UI 기존 그대로.
 - **에러 처리(검증 강화)**: Edge Function은 처리된 실패를 `200 + {ok:false, code}`(unauthorized/forbidden/openai_not_configured/insufficient/openai_failed/save_failed)로 반환 → 관리자 화면이 code별 구체 메시지 표시. 배포 검증 체크리스트·문제해결은 [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 
+### Fan Insight KPI Engine — `src/lib/kpi/` (35차)
+- **AI(OpenAI)와 독립된 결정적 계산 엔진**. 팬 의견(rating/category/likes/comments) + 설문 응답(satisfaction/revisit)으로 구단이 매주 확인하는 핵심 KPI 를 실제 계산. `kpiEngine.js`(순수 계산 `computeKpis` + 로드 `getKpis`), `kpiCategories.js`(12 카테고리 + 키워드 분류), `kpiHistoryRepo.js`(주차 저장·변화량).
+- **10개 핵심 KPI**: Fan Satisfaction(별점 평균×20, 설문 블렌드) · Positive/Neutral/Negative Sentiment(별점 ≥4/=3/≤2 비율) · NPS(추천 5점−비추천 ≤3점) · Complaint Index(부정비율+불만키워드) · Engagement(의견당 공감+댓글×2 정규화) · Participation Rate(응답/활동팬) · Recommendation(설문 재방문의사 또는 NPS 환산) · Topic Trend(언급 상위 카테고리+방향).
+- **12개 카테고리 점수**: 경기력/감독/선수/심판/티켓/MD/경기장/편의시설/음식/이벤트/마케팅/기타. `categorizeOpinion`이 카테고리명/키워드로 의견을 분류 → 카테고리별 별점 평균×20.
+- **변화량(요구사항 3)**: `getKpisWithChange`가 현재 KPI + 지난주 스냅샷 차이(`change`)를 계산(예: Fan Satisfaction 80 (+6)). 카테고리·토픽 방향(up/down/flat)도 병합.
+- **KPI History(요구사항 4/5)**: `club_kpi_history`(`0023`, `unique(club_id,week)`) 또는 Mock(localStorage). `saveWeeklyKpi`가 주차별 upsert → 향후 **Club Action Tracker "조치 전→후" 비교** 기반. RLS: 읽기=로그인, 쓰기=관리자.
+- **Dashboard 연동(요구사항 6)**: `AdminDashboard`에 "Fan Insight KPI" 패널(구단 선택 연동, 10 KPI + 변화량 + 카테고리 막대 + 토픽). `getKpisWithChange` 사용.
+- **AI Report 연동(요구사항 7)**: `reportModel.buildReportModel`이 `computeAndRecordKpis`로 실 KPI 계산 → satisfaction/sentiment/categories 를 실데이터로 교체 + `kpiMetrics` 블록 추가, `generatePdf`가 "Fan Insight KPI" 섹션 렌더. 저장 리포트(`clubReportsRepo`)에도 `kpiMetrics` 스냅샷 포함. (표본 없으면 AI 인사이트로 폴백 → 기존 AI 흐름 유지.)
+
 ### 통합 상태 대시보드 — `src/lib/admin/integrationHealthRepo.js` + `admin/AdminSystemStatus.jsx` (34차)
 - **외부 서비스 8종 상태를 운영자가 한눈에**. `/admin/system`. Supabase `integration_health`/`integration_logs`(`0022`, 관리자 RLS) 또는 Mock(localStorage).
 - **서비스**: Supabase Database · Supabase Auth · Edge Functions · Team News · League API · OpenAI API · Email Service · Push Notification.
@@ -290,6 +299,7 @@ npm run lint     # oxlint
 
 **운영 준비 · 실연동 시리즈 (최신)**
 
+0. Fan Insight KPI Engine — 35차: `src/lib/kpi/`(kpiEngine·kpiCategories·kpiHistoryRepo) + `club_kpi_history`(`0023`). 팬 의견/설문 기반 10개 핵심 KPI + 12 카테고리 점수 + 지난주 대비 변화량 실계산, 주차 히스토리 저장(Club Action 전후 비교 대비). Dashboard "Fan Insight KPI" 패널 + AI Report(reportModel/generatePdf) 실 KPI 연동 ("Implement fan insight KPI engine").
 0. 통합 상태 대시보드 + 관리자 로그인 수정 — 34차: `AdminSystemStatus`(`/admin/system`) + `integrationHealthRepo` + `health-check` Edge Function + `integration_health`/`integration_logs`(`0022`). 8개 외부 서비스 상태·응답시간·연결테스트·연속3회 실패 알림·시스템 로그(100개). **관리자 로그인 수정**: 데모 계정 시드를 Mock 모드 전체(프로덕션 빌드 포함)에서 하도록 되돌림 → `admin@fancluv.kr`/`admin123` 로그인→`/admin` 정상 ("Add integration health dashboard and fix admin login").
 0. 뉴스 소스 관리(관리자) — 33차: `AdminNewsSources`(`/admin/news-sources`) + `newsSourcesRepo` + `news_sources`(`0021`). 구단별 뉴스 URL(복수)/RSS/사용여부 관리·연결 테스트·상태 배지(SVG)·실패 3회 자동 알림. `news-fetcher` 확장(newsUrls 배열·force·상태기록·admin 알림), 12구단 실제 뉴스 URL 기본값. 기존 Provider/Mock 폴백 유지 ("Add admin news source management").
 0. 실제 K리그 데이터 연동 — 32차: Edge Function `league-fetcher`(외부 API→표준 정규화·순위/경기 5분 캐시·API 키 서버 보관·벤더 무관 normalizer) + `edgeLeagueProvider`(`VITE_LEAGUE_PROVIDER=edge`) + `league_cache`(`0020`) + facade edge 모드 + form/round/competition 표준 필드. UI 불변, Mock 폴백 유지 ("Implement production K League integration").

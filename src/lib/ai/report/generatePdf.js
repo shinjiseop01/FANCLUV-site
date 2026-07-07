@@ -124,6 +124,32 @@ function satisfactionHtml(model, color) {
     </div>`
 }
 
+// Fan Insight KPI Engine 핵심 지표 그리드(+ 지난주 대비 변화량).
+function kpiMetricsHtml(model, t, color) {
+  const m = model.kpiMetrics
+  if (!m) return ''
+  const chg = (k, invert = false) => {
+    const v = m.change?.[k]
+    if (v == null || v === 0) return ''
+    const good = invert ? v < 0 : v > 0
+    const col = good ? '#16A34A' : '#DC2626'
+    return ` <span style="font-size:13px;font-weight:800;color:${col};">(${v > 0 ? '+' : ''}${v})</span>`
+  }
+  const items = [
+    { label: t('aiReport.mSatisfaction'), value: `${m.satisfaction}`, k: 'satisfaction' },
+    { label: t('aiReport.mNps'), value: `${m.nps}`, k: 'nps' },
+    { label: t('aiReport.mComplaint'), value: `${m.complaintIndex}`, k: 'complaintIndex', invert: true },
+    { label: t('aiReport.mEngagement'), value: `${m.engagement}`, k: 'engagement' },
+    { label: t('aiReport.mParticipation'), value: `${m.participationRate}%`, k: 'participationRate' },
+    { label: t('aiReport.mRecommendation'), value: `${m.recommendation}`, k: 'recommendation' },
+  ]
+  return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">` + items.map(it => `
+    <div style="border:1px solid #E6E8EB;border-radius:12px;padding:16px;">
+      <div style="font-size:26px;font-weight:900;color:${color};letter-spacing:-0.5px;">${esc(it.value)}${chg(it.k, it.invert)}</div>
+      <div style="font-size:12px;color:#6B7178;font-weight:700;margin-top:4px;">${esc(it.label)}</div>
+    </div>`).join('') + `</div>`
+}
+
 function suggestionsHtml(model, color) {
   if (!model.suggestions.length) return `<p style="font-size:14px;color:#8A9099;">-</p>`
   return `<div style="display:flex;flex-direction:column;gap:12px;">` + model.suggestions.map(s => `
@@ -167,6 +193,7 @@ function bodyHtml(model, t) {
     ${block(t('aiReport.keywords'), keywordsHtml(model, color))}
     ${block(t('aiReport.complaints'), categoriesHtml(model, color))}
     ${block(t('aiReport.satisfaction'), satisfactionHtml(model, color))}
+    ${model.kpiMetrics ? block(t('aiReport.kpiMetrics'), kpiMetricsHtml(model, t, color)) : ''}
     ${block(t('aiReport.suggestions'), suggestionsHtml(model, color))}
     ${model.operatorComment ? block(t('aiReport.operatorComment'), `<p style="font-size:14px;color:#3A3F47;line-height:1.7;margin:0;border-left:4px solid ${color};padding:6px 0 6px 16px;">${esc(model.operatorComment)}</p>`) : ''}
     ${block(t('aiReport.kpi'), kpiHtml(model, t, color))}

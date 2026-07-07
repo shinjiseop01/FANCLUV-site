@@ -47,6 +47,7 @@ function contentFromModel(model) {
     keywords: (model.keywords || []).map(k => ({ tag: k.tag, count: k.count })),
     categories: (model.categories || []).map(c => ({ name: c.name, note: c.note })),
     satisfaction: model.satisfaction || 0,
+    kpiMetrics: model.kpiMetrics || null,
     suggestions: (model.suggestions || []).map(s => ({ rank: s.rank, title: s.title, desc: s.desc })),
     kpi: { ...model.kpi },
     operatorComment: '',

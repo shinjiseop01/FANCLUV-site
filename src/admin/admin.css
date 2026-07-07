@@ -535,3 +535,32 @@
 .sys-log-table .sys-time { white-space: nowrap; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .sys-msg { color: var(--body); font-size: 13px; }
 .sys-ms-inline { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ───────────── Fan Insight KPI 패널 (AdminDashboard) ───────────── */
+.adm-kpi-sub { font-size: 12.5px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.adm-kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.adm-kpi-cell { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: var(--canvas); }
+.adm-kpi-value { font-size: 24px; font-weight: 900; color: var(--ink); letter-spacing: -0.5px; display: flex; align-items: baseline; gap: 6px; }
+.adm-kpi-label { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 4px; }
+.adm-kpi-chg { font-size: 12.5px; font-weight: 800; }
+.adm-kpi-chg.up { color: #16A34A; }
+.adm-kpi-chg.down { color: #DC2626; }
+.adm-kpi-chg.flat { color: var(--muted); }
+
+.adm-kpi-cats { margin-top: 18px; border-top: 1px solid var(--border-soft); padding-top: 14px; }
+.adm-kpi-cats-title { font-size: 13px; font-weight: 800; color: var(--ink); margin-bottom: 8px; }
+.adm-kpi-cat-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+.adm-kpi-cat-name { flex: 0 0 84px; font-size: 13px; color: var(--body); font-weight: 600; }
+.adm-kpi-cat-bar { flex: 1; height: 8px; background: color-mix(in srgb, var(--muted) 18%, transparent); border-radius: 4px; overflow: hidden; }
+.adm-kpi-cat-bar > span { display: block; height: 100%; background: var(--team-deep, #863bff); border-radius: 4px; }
+.adm-kpi-cat-score { flex: 0 0 auto; min-width: 40px; text-align: right; font-size: 13px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; display: inline-flex; gap: 4px; justify-content: flex-end; }
+.adm-kpi-cat-count { flex: 0 0 44px; text-align: right; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.adm-kpi-topics { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.adm-kpi-topic { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--team-deep, #863bff) 10%, transparent); color: var(--team-deep, #863bff); }
+.adm-kpi-topic.up { background: rgba(22,163,74,0.12); color: #16A34A; }
+.adm-kpi-topic.down { background: rgba(220,38,38,0.12); color: #DC2626; }
+
+@media (max-width: 640px) {
+  .adm-kpi-cat-name { flex-basis: 64px; font-size: 12px; }
+}

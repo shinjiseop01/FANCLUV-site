@@ -8,6 +8,7 @@
 // 기간별 데이터 소스가 생기면 buildReportModel 내부만 교체하면 된다.
 import { getLatestInsight } from '../analyzeFanInsights.js'
 import { getAdminDashboard } from '../../admin/adminStats.js'
+import { computeAndRecordKpis } from '../../kpi/kpiHistoryRepo.js'
 import { getTeam } from '../../../teams.jsx'
 
 export const FANCLUV_PRIMARY = '#863BFF'
@@ -81,6 +82,7 @@ export function buildModelFromReportDoc(doc) {
     keywords: (c.keywords || []).map((k, i) => ({ rank: i + 1, tag: k.tag, count: k.count || 0 })),
     categories: c.categories || [],
     satisfaction: Math.round(c.satisfaction || 0),
+    kpiMetrics: c.kpiMetrics || null,
     suggestions: (c.suggestions || []).map((s, i) => ({ rank: s.rank || i + 1, title: s.title, desc: s.desc || '' })),
     kpi: c.kpi || { opinions: 0, comments: 0, members: 0, responses: 0, aiRunDate: '' },
   }
@@ -91,6 +93,8 @@ export async function buildReportModel({ clubId = 'all', periodType = 'monthly' 
   if (!insight) return { ok: false, code: 'no_insight' }
 
   const dash = await getAdminDashboard().catch(() => null)
+  // 실제 KPI 엔진 결과(팬 의견/설문 기반) — 리포트에 실 KPI 표시 + 주차 히스토리 저장.
+  const fanKpi = await computeAndRecordKpis(clubId).catch(() => null)
   const team = clubId && clubId !== 'all' ? getTeam(clubId) : null
   const d = insight.details || {}
 
@@ -120,10 +124,13 @@ export async function buildReportModel({ clubId = 'all', periodType = 'monthly' 
     count: k._n ?? k.count ?? (k.weight ? k.weight * 10 : 0),
   }))
 
-  // 주요 불만/카테고리
-  const categories = (d.categoryIssues && d.categoryIssues.length)
-    ? d.categoryIssues.map(c => ({ name: c.category, note: c.issue || '' }))
-    : (d.categorySat || []).map(c => ({ name: c.name, note: `평균 만족도 ${c.score}/5` }))
+  // 주요 카테고리: KPI 엔진의 실제 카테고리 점수 우선(언급 많은 순), 없으면 AI 인사이트.
+  const kpiCats = (fanKpi?.categories || []).filter(c => c.count > 0).sort((a, b) => b.count - a.count).slice(0, 6)
+  const categories = kpiCats.length
+    ? kpiCats.map(c => ({ name: c.name, note: `${c.score}/100 · ${c.count}건`, score: c.score, count: c.count }))
+    : (d.categoryIssues && d.categoryIssues.length)
+      ? d.categoryIssues.map(c => ({ name: c.category, note: c.issue || '' }))
+      : (d.categorySat || []).map(c => ({ name: c.name, note: `평균 만족도 ${c.score}/5` }))
 
   // AI 개선 제안
   const suggestions = (insight.recommendations || []).map((r, i) => ({
@@ -147,14 +154,28 @@ export async function buildReportModel({ clubId = 'all', periodType = 'monthly' 
     periodLabel: periodLabel(periodType, analysisDate),
     fileName: `${teamCode(team)}_AI_Report_${fileToken(periodType, analysisDate)}.pdf`,
     summary: insight.summary || '',
-    sentiment: {
-      positive: insight.sentiment_positive || 0,
-      neutral: insight.sentiment_neutral || 0,
-      negative: insight.sentiment_negative || 0,
-    },
+    // 감정/만족도는 KPI 엔진(실데이터) 우선, 표본 없으면 AI 인사이트로 폴백.
+    sentiment: (fanKpi && fanKpi.sampleSize.rated > 0)
+      ? { ...fanKpi.sentiment }
+      : {
+        positive: insight.sentiment_positive || 0,
+        neutral: insight.sentiment_neutral || 0,
+        negative: insight.sentiment_negative || 0,
+      },
     keywords,
     categories,
-    satisfaction: Math.round(d.satisfaction ?? 0),
+    satisfaction: (fanKpi && fanKpi.sampleSize.rated > 0) ? fanKpi.satisfaction : Math.round(d.satisfaction ?? 0),
+    // Fan Insight KPI Engine 핵심 지표(요구사항 1) + 지난주 대비 변화량.
+    kpiMetrics: fanKpi ? {
+      satisfaction: fanKpi.satisfaction,
+      nps: fanKpi.nps,
+      complaintIndex: fanKpi.complaintIndex,
+      engagement: fanKpi.engagement,
+      participationRate: fanKpi.participationRate,
+      recommendation: fanKpi.recommendation,
+      change: fanKpi.change || {},
+      week: fanKpi.week,
+    } : null,
     suggestions,
     kpi: {
       opinions, comments, members, responses,
