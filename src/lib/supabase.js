@@ -30,7 +30,7 @@ if (import.meta.env.PROD && !isSupabaseConfigured) {
   logger.error(
     '운영 빌드에서 Supabase 환경변수가 설정되지 않았습니다. ' +
       'VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY 를 설정하세요. ' +
-      '설정 전까지는 실데이터 없이 동작하며 데모 계정은 생성되지 않습니다.',
+      '설정 전까지는 실데이터 없이 Mock 모드로 동작합니다(데모 계정 admin@fancluv.kr 로 접근 가능).',
   )
 }
 

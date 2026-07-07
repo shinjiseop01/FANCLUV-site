@@ -153,10 +153,11 @@ function ensureSeed() {
   }
   if (changed) writeUsers(users)
 }
-// 데모 계정(fan@fancluv.kr / admin@fancluv.kr) 시드는 **개발 환경의 Mock 모드에서만** 한다.
-// 운영(프로덕션) 빌드에서는 Supabase 미설정이어도 데모 관리자 계정이 생기지 않도록 막는다
-// → admin123 같은 고정 자격증명이 운영에 노출되는 보안 구멍 차단.
-if (!isSupabaseConfigured && import.meta.env.DEV) ensureSeed()
+// 데모 계정(fan@fancluv.kr / admin@fancluv.kr) 은 **Supabase 미설정(Mock) 모드에서 항상** 시드한다.
+// → dev 뿐 아니라 프로덕션 빌드의 Mock fallback 에서도 admin@fancluv.kr / admin123 로
+//   관리자 로그인이 가능해야 한다는 요구사항. (실서비스는 Supabase 설정 → 데모 계정 미시드,
+//   profiles.role 기반 권한. supabase.js 가 프로덕션+미설정 시 콘솔 경고로 Mock 모드를 알림.)
+if (!isSupabaseConfigured) ensureSeed()
 
 function mockSignup({ nickname, email, password, gender = null, ageGroup = null }) {
   const users = readUsers()

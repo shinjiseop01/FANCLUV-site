@@ -66,6 +66,7 @@ npm run lint     # oxlint
 | `/admin/reports` | AdminReports (신고 관리) |
 | `/admin/report-docs` | AdminReportDocs (구단 전달용 AI 리포트 관리 — 27~28차) |
 | `/admin/customers` | AdminCustomers (B2B 고객/계약 관리 — 30차) |
+| `/admin/system` | AdminSystemStatus (통합 상태 대시보드 — 34차) |
 | `/admin/settings` | AdminSettings (설정) |
 
 - 레이아웃: `src/admin/AdminLayout.jsx` · 목 데이터: `src/admin/adminData.js` · 스타일: `src/admin/admin.css`
@@ -114,6 +115,7 @@ npm run lint     # oxlint
 - **페이지네이션 준비** — 팬 의견 목록은 `PAGE_SIZE=5` + "더 보기" 버튼(향후 무한 스크롤/페이지네이션 전환 대비).
 
 ### 인증 — `src/lib/auth.js` (Supabase-우선 + Mock 폴백 어댑터)
+- **데모 계정 시드(중요, 34차 수정)**: `if (!isSupabaseConfigured) ensureSeed()` — **Mock 모드면 dev/프로덕션 빌드 모두** `admin@fancluv.kr`/`admin123`(role=admin), `fan@fancluv.kr`/`1234`(role=fan)를 시드. (Phase 1에서 dev 전용으로 막았던 걸 되돌림 → 프로덕션 Mock 빌드에서도 관리자 로그인 가능해야 한다는 요구사항.) 로그인 성공 시 `LoginPage.routeAfterAuth`가 `ADMIN_ROLES` 이면 `/admin`, 아니면 구단 홈/팀선택으로 이동. **실서비스는 Supabase 설정 → 데모 계정 미시드, `profiles.role='admin'` 기준**. `supabase.js`가 프로덕션+미설정 시 콘솔 경고로 Mock 모드를 알림.
 - **Supabase 연동 완료(1차: Auth + Profile)**. `.env` 에 키가 있으면(`isSupabaseConfigured`) 실제 **Supabase Auth + `profiles` 테이블** 사용, 없으면 기존 **localStorage Mock 자동 폴백**(앱 안 깨짐). 설정법: [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 - `src/lib/supabase.js` — env 로 client 생성 + `isSupabaseConfigured` 감지. `src/contexts/AuthContext.jsx` — 비동기 세션/프로필 로드 + 라우트 가드 `loading` 게이트(`main.jsx`의 `RequireAuth`/`RequireAdmin`가 모드별 분기).
 - **동기 캐시**: `getCurrentUser()`/`isAuthenticated()`/`isAdmin()` 는 여전히 동기. Supabase 모드에서는 AuthContext가 로드한 프로필을 auth.js 캐시(`cachedUser`)에 반영해 기존 화면 코드가 그대로 동작.
@@ -219,6 +221,14 @@ npm run lint     # oxlint
 - **AIInsightsPage**: 최신 `ai_insights` 로드 → 표시. 결과 없으면(Supabase) "의견 30개 이상 모이면 분석 시작" Empty State. **Mock 모드**는 별점/카테고리 기반 로컬 간이 분석으로 폴백(앱 유지). UI 기존 그대로.
 - **에러 처리(검증 강화)**: Edge Function은 처리된 실패를 `200 + {ok:false, code}`(unauthorized/forbidden/openai_not_configured/insufficient/openai_failed/save_failed)로 반환 → 관리자 화면이 code별 구체 메시지 표시. 배포 검증 체크리스트·문제해결은 [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 
+### 통합 상태 대시보드 — `src/lib/admin/integrationHealthRepo.js` + `admin/AdminSystemStatus.jsx` (34차)
+- **외부 서비스 8종 상태를 운영자가 한눈에**. `/admin/system`. Supabase `integration_health`/`integration_logs`(`0022`, 관리자 RLS) 또는 Mock(localStorage).
+- **서비스**: Supabase Database · Supabase Auth · Edge Functions · Team News · League API · OpenAI API · Email Service · Push Notification.
+- **점검 방식**: 서버 의존(db/auth/edge/openai/email)은 **Edge Function `health-check`**(관리자 인증 + DB 핑·OpenAI models 핑·Resend 키 확인, 비밀키 미반환)로 1회 조회. Team News/League 는 실제 파이프라인(`getTeamNews`/`getStandings`) 응답으로, Push 는 브라우저 `Notification.permission` 으로 점검. **Mock 모드는 서버 서비스=비활성화**, 뉴스/리그=정상(Mock), Push=권한 기반.
+- **상태 배지**(SVG 아이콘, 이모지 없음): 정상(check)·지연(clock, >1500ms)·오류(alert)·비활성화(power). 각 카드에 **응답시간(ms)·마지막 성공/실패 시간·연결 테스트 버튼**(성공여부·ms·오류사유). "전체 테스트" 버튼.
+- **자동 장애 감지**(`FAILURE_THRESHOLD=3`): 같은 서비스 연속 3회 실패 → **관리자 알림 생성**("{서비스} 연속 3회 이상 연결 실패") + 상단 경고 배너. Supabase는 admin notifications insert, Mock은 `pushMockNotification`.
+- **시스템 로그**: 오류/지연 발생 시 `integration_logs`에 기록, 최근 **100개**(시간·서비스·상태·오류 내용) 표로 조회.
+
 ### 관리자 콘솔 — `src/admin/`
 - `RequireAdmin` 가드로 보호. `AdminLayout` + 중첩 라우트(대시보드/회원/의견/설문/뉴스/신고/설정).
 - 데이터는 `adminData.js`의 Mock. 댓글 관리 기능 포함, 토스트 없이 인라인 피드백.
@@ -280,6 +290,7 @@ npm run lint     # oxlint
 
 **운영 준비 · 실연동 시리즈 (최신)**
 
+0. 통합 상태 대시보드 + 관리자 로그인 수정 — 34차: `AdminSystemStatus`(`/admin/system`) + `integrationHealthRepo` + `health-check` Edge Function + `integration_health`/`integration_logs`(`0022`). 8개 외부 서비스 상태·응답시간·연결테스트·연속3회 실패 알림·시스템 로그(100개). **관리자 로그인 수정**: 데모 계정 시드를 Mock 모드 전체(프로덕션 빌드 포함)에서 하도록 되돌림 → `admin@fancluv.kr`/`admin123` 로그인→`/admin` 정상 ("Add integration health dashboard and fix admin login").
 0. 뉴스 소스 관리(관리자) — 33차: `AdminNewsSources`(`/admin/news-sources`) + `newsSourcesRepo` + `news_sources`(`0021`). 구단별 뉴스 URL(복수)/RSS/사용여부 관리·연결 테스트·상태 배지(SVG)·실패 3회 자동 알림. `news-fetcher` 확장(newsUrls 배열·force·상태기록·admin 알림), 12구단 실제 뉴스 URL 기본값. 기존 Provider/Mock 폴백 유지 ("Add admin news source management").
 0. 실제 K리그 데이터 연동 — 32차: Edge Function `league-fetcher`(외부 API→표준 정규화·순위/경기 5분 캐시·API 키 서버 보관·벤더 무관 normalizer) + `edgeLeagueProvider`(`VITE_LEAGUE_PROVIDER=edge`) + `league_cache`(`0020`) + facade edge 모드 + form/round/competition 표준 필드. UI 불변, Mock 폴백 유지 ("Implement production K League integration").
 0. 실제 팀 뉴스 연동 — 31차: Edge Function `news-fetcher`(RSS/공식홈 스크래핑·10분 캐시·CORS 우회) + `edgeNewsProvider`(`VITE_NEWS_PROVIDER=edge`) + `news_cache`(`0019`) + 12구단 소스 등록(`SOURCE_OVERRIDES`) + 관리자 뉴스 우선 병합(덮어쓰기 방지). UI 불변, Mock 폴백 유지 ("Implement production team news integration").
@@ -416,6 +427,7 @@ npm run lint     # oxlint
 | `delete-account` | **verify_jwt=true**(기본) | (없음 — 자동 주입) | `supabase functions deploy delete-account` |
 | `news-fetcher` | **verify_jwt=true**(기본) | (없음 — 자동 주입) | `supabase functions deploy news-fetcher` (+ `0019_news_cache.sql`, `VITE_NEWS_PROVIDER=edge`) |
 | `league-fetcher` | **verify_jwt=true**(기본) | `LEAGUE_API_BASE`,`LEAGUE_API_KEY`,`LEAGUE_API_VENDOR`(선택) | `supabase functions deploy league-fetcher` (+ `0020_league_cache.sql`, `VITE_LEAGUE_PROVIDER=edge`) |
+| `health-check` | **verify_jwt=true**(기본, 내부 admin 재확인) | (없음 — 기존 OPENAI/RESEND 키 재사용, 자동 주입) | `supabase functions deploy health-check` (+ `0022_integration_health.sql`) |
 - `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY`는 플랫폼 자동 주입(로컬 실행 시만 수동). `--no-verify-jwt`는 외부 콜백(네이버)·비로그인 흐름(이메일 코드) 때문에 필요 → 함수 내부에서 `service_role`로 안전 처리. verify_jwt 유지 함수는 요청자 role/JWT를 서버에서 재확인.
 
 ### 6.5 캐시 (in-memory TTL — `src/lib/cache.js`, `withCache`)

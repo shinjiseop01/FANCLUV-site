@@ -7,6 +7,13 @@
       "runtimeArgs": ["/Users/jiseop/fancluv-site/start-dev.sh"],
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "fancluv-preview",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["/Users/jiseop/fancluv-site/start-preview.sh"],
+      "port": 4173,
+      "autoPort": true
     }
   ]
 }

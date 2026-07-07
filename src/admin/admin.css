@@ -500,3 +500,38 @@
   .ns-modal { padding: 18px; }
   .ns-src-label { flex: 0 0 70px; }
 }
+
+/* ───────────── 시스템 상태 (AdminSystemStatus) ───────────── */
+.sys-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-bottom: 26px; }
+.sys-card { background: var(--canvas); border: 1px solid var(--border); border-radius: 14px; padding: 16px; border-left-width: 3px; }
+.sys-card.sys-ok { border-left-color: #16A34A; }
+.sys-card.sys-slow { border-left-color: #B7791F; }
+.sys-card.sys-error { border-left-color: #DC2626; }
+.sys-card.sys-off { border-left-color: color-mix(in srgb, var(--muted) 50%, transparent); }
+.sys-card.sys-unknown { border-left-color: var(--border); }
+.sys-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.sys-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.sys-badge.sys-ok    { background: rgba(22,163,74,0.12); color: #16A34A; }
+.sys-badge.sys-slow  { background: rgba(234,179,8,0.14); color: #B7791F; }
+.sys-badge.sys-error { background: rgba(220,38,38,0.12); color: #DC2626; }
+.sys-badge.sys-off   { background: color-mix(in srgb, var(--muted) 16%, transparent); color: var(--muted); }
+.sys-badge.sys-unknown { background: color-mix(in srgb, var(--muted) 12%, transparent); color: var(--muted); }
+.sys-ms { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sys-name { font-size: 15px; font-weight: 800; color: var(--ink); margin-bottom: 10px; }
+.sys-meta { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.sys-meta > div { display: flex; justify-content: space-between; gap: 10px; }
+.sys-meta dt { font-size: 12px; color: var(--muted); margin: 0; }
+.sys-meta dd { font-size: 12px; color: var(--body); margin: 0; font-variant-numeric: tabular-nums; }
+.sys-fcount { color: #DC2626; font-weight: 700; }
+.sys-testres { font-size: 12px; margin-top: 10px; padding: 7px 9px; border-radius: 8px; }
+.sys-testres.ok { background: rgba(22,163,74,0.1); color: #16A34A; }
+.sys-testres.fail { background: rgba(220,38,38,0.1); color: #DC2626; }
+.sys-test-btn { width: 100%; margin-top: 12px; }
+
+.sys-logs { margin-top: 8px; }
+.sys-logs-title { font-size: 16px; font-weight: 800; color: var(--ink); margin: 0 0 12px; }
+.sys-logs-count { color: var(--muted); font-weight: 600; font-size: 14px; }
+.sys-log-table { min-width: 620px; }
+.sys-log-table .sys-time { white-space: nowrap; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sys-msg { color: var(--body); font-size: 13px; }
+.sys-ms-inline { color: var(--muted); font-variant-numeric: tabular-nums; }
