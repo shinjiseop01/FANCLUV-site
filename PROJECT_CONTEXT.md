@@ -65,6 +65,7 @@ npm run lint     # oxlint
 | `/admin/notices` | AdminNotices (공지사항 관리 — 25차) |
 | `/admin/reports` | AdminReports (신고 관리) |
 | `/admin/report-docs` | AdminReportDocs (구단 전달용 AI 리포트 관리 — 27~28차) |
+| `/admin/actions` | AdminClubActions (구단 액션 관리 — 36차) |
 | `/admin/customers` | AdminCustomers (B2B 고객/계약 관리 — 30차) |
 | `/admin/system` | AdminSystemStatus (통합 상태 대시보드 — 34차) |
 | `/admin/settings` | AdminSettings (설정) |
@@ -230,6 +231,14 @@ npm run lint     # oxlint
 - **Dashboard 연동(요구사항 6)**: `AdminDashboard`에 "Fan Insight KPI" 패널(구단 선택 연동, 10 KPI + 변화량 + 카테고리 막대 + 토픽). `getKpisWithChange` 사용.
 - **AI Report 연동(요구사항 7)**: `reportModel.buildReportModel`이 `computeAndRecordKpis`로 실 KPI 계산 → satisfaction/sentiment/categories 를 실데이터로 교체 + `kpiMetrics` 블록 추가, `generatePdf`가 "Fan Insight KPI" 섹션 렌더. 저장 리포트(`clubReportsRepo`)에도 `kpiMetrics` 스냅샷 포함. (표본 없으면 AI 인사이트로 폴백 → 기존 AI 흐름 유지.)
 
+### 구단 액션 관리 — `src/lib/admin/clubActionsRepo.js` + `admin/AdminClubActions.jsx` (36차)
+- **팬 목소리 → AI 분석 → 구단 조치(Action) → 전후 KPI 변화 검증** 루프의 "조치" 관리. `/admin/actions`. Supabase `club_actions`(`0024`, 관리자 RLS) 또는 Mock(localStorage). Club Action Tracker(전후 비교)의 데이터 기반.
+- **등록 항목(요구사항 2)**: 구단·제목·설명·카테고리·시행일·상태 + 관련 리포트/AI 인사이트 연결. **카테고리 10종**(경기운영/티켓/MD/매점/경기장/이벤트/마케팅/팬서비스/선수단/기타), **상태 4종**(예정/진행중/완료/종료).
+- **KPI Snapshot(요구사항 5/6)**: `createAction`이 생성 시점 `getKpis(clubId)`를 **before_kpi 로 자동 스냅샷**(만족도·NPS·불만·참여·추천 등 + week). 완료 후 `captureAfterKpi`로 **after_kpi 기록** → 상세에서 **Before → After 비교** 표시(현재 after 는 비워둘 수 있음).
+- **AI/리포트/주차 연결(요구사항 7)**: `ai_insight_id`(생성 시 최신 인사이트 자동 연결 옵션)·`report_id`(구단 리포트 드롭다운)·`week`(KPI 주차 = Weekly Summary). 상세에 링크 칩 표시.
+- **검색(요구사항 8)**: 구단·상태·카테고리·기간(from/to) 필터. `adminListActions(filters)`.
+- API: `adminListActions`/`createAction`/`updateAction`/`setStatus`/`captureAfterKpi`/`deleteAction`. 모두 `isAdmin()` 방어. 상태는 목록 표에서 인라인 select 로 즉시 변경.
+
 ### 통합 상태 대시보드 — `src/lib/admin/integrationHealthRepo.js` + `admin/AdminSystemStatus.jsx` (34차)
 - **외부 서비스 8종 상태를 운영자가 한눈에**. `/admin/system`. Supabase `integration_health`/`integration_logs`(`0022`, 관리자 RLS) 또는 Mock(localStorage).
 - **서비스**: Supabase Database · Supabase Auth · Edge Functions · Team News · League API · OpenAI API · Email Service · Push Notification.
@@ -299,6 +308,7 @@ npm run lint     # oxlint
 
 **운영 준비 · 실연동 시리즈 (최신)**
 
+0. 구단 액션 관리 — 36차: `AdminClubActions`(`/admin/actions`) + `clubActionsRepo` + `club_actions`(`0024`). 구단 조치 등록/수정/삭제/상태변경 + **생성 시 before KPI 자동 스냅샷·완료 후 after KPI 기록**(Club Action Tracker 전후 비교 기반) + AI인사이트/리포트/주차 연결 + 구단/상태/카테고리/기간 검색 ("Implement club action management").
 0. Fan Insight KPI Engine — 35차: `src/lib/kpi/`(kpiEngine·kpiCategories·kpiHistoryRepo) + `club_kpi_history`(`0023`). 팬 의견/설문 기반 10개 핵심 KPI + 12 카테고리 점수 + 지난주 대비 변화량 실계산, 주차 히스토리 저장(Club Action 전후 비교 대비). Dashboard "Fan Insight KPI" 패널 + AI Report(reportModel/generatePdf) 실 KPI 연동 ("Implement fan insight KPI engine").
 0. 통합 상태 대시보드 + 관리자 로그인 수정 — 34차: `AdminSystemStatus`(`/admin/system`) + `integrationHealthRepo` + `health-check` Edge Function + `integration_health`/`integration_logs`(`0022`). 8개 외부 서비스 상태·응답시간·연결테스트·연속3회 실패 알림·시스템 로그(100개). **관리자 로그인 수정**: 데모 계정 시드를 Mock 모드 전체(프로덕션 빌드 포함)에서 하도록 되돌림 → `admin@fancluv.kr`/`admin123` 로그인→`/admin` 정상 ("Add integration health dashboard and fix admin login").
 0. 뉴스 소스 관리(관리자) — 33차: `AdminNewsSources`(`/admin/news-sources`) + `newsSourcesRepo` + `news_sources`(`0021`). 구단별 뉴스 URL(복수)/RSS/사용여부 관리·연결 테스트·상태 배지(SVG)·실패 3회 자동 알림. `news-fetcher` 확장(newsUrls 배열·force·상태기록·admin 알림), 12구단 실제 뉴스 URL 기본값. 기존 Provider/Mock 폴백 유지 ("Add admin news source management").
