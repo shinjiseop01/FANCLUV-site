@@ -12,6 +12,7 @@ import { useFakeLoading } from './lib/useFakeLoading.js'
 import RankIcon from './components/RankIcon.jsx'
 import Icon from './components/Icon.jsx'
 import { getActivityBadge } from './lib/activityBadge.js'
+import { getActivityScore } from './lib/activityScore.js'
 import './ClubHomePage.css'
 import './MyActivityPage.css'
 
@@ -77,7 +78,9 @@ export default function MyActivityPage() {
   const empathyCount = myOpinions.reduce((s, o) => s + (o.likes || 0), 0)
 
   // activity score → badge tier (Rookie → Active → Super → Legend)
-  const score = opinionCount * 6 + commentCount + surveyCount * 5
+  // 실제 활동 점수는 다음날 00시 반영(activityScore.reflected). 오늘 활동은 pending.
+  const activity = getActivityScore()
+  const score = opinionCount * 6 + commentCount + surveyCount * 5 + activity.reflected
   const { badge, next, progress } = getActivityBadge(score)
   const badgeName = b => (lang === 'en' ? b.en : b.ko)
 

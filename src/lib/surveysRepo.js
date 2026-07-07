@@ -7,6 +7,7 @@ import { supabase, isSupabaseConfigured } from './supabase.js'
 import { getCurrentUser } from './auth.js'
 import { MOCK_SURVEYS } from '../admin/adminData.js'
 import { pushMockNotification } from './notificationsRepo.js'
+import { recordActivity } from './activityScore.js'
 
 // 종료 후 이 일수가 지나면 팬 목록 화면에서만 자동으로 숨긴다.
 // (실제 데이터는 삭제하지 않으며 관리자/AI/통계에는 계속 포함된다.)
@@ -119,9 +120,11 @@ export async function submitResponse(surveyId, teamId, answers) {
       if (String(error.message).toLowerCase().includes('duplicate')) return { ok: false, code: 'duplicate' }
       return { ok: false, error: error.message }
     }
+    recordActivity('survey')
     return { ok: true }
   }
   markParticipated(surveyId)
+  recordActivity('survey')
   return { ok: true }
 }
 

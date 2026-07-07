@@ -9,6 +9,25 @@
   --mix-base: #FFFFFF;
 }
 
+/* ───────────────────────── LIGHT MODE (global default) ─────────────────────────
+   Neutral surface tokens for every .ch-root (fan pages AND admin console).
+   Previously these light values lived only in ClubHomePage.css, so the admin
+   console (which doesn't import it) had no light palette and fell back to the
+   dark body background. Defining them here fixes admin light mode.
+   Team accent tokens (--team / --team-deep) are intentionally NOT set here —
+   they are provided per-page (fan pages set the club colour, .admin-shell sets
+   its own indigo). The dark override below wins under html[data-theme="dark"]. */
+.ch-root {
+  --ink:         #1A1D24;
+  --body:        #4B515C;
+  --muted:       #8A909C;
+  --canvas:      #FFFFFF;
+  --page-bg:     #F6F7F9;
+  --border:      #E8EAEE;
+  --border-soft: #EFF1F4;
+  --mix-base:    #FFFFFF;
+}
+
 /* Smooth light <-> dark transitions on surfaces & text (never transforms,
    so hover lifts / scales keep their own snappy timing). */
 .ch-root, .ch-root *,

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
+import { getActivityScore } from './lib/activityScore.js'
 import { getTeam, teamName, TEAMS, TeamEmblem, menuPath } from './teams.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import RankIcon from './components/RankIcon.jsx'
@@ -138,8 +139,11 @@ export default function FanRankingPage() {
 
   const crit = CRITERIA.find(c => c.key === criteria)
   const fmt = v => v.toLocaleString()
-  const mine = MY[scope]
-  const myValue = mine[criteria]
+  // 활동 점수는 다음날 00시 반영 — 오늘 활동은 pending(내일 반영).
+  const activity = getActivityScore()
+  const baseMine = MY[scope]
+  const mine = { ...baseMine, score: baseMine.score + activity.reflected }
+  const myValue = criteria === 'score' ? mine.score : mine[criteria]
   const scopeLabel = scope === 'league' ? t('rank.tabLeague') : t('rank.tabClub')
   const critLabel = t(CRIT_KEY[criteria])
 
@@ -273,6 +277,9 @@ export default function FanRankingPage() {
                   <span className="fr-myrank-label">지난주 대비</span>
                 </div>
               </div>
+              {activity.pending > 0 && (
+                <p className="fr-pending" role="status">{t('rank.pending', { n: activity.pending })}</p>
+              )}
               <p className="fr-myrank-hint">
                 현재 상위 <strong>{percentile}%</strong> 입니다. 의견을 하나 더 남기면 순위가 올라가요!
               </p>

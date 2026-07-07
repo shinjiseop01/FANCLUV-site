@@ -8,6 +8,7 @@ import { supabase, isSupabaseConfigured } from './supabase.js'
 import { getCurrentUser } from './auth.js'
 import { getCreatedOpinions, addOpinion as addCreatedOpinion } from '../opinionStore.js'
 import { pushMockNotification } from './notificationsRepo.js'
+import { recordActivity } from './activityScore.js'
 
 // ── 공통 헬퍼 ──
 function hoursSince(iso) {
@@ -203,6 +204,7 @@ export async function createOpinion(teamId, { category, rating, title, body, has
       .insert({ author_id: me.id, team_id: teamId, category, rating, title, body, has_photo: hasPhoto })
       .select('id').single()
     if (error) return { ok: false, error: error.message }
+    recordActivity('opinion')
     return { ok: true, id: data.id }
   }
   // Mock: localStorage 에 저장 (목록 상단에 노출)
@@ -211,6 +213,7 @@ export async function createOpinion(teamId, { category, rating, title, body, has
     id, author: me?.nickname || '팬', avatarUrl: me?.avatarUrl || null,
     category, rating, hours: 0, title, body, likes: 0, comments: 0, hasPhoto,
   })
+  recordActivity('opinion')
   return { ok: true, id }
 }
 
@@ -244,11 +247,13 @@ export async function addComment(opinionId, content, teamId = null) {
       .from('comments').insert({ opinion_id: opinionId, author_id: me.id, content: text })
       .select('*').single()
     if (error) return { ok: false, error: error.message }
+    recordActivity('comment')
     return { ok: true, comment: { id: data.id, author: me.nickname, avatarUrl: me.avatarUrl, hours: 0, text } }
   }
   // Mock: localStorage 에 저장(새로고침 후 유지) + 알림 데모
   const comment = { id: `c${Date.now()}`, author: me?.nickname || '팬', hours: 0, text, createdAt: new Date().toISOString() }
   addStoredComment(opinionId, comment)
+  recordActivity('comment')
   pushMockNotification({
     type: 'comment', title: '새 댓글', body: '내 의견에 새 댓글이 달렸습니다.',
     url: teamId ? `/club/${teamId}/opinions/${opinionId}` : null,
@@ -279,6 +284,7 @@ export async function toggleLike(opinionId, nextLiked, teamId = null) {
       const { error } = await supabase.from('likes').insert({ opinion_id: opinionId, user_id: me.id })
       // unique 위반(이미 공감)은 무시
       if (error && !String(error.message).includes('duplicate')) return { ok: false }
+      recordActivity('like')
     } else {
       const { error } = await supabase.from('likes').delete().eq('opinion_id', opinionId).eq('user_id', me.id)
       if (error) return { ok: false }
@@ -287,6 +293,7 @@ export async function toggleLike(opinionId, nextLiked, teamId = null) {
   }
   // Mock: localStorage 에 공감 상태 저장(새로고침 후 유지)
   setLikedMock(opinionId, nextLiked)
+  if (nextLiked) recordActivity('like')
   if (nextLiked) pushMockNotification({
     type: 'like', title: '새 공감', body: '내 의견에 공감이 추가되었습니다.',
     url: teamId ? `/club/${teamId}/opinions/${opinionId}` : null,

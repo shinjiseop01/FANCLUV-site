@@ -10,6 +10,9 @@
   display: flex;
   min-height: 100vh;
   padding-bottom: 0;
+  /* 페이지 배경을 명시 — 라이트 모드에서 어두운 body 가 비쳐 보이던 문제 해결. */
+  background: var(--page-bg);
+  color: var(--ink);
 }
 
 /* ── Sidebar ── */

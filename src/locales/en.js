@@ -424,6 +424,7 @@ export default {
   'rank.critSurveys': 'Surveys',
   'rank.critEmpathy': 'Agrees Received',
   'rank.myRank': '{name}’s Ranking',
+  'rank.pending': 'Today’s +{n} points will apply at 00:00 tomorrow.',
   'rank.weekActivity': 'This Week',
   'rank.fanLevel': 'Fan Level',
   'rank.levelCurrent': 'Current',

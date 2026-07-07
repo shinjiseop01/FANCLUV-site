@@ -424,6 +424,7 @@ export default {
   'rank.critSurveys': '설문 참여',
   'rank.critEmpathy': '공감 받은 수',
   'rank.myRank': '{name}님의 순위',
+  'rank.pending': '오늘 활동 +{n}점은 내일 00시에 반영됩니다.',
   'rank.weekActivity': '이번 주 활동',
   'rank.fanLevel': '팬 레벨',
   'rank.levelCurrent': '현재',
