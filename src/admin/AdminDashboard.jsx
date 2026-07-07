@@ -8,6 +8,7 @@ import { TEAMS, getTeam } from '../teams.jsx'
 import { runAnalysis } from '../lib/ai/analyzeFanInsights.js'
 import { generateAiReport, REPORT_PERIODS } from '../lib/ai/report/index.js'
 import { getKpisWithChange } from '../lib/kpi/kpiHistoryRepo.js'
+import { getRecentActionEffects } from '../lib/admin/actionTracker.js'
 import { createNotice } from '../lib/noticesRepo.js'
 import EmptyState from '../components/EmptyState.jsx'
 import Icon from '../components/Icon.jsx'
@@ -120,6 +121,14 @@ export default function AdminDashboard() {
     getKpisWithChange(aiClub).then(k => { if (active) { setKpiData(k); setKpiLoading(false) } })
     return () => { active = false }
   }, [aiClub])
+
+  // Club Action Tracker — 최근 조치 효과(요구사항 12)
+  const [actionFx, setActionFx] = useState(null)
+  useEffect(() => {
+    let active = true
+    getRecentActionEffects(3).then(fx => { if (active) setActionFx(fx) })
+    return () => { active = false }
+  }, [])
 
   // AI 리포트(PDF) 생성 — 선택 구단의 최신 인사이트 기반. 향후 월간/분기/연간 확장.
   const [reportPeriod, setReportPeriod] = useState('monthly')
@@ -237,6 +246,33 @@ export default function AdminDashboard() {
         </div>
         {kpiLoading ? <p className="adm-ai-msg" role="status">{t('common.loading')}</p> : <KpiPanel k={kpiData} t={t} />}
       </section>
+
+      {/* Club Action Tracker — 최근 조치 효과 (요구사항 12) */}
+      {actionFx && actionFx.length > 0 && (
+        <section className="adm-panel adm-dash-section">
+          <div className="adm-panel-head">
+            <h2 className="adm-panel-title"><Icon name="check" size={17} /> {t('admin.tracker.recentTitle')}</h2>
+            <button className="adm-btn-ghost" onClick={() => navigate('/admin/tracker')}>{t('admin.tracker.viewAll')}</button>
+          </div>
+          <div className="adm-fx-list">
+            {actionFx.map(r => (
+              <div key={r.action.id} className="adm-fx-item">
+                <div className="adm-fx-main">
+                  <span className="adm-fx-title">{r.action.title}</span>
+                  <span className="adm-fx-club">{getTeam(r.action.clubId)?.name || r.action.clubId}</span>
+                </div>
+                <div className="adm-fx-metrics">
+                  <span className={`adm-fx-d ${r.deltas.satisfaction > 0 ? 'up' : r.deltas.satisfaction < 0 ? 'down' : 'flat'}`}>
+                    {t('admin.kpi.satisfaction')} {r.deltas.satisfaction > 0 ? '▲' : r.deltas.satisfaction < 0 ? '▼' : ''}{r.deltas.satisfaction === 0 ? '±0' : Math.abs(r.deltas.satisfaction)}
+                  </span>
+                  <span className={`tr-rating ${{ excellent: 'tr-r-excellent', effective: 'tr-r-effective', no_change: 'tr-r-nochange', monitor: 'tr-r-monitor' }[r.rating]}`}>{t(`admin.tracker.rating.${r.rating}`)}</span>
+                  <span className="adm-fx-score">{r.intelligenceScore ?? '—'}/100</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 관리자 공지 발송 */}
       <section className="adm-panel adm-dash-section">

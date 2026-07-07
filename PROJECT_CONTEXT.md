@@ -66,6 +66,7 @@ npm run lint     # oxlint
 | `/admin/reports` | AdminReports (신고 관리) |
 | `/admin/report-docs` | AdminReportDocs (구단 전달용 AI 리포트 관리 — 27~28차) |
 | `/admin/actions` | AdminClubActions (구단 액션 관리 — 36차) |
+| `/admin/tracker` | AdminActionTracker (Club Action Tracker — 37차) |
 | `/admin/customers` | AdminCustomers (B2B 고객/계약 관리 — 30차) |
 | `/admin/system` | AdminSystemStatus (통합 상태 대시보드 — 34차) |
 | `/admin/settings` | AdminSettings (설정) |
@@ -239,6 +240,19 @@ npm run lint     # oxlint
 - **검색(요구사항 8)**: 구단·상태·카테고리·기간(from/to) 필터. `adminListActions(filters)`.
 - API: `adminListActions`/`createAction`/`updateAction`/`setStatus`/`captureAfterKpi`/`deleteAction`. 모두 `isAdmin()` 방어. 상태는 목록 표에서 인라인 select 로 즉시 변경.
 
+### Club Action Tracker (핵심 기능) — `src/lib/admin/actionTracker.js` + `admin/AdminActionTracker.jsx` (37차)
+- **FANCLUV 핵심 루프의 완성**: `팬 의견 → AI 분석 → 구단 Action → KPI 변화 → AI 효과 분석`을 하나로 연결(요구사항 14). `/admin/tracker`. KPI Engine·AI Insights·Club Actions·Weekly Reports 를 모두 연결하는 분석 레이어(별도 저장소 없음, 기존 데이터 조합).
+- **Timeline(요구사항 2)**: `getActionEffects`가 액션을 시간순으로 나열. 각 카드에 시행일·구단·카테고리·효과 등급.
+- **Before/After KPI + 변화량(요구사항 3/4)**: `before_kpi`(생성 스냅샷) vs `after_kpi`(완료 기록) 또는 **미기록 시 현재 KPI**로 비교. 만족도/불만/참여 등 지표를 `66 → 80 (▲+14)` 형태 카드로 시각화.
+- **AI Effect Analysis(요구사항 5)**: 규칙 기반 서술 생성 — "{카테고리} 조치 이후 팬 만족도가 +N점 상승했습니다" / "불만 지수가 N점 감소했습니다" 등 변화량 기반 자동 문장.
+- **영향 카테고리(요구사항 6)**: before/after 카테고리 스냅샷 점수 변화 상위 → `경기장 ▲6, MD ▲4` 등.
+- **효과 평가 등급(요구사항 9)**: 매우 효과적/효과 있음/변화 없음/추가 모니터링 필요 (`RATINGS`, score+delta 기준).
+- **Club Intelligence Score(요구사항 11)**: `50 + 만족도Δ×1.5 + 불만감소×1.0 + 참여Δ×1.0 + 추천Δ×0.5 + (참여율-50)×0.2 + AI인사이트연결 +5` → 0~100.
+- **관련 데이터 연결(요구사항 7)**: AI 인사이트·Weekly(주차)·리포트·KPI 히스토리·팬 의견 수·설문 응답 수 칩.
+- **기간 비교(요구사항 8)**: `TRACKER_PERIODS` 1주/2주/1개월/3개월 → `periodDays`로 최근 기간 필터.
+- **운영자 메모(요구사항 10)**: `result_note`(`0025_club_action_result.sql`) — 인라인 편집·저장(`saveResultNote`).
+- **Dashboard 연동(요구사항 12)**: `AdminDashboard`에 "최근 Club Action 효과" 패널(`getRecentActionEffects` — 제목·만족도Δ·등급·Intelligence Score) + "전체 보기".
+
 ### 통합 상태 대시보드 — `src/lib/admin/integrationHealthRepo.js` + `admin/AdminSystemStatus.jsx` (34차)
 - **외부 서비스 8종 상태를 운영자가 한눈에**. `/admin/system`. Supabase `integration_health`/`integration_logs`(`0022`, 관리자 RLS) 또는 Mock(localStorage).
 - **서비스**: Supabase Database · Supabase Auth · Edge Functions · Team News · League API · OpenAI API · Email Service · Push Notification.
@@ -308,6 +322,7 @@ npm run lint     # oxlint
 
 **운영 준비 · 실연동 시리즈 (최신)**
 
+0. Club Action Tracker(핵심 기능) — 37차: `AdminActionTracker`(`/admin/tracker`) + `actionTracker.js` + `result_note`(`0025`). 팬 의견→AI 분석→구단 Action→KPI 변화→AI 효과 분석 전체 루프 연결. Timeline·Before/After KPI 변화량·AI 효과 서술·영향 카테고리·효과 등급·Club Intelligence Score·기간비교·운영자 메모 + Dashboard "최근 Club Action 효과" 패널 ("Implement club action tracker").
 0. 구단 액션 관리 — 36차: `AdminClubActions`(`/admin/actions`) + `clubActionsRepo` + `club_actions`(`0024`). 구단 조치 등록/수정/삭제/상태변경 + **생성 시 before KPI 자동 스냅샷·완료 후 after KPI 기록**(Club Action Tracker 전후 비교 기반) + AI인사이트/리포트/주차 연결 + 구단/상태/카테고리/기간 검색 ("Implement club action management").
 0. Fan Insight KPI Engine — 35차: `src/lib/kpi/`(kpiEngine·kpiCategories·kpiHistoryRepo) + `club_kpi_history`(`0023`). 팬 의견/설문 기반 10개 핵심 KPI + 12 카테고리 점수 + 지난주 대비 변화량 실계산, 주차 히스토리 저장(Club Action 전후 비교 대비). Dashboard "Fan Insight KPI" 패널 + AI Report(reportModel/generatePdf) 실 KPI 연동 ("Implement fan insight KPI engine").
 0. 통합 상태 대시보드 + 관리자 로그인 수정 — 34차: `AdminSystemStatus`(`/admin/system`) + `integrationHealthRepo` + `health-check` Edge Function + `integration_health`/`integration_logs`(`0022`). 8개 외부 서비스 상태·응답시간·연결테스트·연속3회 실패 알림·시스템 로그(100개). **관리자 로그인 수정**: 데모 계정 시드를 Mock 모드 전체(프로덕션 빌드 포함)에서 하도록 되돌림 → `admin@fancluv.kr`/`admin123` 로그인→`/admin` 정상 ("Add integration health dashboard and fix admin login").

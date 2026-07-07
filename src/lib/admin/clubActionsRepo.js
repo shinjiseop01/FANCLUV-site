@@ -27,6 +27,9 @@ function compactKpi(k) {
     positive: k.sentiment?.positive, neutral: k.sentiment?.neutral, negative: k.sentiment?.negative,
     nps: k.nps, complaintIndex: k.complaintIndex, engagement: k.engagement,
     participationRate: k.participationRate, recommendation: k.recommendation,
+    // 카테고리 영향 분석용 스냅샷(점수/부정%/건수).
+    categories: (k.categories || []).filter(c => c.score != null)
+      .map(c => ({ key: c.key, name: c.name, score: c.score, negative: c.negative, count: c.count })),
     capturedAt: new Date().toISOString(),
   }
 }
@@ -37,6 +40,7 @@ function mapRow(r) {
     category: r.category || 'etc', status: r.status || 'planned', actionDate: r.action_date || '',
     beforeKpi: r.before_kpi || null, afterKpi: r.after_kpi || null,
     aiInsightId: r.ai_insight_id || null, reportId: r.report_id || null, week: r.week || null,
+    resultNote: r.result_note || '',
     createdAt: r.created_at, updatedAt: r.updated_at,
   }
 }
@@ -104,16 +108,21 @@ export async function createAction(input) {
   return { ok: true, action }
 }
 
-// ── 수정 ──
+// ── 수정 (제공된 필드만 반영 — setStatus 등 부분 수정 안전) ──
 export async function updateAction(id, patch) {
   if (!isAdmin()) return { ok: false, error: 'forbidden' }
   const now = new Date().toISOString()
   if (isSupabaseConfigured) {
-    const { data, error } = await supabase.from('club_actions').update({
-      title: patch.title, description: patch.description, category: patch.category,
-      status: patch.status, action_date: patch.actionDate || null,
-      ai_insight_id: patch.aiInsightId || null, report_id: patch.reportId || null, updated_at: now,
-    }).eq('id', id).select().single()
+    const col = { updated_at: now }
+    if (patch.title !== undefined) col.title = patch.title
+    if (patch.description !== undefined) col.description = patch.description
+    if (patch.category !== undefined) col.category = patch.category
+    if (patch.status !== undefined) col.status = patch.status
+    if (patch.actionDate !== undefined) col.action_date = patch.actionDate || null
+    if (patch.aiInsightId !== undefined) col.ai_insight_id = patch.aiInsightId || null
+    if (patch.reportId !== undefined) col.report_id = patch.reportId || null
+    if (patch.resultNote !== undefined) col.result_note = patch.resultNote
+    const { data, error } = await supabase.from('club_actions').update(col).eq('id', id).select().single()
     if (error) return { ok: false, error: error.message }
     return { ok: true, action: mapRow(data) }
   }
@@ -129,6 +138,11 @@ export async function updateAction(id, patch) {
 // ── 상태 변경 ──
 export async function setStatus(id, status) {
   return updateAction(id, { status })
+}
+
+// ── 운영자 결과 메모 저장 ──
+export async function saveResultNote(id, resultNote) {
+  return updateAction(id, { resultNote: resultNote || '' })
 }
 
 // ── 완료 후 KPI 기록(after 스냅샷) — Club Action Tracker 전후 비교 ──
