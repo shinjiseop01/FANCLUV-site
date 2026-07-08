@@ -141,13 +141,14 @@ export default function SettingsPage() {
       setAgeGroupState(ageEdit)
     }
     setProfileSaving(false)
-    // 4) 응원팀 (변경 시 마지막 — 새 구단 설정 화면으로 이동)
+    // 저장 성공 → 항상 수정 모드 종료(읽기 모드로). 취소를 눌러야만 닫히던 문제 수정.
+    setEditing(false)
+    // 4) 응원팀 (변경 시 마지막 — 새 구단 설정 화면으로 이동. editing 은 이미 false 라 읽기 모드)
     if (teamEdit && teamEdit !== team.id) {
       await setSelectedTeam(teamEdit)
       navigate(`/club/${teamEdit}/settings`, { replace: true })
       return
     }
-    setEditing(false)
     flash(t('set.profileSaved'))
   }
 
@@ -450,13 +451,6 @@ export default function SettingsPage() {
             <span>{t('set.changePw')}</span>
             <span className="st-chevron" aria-hidden="true">›</span>
           </div>
-
-          <button className="st-logout" onClick={handleLogout}>{t('set.logout')}</button>
-
-          {/* 위험 영역 — 회원탈퇴 */}
-          <div className="st-danger">
-            <button className="st-withdraw" onClick={() => { setWithdrawText(''); setShowWithdraw(true) }}>{t('set.withdraw')}</button>
-          </div>
         </section>
 
         {/* ④ 서비스 정보 */}
@@ -473,6 +467,10 @@ export default function SettingsPage() {
             <span>{t('set.terms')}</span><span className="st-chevron" aria-hidden="true">›</span>
           </div>
         </section>
+
+        {/* 로그아웃 / 회원탈퇴 — 카드 밖, 페이지 최하단 (회원탈퇴는 위험 작업이라 분리 스타일) */}
+        <button className="st-logout" onClick={handleLogout}>{t('set.logout')}</button>
+        <button className="st-withdraw" onClick={() => { setWithdrawText(''); setShowWithdraw(true) }}>{t('set.withdraw')}</button>
       </main>
 
       {/* 회원탈퇴 확인 모달 */}
