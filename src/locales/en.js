@@ -503,6 +503,13 @@ export default {
   'set.themeSystem': 'System',
   'set.themeHint': 'System follows your device\'s dark/light setting.',
   'set.notifications': 'Notification Preferences',
+  // Notification groups (consolidated by type)
+  'set.notiGroupActivity': 'Fan activity',
+  'set.notiGroupActivityDesc': 'Comments · Likes',
+  'set.notiGroupContent': 'Content',
+  'set.notiGroupContentDesc': 'News · Surveys',
+  'set.notiGroupNotice': 'Announcements',
+  'set.notiGroupNoticeDesc': 'Admin announcements',
   'set.notiSurvey': 'New survey alerts',
   'set.notiNews': 'New news alerts',
   'set.notiComment': 'Comment alerts',

@@ -503,6 +503,13 @@ export default {
   'set.themeSystem': '시스템',
   'set.themeHint': '시스템을 선택하면 기기의 다크/라이트 설정을 따라갑니다.',
   'set.notifications': '알림 설정',
+  // 알림 3개 그룹(성격별 통합)
+  'set.notiGroupActivity': '팬 활동 알림',
+  'set.notiGroupActivityDesc': '댓글 · 공감',
+  'set.notiGroupContent': '콘텐츠 알림',
+  'set.notiGroupContentDesc': '새 뉴스 · 새 설문',
+  'set.notiGroupNotice': '공지 알림',
+  'set.notiGroupNoticeDesc': '관리자 공지',
   'set.notiSurvey': '새 설문 알림',
   'set.notiNews': '새 뉴스 알림',
   'set.notiComment': '댓글 알림',

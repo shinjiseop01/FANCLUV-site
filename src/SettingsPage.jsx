@@ -20,14 +20,14 @@ import Icon from './components/Icon.jsx'
 import './ClubHomePage.css'
 import './SettingsPage.css'
 
-// 브라우저 알림 설정 항목 (localStorage/Supabase preference 로 저장)
-const NOTI_PREFS = [
-  ['email', 'set.notiEmail'],
-  ['survey', 'set.notiSurvey'],
-  ['news', 'set.notiNews'],
-  ['comment', 'set.notiComment'],
-  ['empathy', 'set.notiEmpathy'],
-  ['notice', 'set.notiNotice'],
+// 알림 설정 — 성격별 3개 그룹으로 묶어 표시(UI 단순화).
+// 내부적으로는 기존 개별 pref(comment/empathy/news/survey/notice)를 그대로 유지하고
+// (브라우저 알림 로직 browserPush.isEventEnabled 가 개별 키를 사용), UI 에서만 그룹으로 토글한다.
+// → 그룹 OFF 시 그룹 내 개별 알림이 모두 OFF 로 자동 매핑된다.
+const NOTI_GROUPS = [
+  { key: 'activity', labelKey: 'set.notiGroupActivity', descKey: 'set.notiGroupActivityDesc', members: ['comment', 'empathy'] },
+  { key: 'content', labelKey: 'set.notiGroupContent', descKey: 'set.notiGroupContentDesc', members: ['news', 'survey'] },
+  { key: 'notice', labelKey: 'set.notiGroupNotice', descKey: 'set.notiGroupNoticeDesc', members: ['notice'] },
 ]
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
@@ -174,10 +174,14 @@ export default function SettingsPage() {
     setProfileSaving(false)
   }
 
-  // 알림 설정 토글(영속 저장)
-  function togglePref(key) {
-    const updated = setPref(key, !prefs[key])
-    setPrefs({ ...updated })
+  // 알림 그룹 토글 — 그룹 내 개별 알림 pref 를 모두 같은 값으로 설정(내부 개별 로직 유지·자동 매핑).
+  // 그룹 표시 상태 = 구성원 중 하나라도 ON 이면 ON.
+  const groupOn = group => group.members.some(m => prefs[m])
+  function toggleGroup(group) {
+    const next = !groupOn(group)
+    let updated
+    for (const m of group.members) updated = setPref(m, next)
+    if (updated) setPrefs({ ...updated })
   }
   async function toggleBrowser() {
     if (!prefs.browser) {
@@ -391,15 +395,21 @@ export default function SettingsPage() {
           <hr className="st-div" />
 
           <h3 className="st-subsec">{t('set.notifications')}</h3>
-          {NOTI_PREFS.map(([key, label]) => (
-            <div key={key} className="st-row st-row-static">
-              <span>{t(label)}</span>
-              <button className={`st-switch${prefs[key] ? ' on' : ''}`}
-                role="switch" aria-checked={prefs[key]} aria-label={t(label)} onClick={() => togglePref(key)}>
-                <span className="st-switch-knob" />
-              </button>
-            </div>
-          ))}
+          {NOTI_GROUPS.map(group => {
+            const on = groupOn(group)
+            return (
+              <div key={group.key} className="st-row st-row-static">
+                <span className="st-noti-group">
+                  <span className="st-noti-group-name">{t(group.labelKey)}</span>
+                  <span className="st-noti-group-desc">{t(group.descKey)}</span>
+                </span>
+                <button className={`st-switch${on ? ' on' : ''}`}
+                  role="switch" aria-checked={on} aria-label={t(group.labelKey)} onClick={() => toggleGroup(group)}>
+                  <span className="st-switch-knob" />
+                </button>
+              </div>
+            )
+          })}
         </section>
 
         {/* ③ 계정 및 보안 */}

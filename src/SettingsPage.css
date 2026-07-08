@@ -290,3 +290,8 @@ select.st-edit-input { cursor: pointer; }
 
 /* 로그아웃 버튼(카드 내부) 여백 축소 */
 .st-card .st-logout { margin-top: 14px; }
+
+/* 알림 그룹 라벨(이름 + 구성원 설명) */
+.st-noti-group { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.st-noti-group-name { font-size: 14px; font-weight: 500; color: var(--ink); }
+.st-noti-group-desc { font-size: 12px; color: var(--muted); }
