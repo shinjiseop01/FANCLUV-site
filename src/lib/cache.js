@@ -30,3 +30,12 @@ export function invalidate(prefix) {
 }
 
 export function clearCache() { store.clear() }
+
+// 캐시 상태 조회(관리자 진단용). prefix 로 시작하는 key 들의 나이(ms)를 반환.
+export function peekCache(prefix) {
+  const out = []
+  for (const [key, v] of store.entries()) {
+    if (!prefix || key === prefix || key.startsWith(prefix)) out.push({ key, ageMs: Date.now() - v.at })
+  }
+  return out
+}

@@ -69,6 +69,7 @@ npm run lint     # oxlint
 | `/admin/actions` | AdminClubActions (구단 액션 관리 — 36차) |
 | `/admin/tracker` | AdminActionTracker (Club Action Tracker — 37차) |
 | `/admin/customers` | AdminCustomers (B2B 고객/계약 관리 — 30차) |
+| `/admin/league` | AdminLeagueApi (리그 API 운영 관리 — 41차) |
 | `/admin/system` | AdminSystemStatus (통합 상태 대시보드 — 34차) |
 | `/admin/settings` | AdminSettings (설정) |
 
@@ -328,6 +329,23 @@ npm run lint     # oxlint
   - **벤더 교체(요구사항 2)**: API-Football / Sportmonks / Football-data / K리그 공식 / 자체 수집 등 어떤 소스든 `league-fetcher`의 `normalizeStandings`/`normalizeMatch`(또는 `LEAGUE_API_VENDOR` 분기)만 맞추면 됨. 특정 벤더 응답이 앱에 퍼지지 않음(정규화 경계 = Edge Function).
   - **캐시/폴백(요구사항 8/10/11)**: 클라이언트 `withCache` 순위 5분/경기 5분 + Edge `league_cache`(동일 TTL). 실패 시 **lastGood → Mock**. 사용자에겐 에러 대신 폴백 데이터 자연 노출. `refreshLeague(teamId)`로 무효화.
   - **연동 화면(요구사항 5~9)**: **MatchCenterPage**(순위표·일정·결과, 스켈레톤/Error/EmptyState/새로고침) + **ClubHomePage**(다음/최근 경기·리그 순위·시즌 성적). 둘 다 `matchRepo`→facade 경유라 **데이터 소스만 바뀌고 UI 불변**.
+
+### League API 운영 관리 (관리자) — `src/lib/admin/leagueOpsRepo.js` + `admin/AdminLeagueApi.jsx` (41차)
+- **운영자가 K리그 데이터 파이프라인을 관리자 화면에서 확인·테스트**. `/admin/league`(관리자 메뉴 "리그 API 관리"). 별도 저장 테이블 없이 League Provider facade 를 진단하는 레이어(상태 카운터는 localStorage `fancluv_league_ops`, 알림은 Supabase notifications/Mock).
+- **상태 표시(요구사항 2)**: 현재 Provider · Provider Mode(mock/edge/api) · API Base URL(api=값, edge=서버 시크릿, mock=해당없음) · 마지막 성공/실패 시간 · 연속 실패 횟수 · **마지막 사용 데이터**(실제 API/마지막 성공 데이터/Mock) · **현재 캐시 상태**(`peekCache('league:')` — key별 나이·신선/만료).
+- **연결 테스트(요구사항 3)**: "리그 API 테스트" → `testLeagueApi()`가 캐시 무효화 후 **순위표·경기 일정·경기 결과**를 실 파이프라인(`probeLeague`)으로 프로브. 각 항목 = 성공여부·응답시간(ms)·가져온 팀수/경기수·데이터 출처·실패 사유·마지막 테스트 시간.
+- **normalize 검증(요구사항 4)**: 프로브 결과를 **외부 표준(계약) 형태로 매핑**(`toStandardStanding`/`toStandardMatch`)해 표준 순위 11필드·경기 13필드가 모두 채워지는지 체크리스트 + 샘플 값 표시. (앱 내부는 내부표준을 쓰므로 검증용으로만 외부계약 형태로 역매핑.)
+- **자동 실패 감지/복구(요구사항 5)**: 실모드(edge/api)에서 실 Provider 가 실패(폴백)하면 실패 카운트↑. **연속 `FAILURE_THRESHOLD=3` 도달 시 관리자 알림 "K리그 API 연결 실패 N회"**, 이후 성공 테스트 시 **복구 알림 "K리그 API 연결이 복구되었습니다."** + 배너·카운터. Supabase=admins notifications insert, Mock=`pushMockNotification`. **개발/데모(Mock 모드)에서 검증**하도록 "실패 시뮬레이션" 체크박스 제공(강제 실패 3회→알림, 해제 후 테스트→복구).
+- **fallback 상태(요구사항 6)**: `probeLeague`가 **실 Provider → lastGood(마지막 성공) → Mock** 순으로 폴백하며 `source`(edge/api/cache/mock)를 반환 → 화면 "Fallback 순서" 플로우에 현재 단계 하이라이트. **사용자 화면은 facade 폴백으로 절대 깨지지 않음.**
+- **진단 헬퍼(신규)**: `leagueProvider.js` 에 `leagueProviderInfo()`(모드/베이스/활성) · `probeLeague(resource,teamId)`(캐시 우회 1회 프로브 + primaryOk/source) 추가. `cache.js` 에 `peekCache(prefix)`(캐시 나이 조회) 추가. **기존 `getStandings`/`getFixtures`/`refreshLeague` 등 화면 경로는 불변.**
+
+#### League API 운영 가이드 (요구사항 7)
+- **league-fetcher 배포**: `supabase functions deploy league-fetcher` (경기센터=로그인 필요 → `verify_jwt` 기본 유지). 마이그레이션 `0020_league_cache.sql`(캐시 테이블) 선행.
+- **필요한 secrets(서버 전용·프론트 금지)**: `supabase secrets set LEAGUE_API_BASE=https://... LEAGUE_API_KEY=... [LEAGUE_API_VENDOR=...]`. (`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` 자동 주입.)
+- **Provider 전환**: `.env` 의 `VITE_LEAGUE_PROVIDER=edge`(운영) | `LEAGUE_PROVIDER=api`(직접) | `mock`(기본). edge 는 Supabase 설정 + 위 시크릿 + 함수 배포가 전제. 전환 후 `/admin/league` 에서 상태·연결 테스트로 확인.
+- **normalize 함수 수정 위치**: 서버 = `supabase/functions/league-fetcher/index.ts` 의 `normalizeStandings`/`normalizeMatch`(벤더 응답→외부표준). 내부표준 매핑 = `src/services/league/edgeLeagueProvider.js` 의 `toInternalStanding`/`toInternalMatch`. 검증용 역매핑 = `leagueOpsRepo.js` 의 `toStandardStanding`/`toStandardMatch`.
+- **fallback 전략**: 클라이언트 `withCache`(순위/경기 5분) + Edge `league_cache`(동일 TTL). 실패 시 `probeLeague`/facade 가 lastGood → Mock 으로 폴백. 사용자 화면 무중단.
+- **장애 대응**: `/admin/league` 에서 연결 테스트 → 실패 사유 확인(빈응답/연결오류/타임아웃/미설정). 연속 3회 실패 시 관리자 알림 자동 생성. 복구 시 복구 알림. "실패 카운터 초기화"로 수동 리셋. Provider 미설정/장애 동안에도 사용자에겐 마지막 성공/Mock 데이터가 노출되어 서비스 지속.
 - **홈 인기 콘텐츠** — `src/lib/homeRepo.js`: `getHomeContent(teamId)`가 Supabase `opinions_view` 1회 조회로 **인기 의견(공감순)·인기 카테고리(집계)·트렌딩 키워드(사전 매칭)** 계산, 실패/미설정 시 Mock. 캐시 30초. **ClubHomePage**가 비동기 로드(스켈레톤) — 클릭 네비게이션(의견 상세/카테고리·키워드 필터)은 유지.
 - **AI 키워드 선택** — `AIInsightsPage`: 키워드 클릭 시 **팬 의견 / 뉴스 선택 모달**(`.ai-kwmenu`) → `/opinions?keyword=` 또는 `/news?keyword=`로 이동(두 페이지 모두 query param 필터 적용).
 
@@ -348,6 +366,7 @@ npm run lint     # oxlint
 
 **운영 준비 · 실연동 시리즈 (최신)**
 
+0. League API 운영 관리 — 41차: `admin/AdminLeagueApi.jsx`(`/admin/league`) + `lib/admin/leagueOpsRepo.js` + facade 진단 헬퍼(`leagueProviderInfo`/`probeLeague`, `cache.peekCache`). Provider 상태(모드/베이스/캐시/마지막 사용 데이터) 표시 + 연결 테스트(순위표·일정·결과: 성공여부·ms·팀수/경기수·사유) + normalize 검증(표준 11/13필드 체크리스트+샘플) + 연속 3회 실패 관리자 알림("K리그 API 연결 실패 N회")·복구 알림 + fallback(실API→마지막성공→Mock) 시각화 + 실패 시뮬레이션(개발 검증용). 기존 League Provider/화면 경로 불변 ("Add League API operations management").
 0. 본인인증(PASS/NICE/KCB) 실연동 — 40차: `src/lib/identity/`(identityProvider facade + mock/pass/nice/kcb) + `VerifyIdentityPage`(`/verify-identity`) + Edge Function `identity-verify` + `0026_identity_verification.sql`(profiles CI/DI 컬럼·unique·`claim_identity` RPC·`is_identity_verified()` insert 게이트). 회원가입=이메일 인증 후, 소셜=온보딩 후 본인인증 완료해야 가입 최종 완료(이미 인증 시 스킵). 저장=여부/시각/기관/CI·DI만(민감정보 없음), 동일 CI 한 계정만. 미인증 계정은 설문/의견/댓글 차단(3중 방어: 화면 `IdentityNotice`·repo·RLS), 뉴스 등 열람은 허용. 관리자는 본인인증 여부만 확인(개인정보 없음). Mock(개발 즉시 성공)·Production(업체 인증창→Edge Function 서버 저장) 분리 ("Implement production identity verification").
 0. UX/인증 개선 — 39차: (1) **관리자 라이트모드 수정** — 라이트 `.ch-root` 뉴트럴 토큰을 `theme.css`에 전역 정의 + `.admin-shell` 배경(`--page-bg`) 명시 → 어두운 body가 비치던 문제 해결(다크 유지). (2) **활동 점수 다음날 00시 반영** — `lib/activityScore.js`(의견/댓글/설문/공감 타임스탬프 기록, reflected=어제까지·pending=오늘). 의견/댓글/공감/설문 성공 지점(`opinionsRepo`/`surveysRepo`)에서 기록, 팬 랭킹·내 활동에 반영 + "오늘 +N점 내일 반영" 안내. (3) **소셜 로그인 Mock 흐름 검증**(Google/Kakao/NAVER → 신규 시 온보딩 → 홈, 재로그인 시 온보딩 스킵; 실 OAuth는 Supabase 프로바이더 자격증명 필요) ("Improve admin light mode, activity scoring, social login flow"). ※ 실제 팀 로고(라이선스 이미지 자산 필요)·팬 화면 사이드바 전면 리디자인(15개 페이지 공통 헤더 리팩터)은 별도 작업 필요.
 0. Club Executive Dashboard(B2B) — 38차: `ClubExecutiveDashboard`(`/executive`) + `clubDashboardRepo` + `role='club'`(`CLUB_ROLES`, admin 완전 분리) + `RequireClub` 가드. 구단 고객이 **원본 팬 데이터 없이** 운영자 검토 AI 인사이트·집계 KPI·전달 리포트·Benchmark만 확인. Executive Brief(AI 자동생성)·KPI Trend·Club Action 효과·Report Center. 테스트 계정 `club.seoul@fancluv.kr`/`club1234`(FC 서울) ("Implement club executive dashboard").

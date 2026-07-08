@@ -20,6 +20,7 @@ export const ADMIN_MENU = [
   { key: 'actions', path: '/admin/actions', labelKey: 'admin.menu.actions', roles: null },
   { key: 'tracker', path: '/admin/tracker', labelKey: 'admin.menu.tracker', roles: null },
   { key: 'customers', path: '/admin/customers', labelKey: 'admin.menu.customers', roles: null },
+  { key: 'league',    path: '/admin/league',  labelKey: 'admin.menu.league',    roles: null },
   { key: 'systemStatus', path: '/admin/system', labelKey: 'admin.menu.systemStatus', roles: null },
   { key: 'settings',  path: '/admin/settings', labelKey: 'admin.menu.settings',  roles: null },
 ]

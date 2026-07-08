@@ -80,3 +80,35 @@ export function refreshLeague(teamId) {
   invalidate('league:standings')
   if (teamId) invalidate(`league:fixtures:${teamId}`)
 }
+
+// ── 관리자 진단용 ─────────────────────────────────────────────────────────
+// 현재 Provider 구성 정보(모드/활성/베이스 URL).
+export function leagueProviderInfo() {
+  return {
+    mode: leagueMode(),                 // 'edge' | 'api' | 'mock'
+    edgeEnabled: edge.isEdgeLeagueEnabled,
+    apiConfigured: api.isApiConfigured,
+    // api 모드의 base URL 만 프론트에 노출됨(edge 는 서버 시크릿이라 값 없음).
+    apiBaseUrl: import.meta.env?.VITE_LEAGUE_API_BASE || '',
+  }
+}
+
+// 캐시를 거치지 않고 활성 Provider 를 1회 프로브(관리자 연결 테스트용).
+// 반환: { primaryOk, source, value, error } — primaryOk=실 Provider 성공 여부,
+//   source: 'edge'|'api'|'mock'(성공) | 'cache'(lastGood 폴백) | 'mock'(최종 폴백).
+export async function probeLeague(resource, teamId) {
+  const key = resource === 'standings' ? 'standings' : `fixtures:${teamId || 'all'}`
+  const isValid = resource === 'standings'
+    ? v => Array.isArray(v) && v.length > 0
+    : v => v && (v.next || (v.upcoming && v.upcoming.length) || (v.recent && v.recent.length))
+  let error = null
+  try {
+    const value = resource === 'standings' ? await active.getStandings() : await active.getFixtures(teamId)
+    if (isValid(value)) { lastGood.set(key, value); return { primaryOk: true, source: leagueMode(), value, error: null } }
+    error = 'empty'
+  } catch (e) { error = String(e?.message || e) }
+  // 실 Provider 실패 → 마지막 성공(lastGood) → Mock 폴백.
+  if (lastGood.has(key)) return { primaryOk: false, source: 'cache', value: lastGood.get(key), error }
+  const value = resource === 'standings' ? await mock.getStandings() : await mock.getFixtures(teamId)
+  return { primaryOk: false, source: 'mock', value, error }
+}

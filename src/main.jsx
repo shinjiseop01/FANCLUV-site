@@ -55,6 +55,7 @@ const AdminReportDocs = lazy(() => import('./admin/AdminReportDocs.jsx'))
 const AdminClubActions = lazy(() => import('./admin/AdminClubActions.jsx'))
 const AdminActionTracker = lazy(() => import('./admin/AdminActionTracker.jsx'))
 const AdminCustomers = lazy(() => import('./admin/AdminCustomers.jsx'))
+const AdminLeagueApi = lazy(() => import('./admin/AdminLeagueApi.jsx'))
 const AdminSystemStatus = lazy(() => import('./admin/AdminSystemStatus.jsx'))
 const AdminSettings = lazy(() => import('./admin/AdminSettings.jsx'))
 const AccessDenied = lazy(() => import('./admin/AccessDenied.jsx'))
@@ -167,6 +168,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="actions" element={<AdminClubActions />} />
           <Route path="tracker" element={<AdminActionTracker />} />
           <Route path="customers" element={<AdminCustomers />} />
+          <Route path="league" element={<AdminLeagueApi />} />
           <Route path="system" element={<AdminSystemStatus />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
