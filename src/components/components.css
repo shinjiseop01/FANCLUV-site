@@ -175,7 +175,9 @@ select:focus-visible {
 .fc-bell-empty span { font-size: 26px; display: block; margin-bottom: 8px; opacity: 0.75; }
 .fc-bell-empty p { font-size: 13.5px; }
 /* Notification list */
-.fc-bell-list { list-style: none; max-height: 360px; overflow-y: auto; }
+/* 알림 1~5개는 자연스럽게, 6개 이상이면 목록 내부 스크롤(전체 레이아웃은 안 밀림).
+   모바일에서는 뷰포트를 넘지 않도록 vh 로 상한. 약 5개 높이 기준(~400px). */
+.fc-bell-list { list-style: none; max-height: min(65vh, 400px); overflow-y: auto; overscroll-behavior: contain; }
 .fc-bell-item {
   width: 100%; text-align: left; background: none; border: none; cursor: pointer;
   font-family: inherit; display: flex; gap: 9px; align-items: flex-start;
@@ -372,15 +374,18 @@ select:focus-visible {
 
 /* ───────────── Nickname validation status ───────────── */
 .nick-status {
-  margin-top: 7px;
-  font-size: 12.5px;
-  line-height: 1.5;
+  margin-top: 9px;
+  margin-bottom: 4px;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.55;
   overflow-wrap: break-word;
   word-break: keep-all;
 }
-.nick-status.hint { color: var(--muted); }
-.nick-status.err { color: #E0463C; }
-.nick-status.ok { color: #0E9F6E; }
+/* 안내(hint) 문구는 대비를 높여 입력창 아래에서 잘 보이도록 한다(라이트/다크 자동 대응). */
+.nick-status.hint { color: color-mix(in srgb, var(--ink) 68%, transparent); }
+.nick-status.err { color: #D93A2F; font-weight: 600; }
+.nick-status.ok { color: #0B8A5F; }
 
 /* ───────────── Inline icon + text (수직 중앙 정렬 유틸) ───────────── */
 .ic-txt { display: inline-flex; align-items: center; gap: 5px; }

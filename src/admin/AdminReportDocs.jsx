@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { TEAMS, getTeam } from '../teams.jsx'
+import { TEAMS, getTeam, teamName as tName } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
@@ -34,7 +34,7 @@ const parsePipe = txt => txt.split('\n').map(l => l.trim()).filter(Boolean).map(
 const EMPTY_CREATE = { teamId: TEAMS[0].id, periodType: 'monthly', title: '' }
 
 export default function AdminReportDocs() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [reports, setReports] = useState([])
   const [deliveries, setDeliveries] = useState([])
   const [loading, setLoading] = useState(true)
@@ -51,7 +51,7 @@ export default function AdminReportDocs() {
   useEffect(() => { reload() }, [])
 
   const statusLabel = s => t(`admin.rpt.status.${s}`)
-  const teamName = id => getTeam(id)?.name || id
+  const teamName = id => tName(getTeam(id), lang) || id
   const fmt = iso => String(iso || '').slice(0, 10)
 
   // ── 생성 ──
@@ -168,7 +168,7 @@ export default function AdminReportDocs() {
             <div className="adm-field">
               <label>{t('admin.rpt.fTeam')}</label>
               <select className="adm-input" value={creating.teamId} onChange={e => setC('teamId', e.target.value)}>
-                {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+                {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tName(tm, lang)}</option>)}
               </select>
             </div>
             <div className="adm-field">
@@ -296,16 +296,16 @@ export default function AdminReportDocs() {
 
           <div className="adm-field-row">
             <div className="adm-field"><label>{t('aiReport.keywords')} <span className="adm-rpt-tolabel">({t('admin.rpt.kwHint')})</span></label>
-              <textarea className="adm-input adm-mono-area" rows={5} value={edit.keywordsText} onChange={e => setE('keywordsText', e.target.value)} placeholder={'티켓, 12\nMD, 9'} /></div>
+              <textarea className="adm-input adm-mono-area" rows={5} value={edit.keywordsText} onChange={e => setE('keywordsText', e.target.value)} placeholder={t('admin.rpt.kwPh')} /></div>
             <div className="adm-field"><label>{t('aiReport.satisfaction')} (/100)</label>
               <input className="adm-input" type="number" min="0" max="100" value={edit.satisfaction} onChange={e => setE('satisfaction', e.target.value)} /></div>
           </div>
 
           <div className="adm-field"><label>{t('aiReport.complaints')} <span className="adm-rpt-tolabel">({t('admin.rpt.pipeHint')})</span></label>
-            <textarea className="adm-input adm-mono-area" rows={4} value={edit.categoriesText} onChange={e => setE('categoriesText', e.target.value)} placeholder={'경기장 | 좌석 시야 개선 필요\n티켓 | 예매 안정성 개선'} /></div>
+            <textarea className="adm-input adm-mono-area" rows={4} value={edit.categoriesText} onChange={e => setE('categoriesText', e.target.value)} placeholder={t('admin.rpt.catPh')} /></div>
 
           <div className="adm-field"><label>{t('aiReport.suggestions')} <span className="adm-rpt-tolabel">({t('admin.rpt.pipeHint')})</span></label>
-            <textarea className="adm-input adm-mono-area" rows={4} value={edit.suggestionsText} onChange={e => setE('suggestionsText', e.target.value)} placeholder={'좌석 개선 | 시야 방해 구역 우선 정비\n예매 안정화 | 대기열 시스템 도입'} /></div>
+            <textarea className="adm-input adm-mono-area" rows={4} value={edit.suggestionsText} onChange={e => setE('suggestionsText', e.target.value)} placeholder={t('admin.rpt.sugPh')} /></div>
 
           <div className="adm-field"><label>{t('admin.rpt.operatorComment')} <span className="adm-rpt-tolabel">→ {t('admin.rpt.toClub')}</span></label>
             <textarea className="adm-input" rows={3} value={edit.operatorComment} onChange={e => setE('operatorComment', e.target.value)} placeholder={t('admin.rpt.operatorCommentPh')} /></div>

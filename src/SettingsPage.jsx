@@ -4,7 +4,7 @@ import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import LazyImage from './components/LazyImage.jsx'
 import { useTheme } from './contexts/ThemeContext.jsx'
-import { logout, getCurrentUser, deleteAccount, identityInfo } from './lib/auth.js'
+import { logout, getCurrentUser, deleteAccount, identityInfo, changeAgeGroup } from './lib/auth.js'
 import { IDENTITY_AGENCY_LABELS } from './lib/identity/identityProvider.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getCurrentDevice } from './lib/deviceInfo.js'
@@ -26,6 +26,8 @@ const NOTI_PREFS = [
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 const APP_VERSION = '1.0.0 (MVP)'
+// 나이대 옵션 — 회원가입/온보딩과 동일하게 유지.
+const AGE_GROUPS = [['10', 'signup.age10'], ['20', 'signup.age20'], ['30', 'signup.age30'], ['40', 'signup.age40'], ['50+', 'signup.age50']]
 
 // Minimal line icons for the theme switch (sun / moon / monitor) — no emoji.
 const THEME_ICONS = {
@@ -51,10 +53,22 @@ export default function SettingsPage() {
   const device = getCurrentDevice()
   const idInfo = identityInfo(user) // 본인인증 여부/시각/기관 (개인정보 없음)
 
+  // 나이대 수정 (닉네임 90일 제한과 무관하게 언제든 변경 가능)
+  const [ageEdit, setAgeEdit] = useState(user?.ageGroup || '')
+  const [ageSaving, setAgeSaving] = useState(false)
+  const [ageMsg, setAgeMsg] = useState(null)
+
+  async function onSaveAge() {
+    setAgeMsg(null)
+    setAgeSaving(true)
+    const res = await changeAgeGroup(ageEdit)
+    setAgeSaving(false)
+    setAgeMsg(res.ok ? { ok: true, text: t('set.ageSaved') } : { ok: false, text: res.error || t('set.ageFail') })
+  }
+
   const genderLabel = user?.gender === 'male' ? t('signup.genderMale')
     : user?.gender === 'female' ? t('signup.genderFemale')
       : t('set.notSet')
-  const ageLabel = user?.ageGroup ? (user.ageGroup === '50+' ? t('signup.age50') : t(`signup.age${user.ageGroup}`)) : t('set.notSet')
   const fmtDate = iso => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '-')
 
   // 알림 설정(localStorage 영속) + 브라우저 알림 권한 상태
@@ -181,13 +195,34 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Profile info — 이메일 / 가입일 / 성별 / 나이대 (간결) */}
+        {/* Profile info — 이메일 / 가입일 / 성별 (간결) */}
         <section className="st-card">
           <h2 className="st-card-title">{t('set.profileInfo')}</h2>
           <div className="st-row st-row-static"><span>{t('set.infoEmail')}</span><span className="st-muted">{email}</span></div>
           <div className="st-row st-row-static"><span>{t('set.infoJoined')}</span><span className="st-muted">{fmtDate(user?.joinedAt)}</span></div>
           <div className="st-row st-row-static"><span>{t('set.infoGender')}</span><span className="st-muted">{genderLabel}</span></div>
-          <div className="st-row st-row-static"><span>{t('set.infoAge')}</span><span className="st-muted">{ageLabel}</span></div>
+        </section>
+
+        {/* 나이대 수정 (설정에서 언제든 변경 가능) */}
+        <section className="st-card">
+          <h2 className="st-card-title">{t('set.infoAge')}</h2>
+          <div className="st-age-chips" role="group" aria-label={t('set.infoAge')}>
+            {AGE_GROUPS.map(([val, key]) => (
+              <button type="button" key={val}
+                className={`st-age-chip${ageEdit === val ? ' on' : ''}`}
+                aria-pressed={ageEdit === val}
+                onClick={() => { setAgeEdit(val); setAgeMsg(null) }}>
+                {t(key)}
+              </button>
+            ))}
+          </div>
+          {ageMsg && (
+            <p className={`st-age-msg ${ageMsg.ok ? 'ok' : 'err'}`} role="status" aria-live="polite">{ageMsg.text}</p>
+          )}
+          <button className="st-age-save" onClick={onSaveAge}
+            disabled={ageSaving || !ageEdit || ageEdit === (user?.ageGroup || '')}>
+            {ageSaving ? t('set.ageSaving') : t('set.ageSave')}
+          </button>
         </section>
 
         {/* Account security — current login device (Mock 구조) */}

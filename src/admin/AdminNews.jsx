@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { TEAMS, getTeam } from '../teams.jsx'
+import { TEAMS, getTeam, teamName } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import Icon from '../components/Icon.jsx'
 import { adminListNews, createNews, updateNews, deleteNews } from '../lib/newsRepo.js'
@@ -8,7 +8,7 @@ import { adminListNews, createNews, updateNews, deleteNews } from '../lib/newsRe
 const EMPTY = { title: '', content: '', team: TEAMS[0].id, image: '' }
 
 export default function AdminNews() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [news, setNews] = useState([])
   const [form, setForm] = useState(null)
   const [error, setError] = useState('')
@@ -71,7 +71,7 @@ export default function AdminNews() {
             <div className="adm-field">
               <label>{t('admin.nw.fTeam')}</label>
               <select className="adm-input" value={form.team} onChange={e => set('team', e.target.value)}>
-                {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+                {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{teamName(tm, lang)}</option>)}
               </select>
             </div>
             <div className="adm-field">
@@ -112,7 +112,7 @@ export default function AdminNews() {
                       </div>
                     </td>
                     <td className="adm-cell-strong">{n.title}</td>
-                    <td className="adm-cell-muted">{team ? team.name : '-'}</td>
+                    <td className="adm-cell-muted">{team ? teamName(team, lang) : '-'}</td>
                     <td className="adm-cell-muted">{n.date}</td>
                     <td className="adm-col-actions">
                       <div className="adm-actions">

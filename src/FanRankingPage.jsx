@@ -205,6 +205,7 @@ export default function FanRankingPage() {
         <section className="fr-pagehead">
           <h1>{t('rank.title')}</h1>
           <p>{t('rank.subtitle')}</p>
+          <p className="fr-update-note">{t('rank.updateNote')}</p>
         </section>
 
         {/* Scope tabs */}

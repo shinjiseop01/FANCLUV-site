@@ -197,3 +197,30 @@
 
 /* 브라우저 알림: 테스트 버튼 */
 .st-test-btn { width: 100%; margin-top: 12px; }
+
+/* 나이대 수정 (설정) — 회원가입 칩과 유사, 설정 카드 톤에 맞춤 */
+.st-age-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 4px; }
+.st-age-chip {
+  padding: 9px 16px; border-radius: 100px; font-size: 13.5px; font-weight: 600;
+  font-family: inherit; cursor: pointer;
+  color: var(--body); background: var(--page-bg);
+  border: 1px solid var(--border);
+  transition: all .14s ease;
+}
+.st-age-chip:hover { border-color: var(--team, #4F46E5); }
+.st-age-chip.on {
+  color: #fff; font-weight: 700;
+  background: var(--team-deep, #1D4ED8);
+  border-color: var(--team-deep, #1D4ED8);
+}
+.st-age-msg { margin: 10px 0 0; font-size: 13px; font-weight: 600; }
+.st-age-msg.ok { color: #0B8A5F; }
+.st-age-msg.err { color: #D93A2F; }
+.st-age-save {
+  width: 100%; margin-top: 14px; padding: 12px; border-radius: 10px;
+  border: 1px solid var(--team-deep, #1D4ED8); background: var(--team-deep, #1D4ED8);
+  color: #fff; font-size: 14px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: filter .15s ease;
+}
+.st-age-save:hover:not(:disabled) { filter: brightness(1.06); }
+.st-age-save:disabled { opacity: .5; cursor: default; }

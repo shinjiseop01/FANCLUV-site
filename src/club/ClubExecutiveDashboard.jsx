@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { useTheme } from '../contexts/ThemeContext.jsx'
 import { logout, getClubId, isAdmin } from '../lib/auth.js'
-import { TEAMS, getTeam, TeamEmblem } from '../teams.jsx'
+import { TEAMS, getTeam, TeamEmblem, teamName } from '../teams.jsx'
 import Icon from '../components/Icon.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import EmptyState from '../components/EmptyState.jsx'
@@ -77,10 +77,10 @@ export default function ClubExecutiveDashboard() {
       <header className="exec-header">
         <div className="exec-brand">FANCLUV <span>Executive</span></div>
         <div className="exec-head-right">
-          {team && <span className="exec-club"><TeamEmblem color={team.color} size={22} /> {team.name}</span>}
+          {team && <span className="exec-club"><TeamEmblem color={team.color} size={22} /> {teamName(team, lang)}</span>}
           {admin && (
             <select className="exec-club-select" value={clubId} onChange={e => setClubId(e.target.value)} aria-label={t('exec.selectClub')}>
-              {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+              {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{teamName(tm, lang)}</option>)}
             </select>
           )}
           <button className="exec-icon-btn" onClick={() => setLang(lang === 'ko' ? 'en' : 'ko')} aria-label="language">{lang === 'ko' ? 'EN' : '한'}</button>

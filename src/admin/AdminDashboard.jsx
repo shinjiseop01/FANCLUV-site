@@ -4,7 +4,7 @@ import { useLang } from '../contexts/LanguageContext.jsx'
 import { getCurrentUser } from '../lib/auth.js'
 import { getAdminDashboard, refreshAdminDashboard } from '../lib/admin/adminStats.js'
 import { LineChart, BarChart } from './AdminCharts.jsx'
-import { TEAMS, getTeam } from '../teams.jsx'
+import { TEAMS, getTeam, teamName as tName } from '../teams.jsx'
 import { runAnalysis } from '../lib/ai/analyzeFanInsights.js'
 import { generateAiReport, REPORT_PERIODS } from '../lib/ai/report/index.js'
 import { getKpisWithChange } from '../lib/kpi/kpiHistoryRepo.js'
@@ -54,7 +54,7 @@ function trim(text, n = 34) {
 const hasData = series => Array.isArray(series) && series.some(p => Number(p.value) > 0)
 
 export default function AdminDashboard() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const navigate = useNavigate()
   const admin = getCurrentUser()
 
@@ -78,7 +78,7 @@ export default function AdminDashboard() {
   const teams = data?.teams || []
   const recent = data?.recent || []
   const charts = data?.charts || {}
-  const teamName = id => teams.find(tm => tm.id === id)?.name || getTeam(id)?.name || id
+  const teamName = id => tName(getTeam(id), lang) || teams.find(tm => tm.id === id)?.name || id
 
   // 최근 활동 항목의 보조 정보(작성자 · 구단 / 신고 사유) 문자열
   function activityMeta(a) {
@@ -216,7 +216,7 @@ export default function AdminDashboard() {
         <div className="adm-ai-run">
           <select className="adm-input" value={aiClub} onChange={e => setAiClub(e.target.value)} aria-label={t('admin.ai.title')}>
             <option value="all">{t('admin.ai.allClubs')}</option>
-            {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+            {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tName(tm, lang)}</option>)}
           </select>
           <button className="adm-btn-primary" onClick={runAi} disabled={aiBusy}>
             {aiBusy ? t('admin.ai.running') : t('admin.ai.run')}
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
               <div key={r.action.id} className="adm-fx-item">
                 <div className="adm-fx-main">
                   <span className="adm-fx-title">{r.action.title}</span>
-                  <span className="adm-fx-club">{getTeam(r.action.clubId)?.name || r.action.clubId}</span>
+                  <span className="adm-fx-club">{tName(getTeam(r.action.clubId), lang) || r.action.clubId}</span>
                 </div>
                 <div className="adm-fx-metrics">
                   <span className={`adm-fx-d ${r.deltas.satisfaction > 0 ? 'up' : r.deltas.satisfaction < 0 ? 'down' : 'flat'}`}>
@@ -290,7 +290,7 @@ export default function AdminDashboard() {
             />
             <select className="adm-input adm-notice-team" value={noticeTeam} onChange={e => setNoticeTeam(e.target.value)} aria-label={t('admin.notice.target')}>
               <option value="all">{t('admin.notice.allTeams')}</option>
-              {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+              {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tName(tm, lang)}</option>)}
             </select>
           </div>
           <textarea
@@ -346,7 +346,7 @@ export default function AdminDashboard() {
                   <td>
                     <span className="adm-team-cell">
                       <span className="adm-team-dot" style={{ background: tm.color }} />
-                      <span className="adm-cell-strong">{tm.name}</span>
+                      <span className="adm-cell-strong">{tName(getTeam(tm.id), lang) || tm.name}</span>
                     </span>
                   </td>
                   <td>{tm.members.toLocaleString()}</td>
@@ -430,7 +430,7 @@ function KpiPanel({ k, t }) {
               <span className="adm-kpi-cat-name">{c.name}</span>
               <span className="adm-kpi-cat-bar"><span style={{ width: `${c.score}%` }} /></span>
               <span className="adm-kpi-cat-score">{c.score}{c.change != null && c.change !== 0 && changeBadge(c.change)}</span>
-              <span className="adm-kpi-cat-count">{c.count}건</span>
+              <span className="adm-kpi-cat-count">{t('admin.unit.countN', { n: c.count })}</span>
             </div>
           ))}
         </div>

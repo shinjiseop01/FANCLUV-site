@@ -70,7 +70,7 @@ export default function AdminNewsSources() {
       officialWebsite: row.officialWebsite || '',
       rssUrl: row.rssUrl || '',
       enabled: row.enabled !== false,
-      sources: (row.sources && row.sources.length ? row.sources : [{ label: '뉴스', url: '' }]).map(s => ({ ...s })),
+      sources: (row.sources && row.sources.length ? row.sources : [{ label: t('admin.ns.defaultLabel'), url: '' }]).map(s => ({ ...s })),
     })
     setEditing(row.clubId)
   }
@@ -82,7 +82,7 @@ export default function AdminNewsSources() {
 
   async function save(e) {
     e.preventDefault()
-    const sources = form.sources.map(s => ({ label: (s.label || '').trim() || '뉴스', url: (s.url || '').trim() })).filter(s => s.url)
+    const sources = form.sources.map(s => ({ label: (s.label || '').trim() || t('admin.ns.defaultLabel'), url: (s.url || '').trim() })).filter(s => s.url)
     const res = await updateSource(form.clubId, {
       officialWebsite: form.officialWebsite.trim(),
       rssUrl: form.rssUrl.trim() || null,

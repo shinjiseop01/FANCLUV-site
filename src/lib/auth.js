@@ -636,6 +636,17 @@ export async function changeNickname(nickname) {
   return mockPatchSessionUser({ nickname: name, lastNicknameChangeAt: new Date().toISOString() })
 }
 
+// ── 나이대 변경 ── 닉네임 90일 쿨다운과 무관하게 언제든 수정 가능(설정 화면).
+export async function changeAgeGroup(ageGroup) {
+  const ag = (ageGroup || '').trim()
+  if (!ag) return { ok: false, error: '나이대를 선택해 주세요.' }
+  if (isSupabaseConfigured) {
+    if (cachedUser) cachedUser = { ...cachedUser, ageGroup: ag } // 낙관적 반영
+    return patchSupabaseProfile({ age_group: ag })
+  }
+  return mockPatchSessionUser({ ageGroup: ag })
+}
+
 // ── 비밀번호 변경 ──
 export async function changePassword(currentPassword, newPassword) {
   if (isSupabaseConfigured) {

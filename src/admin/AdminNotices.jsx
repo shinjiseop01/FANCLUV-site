@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { TEAMS, getTeam } from '../teams.jsx'
+import { TEAMS, getTeam, teamName } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import Icon from '../components/Icon.jsx'
 import {
@@ -11,7 +11,7 @@ import {
 const EMPTY = { title: '', body: '', teamId: 'all', isImportant: false, startAt: '', endAt: '' }
 
 export default function AdminNotices() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [notices, setNotices] = useState([])
   const [form, setForm] = useState(null)
   const [error, setError] = useState('')
@@ -93,7 +93,7 @@ export default function AdminNotices() {
               <label>{t('admin.nt.fTarget')}</label>
               <select className="adm-input" value={form.teamId} onChange={e => set('teamId', e.target.value)}>
                 <option value="all">{t('admin.nt.allTeams')}</option>
-                {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+                {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{teamName(tm, lang)}</option>)}
               </select>
             </div>
             <div className="adm-field adm-field-check">
@@ -143,7 +143,7 @@ export default function AdminNotices() {
                     {n.isImportant && <span className="adm-badge important">{t('admin.nt.important')}</span>}
                     <span className="adm-cell-strong">{n.title}</span>
                   </td>
-                  <td className="adm-cell-muted">{n.teamId ? (getTeam(n.teamId)?.name || n.teamId) : t('admin.nt.allTeams')}</td>
+                  <td className="adm-cell-muted">{n.teamId ? (teamName(getTeam(n.teamId), lang) || n.teamId) : t('admin.nt.allTeams')}</td>
                   <td className="adm-cell-muted">{period(n)}</td>
                   <td>
                     <span className={`adm-badge ${n.hidden ? 'hidden' : 'active'}`}>

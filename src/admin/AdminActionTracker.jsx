@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { TEAMS, getTeam } from '../teams.jsx'
+import { TEAMS, getTeam, teamName } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
@@ -17,7 +17,7 @@ const DELTA_METRICS = [
 ]
 
 export default function AdminActionTracker() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('3m')
@@ -40,7 +40,7 @@ export default function AdminActionTracker() {
     load()
   }
 
-  const clubName = id => getTeam(id)?.name || id
+  const clubName = id => teamName(getTeam(id), lang) || id
   const deltaStr = (v, invert) => {
     if (v == null || v === 0) return { txt: '±0', cls: 'flat', arrow: '' }
     const good = invert ? v < 0 : v > 0
@@ -70,7 +70,7 @@ export default function AdminActionTracker() {
       <div className="ca-filters">
         <select className="adm-input" value={club} onChange={e => setClub(e.target.value)} aria-label={t('admin.action.club')}>
           <option value="all">{t('admin.action.allClubs')}</option>
-          {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+          {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{teamName(tm, lang)}</option>)}
         </select>
         <select className="adm-input" value={category} onChange={e => setCategory(e.target.value)} aria-label={t('admin.action.category')}>
           <option value="all">{t('admin.action.allCat')}</option>

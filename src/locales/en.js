@@ -1311,4 +1311,24 @@ export default {
   'admin.set.roleStaff': 'FANCLUV Staff',
   'admin.set.roleClub': 'Club Admin',
   'admin.set.soon': 'Coming soon',
+
+  // ── Pre-launch UX / i18n polish ──
+  // Shared unit
+  'admin.unit.count': 'cases',
+  'admin.unit.countN': '{n}',
+  // Club Action KPI summary
+  'admin.ca.kpiSummary': 'Satisfaction {sat} · NPS {nps} · Complaints {comp}',
+  // Report editor placeholders (examples)
+  'admin.rpt.kwPh': 'Tickets, 12\nMD, 9',
+  'admin.rpt.catPh': 'Stadium | Improve seat sightlines\nTickets | Improve booking stability',
+  'admin.rpt.sugPh': 'Seating | Prioritize obstructed-view areas first\nBooking | Introduce a queue system',
+  // News source default label
+  'admin.ns.defaultLabel': 'News',
+  // Fan ranking update notice
+  'rank.updateNote': 'Rankings are updated daily at 00:00.',
+  // Settings — age group edit
+  'set.ageSave': 'Save age group',
+  'set.ageSaving': 'Saving…',
+  'set.ageSaved': 'Your age group has been saved.',
+  'set.ageFail': 'Failed to save. Please try again.',
 }

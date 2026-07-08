@@ -1,6 +1,7 @@
 // FANCLUV Admin — lightweight inline-SVG charts (no chart library).
 // Token-driven so they read well in both light and dark. All charts take
 // plain data arrays, so swapping mock → Supabase only changes the data source.
+import { useLang } from '../contexts/LanguageContext.jsx'
 
 // ── Line chart (일별 추이) ──
 export function LineChart({ data, color = 'var(--team-deep)', height = 150 }) {
@@ -65,6 +66,7 @@ export function BarChart({ data, color = 'var(--team)', height = 150 }) {
 
 // ── Donut chart (구단별 비율) — donut + legend ──
 export function DonutChart({ data }) {
+  const { t } = useLang()
   const size = 150, thickness = 24
   const r = (size - thickness) / 2
   const cx = size / 2, cy = size / 2
@@ -87,7 +89,7 @@ export function DonutChart({ data }) {
           return seg
         })}
         <text x={cx} y={cy - 4} textAnchor="middle" className="adm-donut-total">{total.toLocaleString()}</text>
-        <text x={cx} y={cy + 14} textAnchor="middle" className="adm-donut-cap">건</text>
+        <text x={cx} y={cy + 14} textAnchor="middle" className="adm-donut-cap">{t('admin.unit.count')}</text>
       </svg>
       <ul className="adm-donut-legend">
         {data.map((d, i) => (

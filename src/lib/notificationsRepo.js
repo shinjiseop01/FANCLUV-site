@@ -4,9 +4,15 @@
 // Supabase 설정 시 notifications 테이블(생성은 DB 트리거가 담당 — 0006 참조),
 // 아니면 Mock(localStorage). 클라이언트는 조회 / 읽음 처리만 한다.
 import { supabase, isSupabaseConfigured } from './supabase.js'
-import { getCurrentUser } from './auth.js'
+import { getCurrentUser, isAdmin } from './auth.js'
 
 const KEY = 'fancluv_notifications'
+
+// 운영자용(관리자 전용) 알림 여부 — 이 audience 는 관리자에게만 노출한다.
+//   일반 회원(fan)·구단(club) 계정에는 절대 표시하지 않는다.
+function canSeeMock(n) {
+  return n.audience !== 'admin' || isAdmin()
+}
 
 function readMock() {
   try { return JSON.parse(localStorage.getItem(KEY)) || null } catch { return null }
@@ -36,10 +42,10 @@ function getMockList() {
 
 // Mock 모드에서 이벤트 발생 시 알림 추가 (다른 repo 들이 호출).
 // Supabase 모드에서는 DB 트리거가 생성하므로 아무것도 하지 않는다.
-export function pushMockNotification({ type, title, body, url = null, isImportant = false }) {
+export function pushMockNotification({ type, title, body, url = null, isImportant = false, audience = 'user' }) {
   if (isSupabaseConfigured) return
   const list = getMockList()
-  list.unshift({ id: 'n' + Date.now(), type, title, body, url, is_read: false, is_important: isImportant, created_at: new Date().toISOString() })
+  list.unshift({ id: 'n' + Date.now(), type, title, body, url, is_read: false, is_important: isImportant, audience, created_at: new Date().toISOString() })
   writeMock(list)
 }
 
@@ -61,7 +67,8 @@ export async function listNotifications() {
     if (error) return []
     return (data || []).map(mapRow)
   }
-  return getMockList().map(mapRow)
+  // Mock: 운영자 전용(audience:'admin') 알림은 관리자에게만 노출.
+  return getMockList().filter(canSeeMock).map(mapRow)
 }
 
 // ── 안읽음 수 ──
@@ -74,7 +81,7 @@ export async function unreadCount() {
       .eq('user_id', me.id).eq('is_read', false)
     return count || 0
   }
-  return getMockList().filter(n => !n.is_read).length
+  return getMockList().filter(n => !n.is_read && canSeeMock(n)).length
 }
 
 // ── 읽음 처리 ──
@@ -96,6 +103,7 @@ export async function markAllRead() {
     await supabase.from('notifications').update({ is_read: true }).eq('user_id', me.id).eq('is_read', false)
     return { ok: true }
   }
-  writeMock(getMockList().map(n => ({ ...n, is_read: true })))
+  // 본인에게 보이는 알림만 읽음 처리(안 보이는 운영자 알림은 건드리지 않음).
+  writeMock(getMockList().map(n => (canSeeMock(n) ? { ...n, is_read: true } : n)))
   return { ok: true }
 }

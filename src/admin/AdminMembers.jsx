@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { getTeam } from '../teams.jsx'
+import { getTeam, teamName } from '../teams.jsx'
 import Avatar from '../components/Avatar.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import Icon from '../components/Icon.jsx'
@@ -39,7 +39,7 @@ function matchFilter(m, f) {
 }
 
 export default function AdminMembers() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [members, setMembers] = useState(MOCK_MEMBERS)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
@@ -56,7 +56,7 @@ export default function AdminMembers() {
     return members.filter(m => {
       if (!matchFilter(m, filter)) return false
       if (!q) return true
-      const team = getTeam(m.team)?.name || ''
+      const team = teamName(getTeam(m.team), lang) || ''
       return [m.nickname, m.email, team, m.joinedAt, statusLabel(m.status)]
         .some(v => String(v || '').toLowerCase().includes(q))
     })
@@ -91,7 +91,7 @@ export default function AdminMembers() {
     ]
     const rows = visible.map(m => ({
       id: m.id, nickname: m.nickname, email: m.email, joinedAt: m.joinedAt,
-      team: getTeam(m.team)?.name || '', login: loginLabel(m.provider, t),
+      team: teamName(getTeam(m.team), lang) || '', login: loginLabel(m.provider, t),
       gender: genderLabel(m.gender), age: ageLabel(m.ageGroup),
       verify: m.verificationStatus === 'unverified' ? t('admin.mem.verifiedNo') : t('admin.mem.verifiedYes'),
       identity: m.identityVerified ? t('admin.mem.identityYes') : t('admin.mem.identityNo'),
@@ -161,7 +161,7 @@ export default function AdminMembers() {
                     </td>
                     <td className="adm-cell-muted">{m.email}</td>
                     <td className="adm-cell-muted">{m.joinedAt}</td>
-                    <td>{team ? team.name : '-'}</td>
+                    <td>{team ? teamName(team, lang) : '-'}</td>
                     <td><span className={`adm-badge ${v.cls}`}>{t(v.key)}</span></td>
                     <td>
                       <span className={`adm-badge ${m.identityVerified ? 'vphone' : 'vnone'}`}>
@@ -203,7 +203,7 @@ export default function AdminMembers() {
             <div><dt>{t('admin.mem.colEmail')}</dt><dd>{selected.email}</dd></div>
             <div><dt>{t('admin.mem.colJoined')}</dt><dd>{selected.joinedAt}</dd></div>
             <div><dt>{t('admin.mem.fLogin')}</dt><dd>{loginLabel(selected.provider, t)}</dd></div>
-            <div><dt>{t('admin.mem.colTeam')}</dt><dd>{getTeam(selected.team)?.name || '-'}</dd></div>
+            <div><dt>{t('admin.mem.colTeam')}</dt><dd>{teamName(getTeam(selected.team), lang) || '-'}</dd></div>
             <div><dt>{t('admin.mem.fGender')}</dt><dd>{genderLabel(selected.gender)}</dd></div>
             <div><dt>{t('admin.mem.fAge')}</dt><dd>{ageLabel(selected.ageGroup)}</dd></div>
             <div>

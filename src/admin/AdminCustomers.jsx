@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { TEAMS, getTeam } from '../teams.jsx'
+import { TEAMS, getTeam, teamName as tName } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
@@ -17,7 +17,7 @@ const STATUS_CLS = { pilot: 'pending', negotiating: 'type', active: 'active', en
 const EMPTY = { teamId: TEAMS[0].id, status: 'pilot', plan: 'basic', startDate: '', endDate: '', contactName: '', contactEmail: '', contactTitle: '', contactPhone: '' }
 
 export default function AdminCustomers() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const navigate = useNavigate()
   const [customers, setCustomers] = useState([])
   const [lastReportMap, setLastReportMap] = useState({})
@@ -44,7 +44,7 @@ export default function AdminCustomers() {
   const statusLabel = s => t(`admin.cust.status.${s}`)
   const planLabel = p => t(`admin.cust.plan.${p}`)
   const fmt = iso => String(iso || '').slice(0, 10) || '-'
-  const teamName = id => getTeam(id)?.name || id
+  const teamName = id => tName(getTeam(id), lang) || id
 
   // ── 생성 ──
   function openCreate() { setCreateErr(''); setEdit(null); setCreating({ ...EMPTY }) }
@@ -113,7 +113,7 @@ export default function AdminCustomers() {
           <div className="adm-field-row">
             <div className="adm-field"><label>{t('admin.cust.fTeam')}</label>
               <select className="adm-input" value={creating.teamId} onChange={e => setC('teamId', e.target.value)}>
-                {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+                {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tName(tm, lang)}</option>)}
               </select>
             </div>
             <div className="adm-field"><label>{t('admin.cust.fStatus')}</label>

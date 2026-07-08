@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { getTeam } from '../teams.jsx'
+import { getTeam, teamName } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import Icon from '../components/Icon.jsx'
 import AdminNoteBox from './AdminNoteBox.jsx'
@@ -10,7 +10,7 @@ import { exportCsv } from '../lib/admin/csv.js'
 const FILTERS = ['all', 'visible', 'hidden']
 
 export default function AdminOpinions() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [opinions, setOpinions] = useState(MOCK_OPINIONS)
   const [comments, setComments] = useState(MOCK_COMMENTS)
   const [selectedId, setSelectedId] = useState(null) // 댓글을 펼쳐 볼 게시글 id
@@ -43,7 +43,7 @@ export default function AdminOpinions() {
     return opinions.filter(o => {
       if (filter !== 'all' && (o.status || 'visible') !== filter) return false
       if (!q) return true
-      const team = getTeam(o.team)?.name || ''
+      const team = teamName(getTeam(o.team), lang) || ''
       return [o.author, team, o.date, o.content, statusLabel(o.status)]
         .some(v => String(v || '').toLowerCase().includes(q))
     })
@@ -62,7 +62,7 @@ export default function AdminOpinions() {
       { key: 'status', label: t('admin.mem.colStatus') },
     ]
     const rows = visible.map(o => ({
-      id: o.id, author: o.author, team: getTeam(o.team)?.name || '', date: o.date,
+      id: o.id, author: o.author, team: teamName(getTeam(o.team), lang) || '', date: o.date,
       content: o.content, likes: o.likes,
       comments: comments.filter(c => c.opinionId === o.id).length,
       status: statusLabel(o.status),
@@ -123,7 +123,7 @@ export default function AdminOpinions() {
                 return (
                   <tr key={o.id} className={o.status === 'hidden' ? 'is-hidden' : ''}>
                     <td className="adm-cell-strong">{o.author}</td>
-                    <td className="adm-cell-muted">{team ? team.name : '-'}</td>
+                    <td className="adm-cell-muted">{team ? teamName(team, lang) : '-'}</td>
                     <td className="adm-cell-muted">{o.date}</td>
                     <td className="adm-cell-content">
                       {o.content}

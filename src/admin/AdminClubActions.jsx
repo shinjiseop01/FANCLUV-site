@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { TEAMS, getTeam } from '../teams.jsx'
+import { TEAMS, getTeam, teamName } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
@@ -15,7 +15,7 @@ const EMPTY = { clubId: TEAMS[0].id, title: '', description: '', category: 'matc
 const STATUS_CLS = { planned: 'ca-st-planned', in_progress: 'ca-st-progress', done: 'ca-st-done', closed: 'ca-st-closed' }
 
 export default function AdminClubActions() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [reports, setReports] = useState([])
@@ -64,8 +64,8 @@ export default function AdminClubActions() {
   async function onAfter(a) { await captureAfterKpi(a.id, a.clubId); load() }
   async function onDelete(a) { if (await deleteAction(a.id)) load() }
 
-  const clubName = id => getTeam(id)?.name || id
-  const kpiLine = k => k ? `만족도 ${k.satisfaction} · NPS ${k.nps} · 불만 ${k.complaintIndex}` : '—'
+  const clubName = id => teamName(getTeam(id), lang) || id
+  const kpiLine = k => k ? t('admin.ca.kpiSummary', { sat: k.satisfaction, nps: k.nps, comp: k.complaintIndex }) : '—'
 
   return (
     <div className="adm-page">
@@ -81,7 +81,7 @@ export default function AdminClubActions() {
       <div className="ca-filters">
         <select className="adm-input" value={fClub} onChange={e => setFClub(e.target.value)} aria-label={t('admin.action.club')}>
           <option value="all">{t('admin.action.allClubs')}</option>
-          {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+          {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{teamName(tm, lang)}</option>)}
         </select>
         <select className="adm-input" value={fStatus} onChange={e => setFStatus(e.target.value)} aria-label={t('admin.action.status')}>
           <option value="all">{t('admin.action.allStatus')}</option>
@@ -176,7 +176,7 @@ export default function AdminClubActions() {
             <label className="adm-field">
               <span>{t('admin.action.club')}</span>
               <select className="adm-input" value={form.clubId} onChange={e => set('clubId', e.target.value)} disabled={!!form.id}>
-                {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+                {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{teamName(tm, lang)}</option>)}
               </select>
             </label>
             <label className="adm-field">

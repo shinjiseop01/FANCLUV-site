@@ -217,7 +217,7 @@ async function createAlert(key) {
       if (rows.length) await supabase.from('notifications').insert(rows)
     } catch (e) { logger.warn('상태 알림 생성 실패', { error: e }) }
   } else {
-    pushMockNotification({ type: 'notice', title, body, isImportant: true })
+    pushMockNotification({ type: 'notice', title, body, isImportant: true, audience: 'admin' })
   }
   logger.warn(body, { context: { service: name } })
 }

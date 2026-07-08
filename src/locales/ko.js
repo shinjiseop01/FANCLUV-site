@@ -1311,4 +1311,24 @@ export default {
   'admin.set.roleStaff': 'FANCLUV 직원',
   'admin.set.roleClub': '구단 관리자',
   'admin.set.soon': '준비 중',
+
+  // ── 운영 전 UX/다국어 보완 ──
+  // 공용 단위
+  'admin.unit.count': '건',
+  'admin.unit.countN': '{n}건',
+  // Club Action KPI 요약
+  'admin.ca.kpiSummary': '만족도 {sat} · NPS {nps} · 불만 {comp}',
+  // 리포트 작성 placeholder(예시)
+  'admin.rpt.kwPh': '티켓, 12\nMD, 9',
+  'admin.rpt.catPh': '경기장 | 좌석 시야 개선 필요\n티켓 | 예매 안정성 개선',
+  'admin.rpt.sugPh': '좌석 개선 | 시야 방해 구역 우선 정비\n예매 안정화 | 대기열 시스템 도입',
+  // 뉴스 소스 기본 라벨
+  'admin.ns.defaultLabel': '뉴스',
+  // 팬 랭킹 갱신 안내
+  'rank.updateNote': '랭킹은 매일 00시에 업데이트됩니다.',
+  // 설정 — 나이대 수정
+  'set.ageSave': '나이대 저장',
+  'set.ageSaving': '저장 중…',
+  'set.ageSaved': '나이대가 저장되었습니다.',
+  'set.ageFail': '저장에 실패했습니다. 다시 시도해 주세요.',
 }
