@@ -1348,4 +1348,11 @@ export default {
   'set.ageSaving': 'Saving…',
   'set.ageSaved': 'Your age group has been saved.',
   'set.ageFail': 'Failed to save. Please try again.',
+  // Settings — 4-card consolidation
+  'set.myProfile': 'My Profile',
+  'set.appSettings': 'App Settings',
+  'set.accountSecurity': 'Account & Security',
+  'set.serviceInfo': 'Service Info',
+  'set.saveBtn': 'Save',
+  'set.profileSaved': 'Your profile has been saved.',
 }

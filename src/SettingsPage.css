@@ -5,31 +5,31 @@
 .st-main {
   max-width: 640px;
   margin: 0 auto;
-  padding: 36px 24px 80px;
+  padding: 26px 20px 56px;
 }
 
-.st-pagehead { margin-bottom: 24px; }
-.st-pagehead h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.6px; color: var(--ink); margin-bottom: 8px; }
-.st-pagehead p { font-size: 15px; color: var(--muted); }
+.st-pagehead { margin-bottom: 16px; }
+.st-pagehead h1 { font-size: 25px; font-weight: 800; letter-spacing: -0.6px; color: var(--ink); margin-bottom: 5px; }
+.st-pagehead p { font-size: 14px; color: var(--muted); }
 
-/* Card */
+/* Card — 여백/패딩을 줄여 정보 밀도를 높인다(스크롤 길이 단축). */
 .st-card {
   background: var(--canvas);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 8px 20px;
-  margin-bottom: 18px;
+  border-radius: 14px;
+  padding: 2px 18px 12px;
+  margin-bottom: 12px;
 }
 .st-card-title {
-  font-size: 13px; font-weight: 700; color: var(--muted);
-  letter-spacing: 0.3px;
-  padding: 14px 0 10px;
+  font-size: 13px; font-weight: 800; color: var(--ink);
+  letter-spacing: 0.2px;
+  padding: 13px 0 7px;
 }
 
 /* Profile block */
 .st-profile {
-  display: flex; align-items: center; gap: 14px;
-  padding: 8px 0 16px;
+  display: flex; align-items: center; gap: 13px;
+  padding: 6px 0 12px;
   border-bottom: 1px solid var(--border-soft);
 }
 .st-avatar {
@@ -46,9 +46,9 @@
 /* Row */
 .st-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 15px 0;
+  padding: 11px 0;
   border-top: 1px solid var(--border-soft);
-  font-size: 14.5px; color: var(--ink); font-weight: 500;
+  font-size: 14px; color: var(--ink); font-weight: 500;
 }
 .st-card .st-profile + .st-row,
 .st-card-title + .st-row,
@@ -174,10 +174,10 @@
 
 /* Responsive */
 @media (max-width: 680px) {
-  .st-main { padding: 24px 16px 64px; }
-  .st-pagehead h1 { font-size: 23px; }
-  .st-card { padding: 6px 16px; }
-  .st-row { padding: 16px 0; }
+  .st-main { padding: 20px 14px 48px; }
+  .st-pagehead h1 { font-size: 22px; }
+  .st-card { padding: 2px 14px 10px; }
+  .st-row { padding: 12px 0; }
 }
 
 /* ───────── Account security: current device ───────── */
@@ -230,3 +230,63 @@
 .st-modal .st-age-chips { margin-bottom: 6px; }
 .st-age-confirm { background: var(--team-deep, #1D4ED8) !important; }
 .st-age-confirm:disabled { opacity: .5; }
+
+/* ───────── 설정 4카드 통합: 공용 요소 ───────── */
+/* 카드 내 섹션 제목(앱 설정: 언어/테마/브라우저알림/알림설정) */
+.st-subsec {
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  letter-spacing: 0.2px; text-transform: none;
+  padding: 12px 0 8px; margin: 0;
+}
+.st-card-title + .st-subsec { padding-top: 4px; }
+/* 카드 내 구분선 */
+.st-div { border: none; border-top: 1px solid var(--border-soft); margin: 14px 0 2px; }
+
+/* 전체폭 기본 버튼(프로필 수정 등) */
+.st-btn-full {
+  width: 100%; margin-top: 12px; padding: 11px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--page-bg);
+  color: var(--ink); font-size: 14px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: border-color .15s, background .15s;
+}
+.st-btn-full:hover { border-color: var(--team, #4F46E5); background: color-mix(in srgb, var(--team, #4F46E5) 6%, var(--mix-base, #fff)); }
+
+/* ───────── 내 프로필: 인라인 수정 패널 ───────── */
+.st-edit { padding-top: 12px; }
+.st-edit-avatar { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.st-edit-avatar-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.st-text-btn {
+  background: none; border: none; padding: 0; font-family: inherit;
+  font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer;
+}
+.st-text-btn:hover { color: #E0202E; }
+.st-edit-field { margin-bottom: 14px; }
+.st-edit-label { display: block; font-size: 12.5px; font-weight: 700; color: var(--muted); margin-bottom: 7px; }
+.st-edit-input {
+  width: 100%; box-sizing: border-box; padding: 11px 13px; border-radius: 10px;
+  background: var(--page-bg); border: 1px solid var(--border); color: var(--ink);
+  font-size: 14px; font-family: inherit; outline: none; transition: border-color .15s;
+}
+.st-edit-input:focus { border-color: var(--team); }
+select.st-edit-input { cursor: pointer; }
+.st-edit-hint { font-size: 12.5px; color: var(--muted); margin: 7px 0 0; line-height: 1.5; }
+.st-edit-actions { display: flex; gap: 10px; margin-top: 16px; }
+.st-edit-cancel, .st-edit-save {
+  flex: 1; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700;
+  font-family: inherit; cursor: pointer; transition: filter .15s, background .15s;
+}
+.st-edit-cancel { background: var(--canvas); border: 1px solid var(--border); color: var(--body); }
+.st-edit-cancel:hover { background: var(--page-bg); }
+.st-edit-save { background: var(--team-deep, #1D4ED8); border: 1px solid var(--team-deep, #1D4ED8); color: #fff; }
+.st-edit-save:hover:not(:disabled) { filter: brightness(1.06); }
+.st-edit-save:disabled { opacity: .5; cursor: default; }
+
+/* ───────── 계정 및 보안: 위험 영역(회원탈퇴) ───────── */
+.st-danger {
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, #E0202E 30%, var(--border-soft));
+}
+.st-danger .st-withdraw { margin: 0; }
+
+/* 로그아웃 버튼(카드 내부) 여백 축소 */
+.st-card .st-logout { margin-top: 14px; }

@@ -1,15 +1,21 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import LazyImage from './components/LazyImage.jsx'
 import { useTheme } from './contexts/ThemeContext.jsx'
-import { logout, getCurrentUser, deleteAccount, identityInfo, changeAgeGroup } from './lib/auth.js'
+import {
+  logout, getCurrentUser, deleteAccount, identityInfo,
+  changeAgeGroup, changeGender, changeNickname, nicknameChangeInfo, setSelectedTeam, updateAvatar,
+} from './lib/auth.js'
 import { IDENTITY_AGENCY_LABELS } from './lib/identity/identityProvider.js'
-import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
+import { getTeam, teamName, TeamEmblem, menuPath, TEAMS } from './teams.jsx'
 import { getCurrentDevice } from './lib/deviceInfo.js'
 import { getPrefs, setPref } from './lib/notifyPrefs.js'
 import { getPermission, requestPermission, sendTestNotification, isSupported } from './lib/browserPush.js'
+import { useNicknameCheck } from './lib/useNicknameCheck.js'
+import { saveAvatar, clearAvatar, validateImageFile } from './lib/avatarStorage.js'
+import NicknameStatus from './components/NicknameStatus.jsx'
 import Icon from './components/Icon.jsx'
 import './ClubHomePage.css'
 import './SettingsPage.css'
@@ -26,8 +32,9 @@ const NOTI_PREFS = [
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 const APP_VERSION = '1.0.0 (MVP)'
-// 나이대 옵션 — 회원가입/온보딩과 동일하게 유지.
+// 나이대/성별 옵션 — 회원가입/온보딩과 동일하게 유지.
 const AGE_GROUPS = [['10', 'signup.age10'], ['20', 'signup.age20'], ['30', 'signup.age30'], ['40', 'signup.age40'], ['50+', 'signup.age50']]
+const GENDERS = [['male', 'signup.genderMale'], ['female', 'signup.genderFemale'], ['na', 'signup.genderNA']]
 
 // Minimal line icons for the theme switch (sun / moon / monitor) — no emoji.
 const THEME_ICONS = {
@@ -48,41 +55,27 @@ export default function SettingsPage() {
   const { lang, setLang, t } = useLang()
   const { theme, setTheme } = useTheme()
   const user = getCurrentUser()
-  const nickname = user?.nickname || '팬'
   const email = user?.email || '-'
   const device = getCurrentDevice()
   const idInfo = identityInfo(user) // 본인인증 여부/시각/기관 (개인정보 없음)
+  const fileRef = useRef(null)
 
-  // 프로필 정보 수정 — 나이대 (닉네임 90일 제한과 무관하게 언제든 변경 가능)
-  const [ageGroup, setAgeGroupState] = useState(user?.ageGroup || '') // 저장된 현재 나이대(표시용)
-  const [ageEditOpen, setAgeEditOpen] = useState(false)               // 수정 화면(모달) 열림
-  const [ageEdit, setAgeEdit] = useState(user?.ageGroup || '')        // 모달 내 선택값
-  const [ageSaving, setAgeSaving] = useState(false)
-  const [ageMsg, setAgeMsg] = useState(null)
+  // ── 내 프로필 (읽기 전용 표시값 + 인라인 수정) ──
+  const [editing, setEditing] = useState(false)
+  const [nickState, setNickState] = useState(user?.nickname || '')       // 저장된 닉네임(표시)
+  const [genderState, setGenderState] = useState(user?.gender || '')     // 저장된 성별(표시)
+  const [ageGroup, setAgeGroupState] = useState(user?.ageGroup || '')    // 저장된 나이대(표시)
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || null)
+  // 수정 폼 값
+  const [nickEdit, setNickEdit] = useState(user?.nickname || '')
+  const [genderEdit, setGenderEdit] = useState(user?.gender || '')
+  const [ageEdit, setAgeEdit] = useState(user?.ageGroup || '')
+  const [teamEdit, setTeamEdit] = useState(team?.id || '')
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileMsg, setProfileMsg] = useState(null)
 
-  function openAgeEdit() {
-    setAgeEdit(ageGroup)
-    setAgeMsg(null)
-    setAgeEditOpen(true)
-  }
-  async function onSaveAge() {
-    setAgeMsg(null)
-    setAgeSaving(true)
-    const res = await changeAgeGroup(ageEdit)
-    setAgeSaving(false)
-    if (res.ok) {
-      setAgeGroupState(ageEdit)
-      setAgeMsg({ ok: true, text: t('set.ageSaved') })
-    } else {
-      setAgeMsg({ ok: false, text: res.error || t('set.ageFail') })
-    }
-  }
-
-  const genderLabel = user?.gender === 'male' ? t('signup.genderMale')
-    : user?.gender === 'female' ? t('signup.genderFemale')
-      : t('set.notSet')
-  const ageLabel = ageGroup ? (ageGroup === '50+' ? t('signup.age50') : t(`signup.age${ageGroup}`)) : t('set.notSet')
-  const fmtDate = iso => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '-')
+  const nickInfo = nicknameChangeInfo() // { canChange, nextChangeAt }
+  const nickCheck = useNicknameCheck(nickEdit, { exceptId: user?.id, exceptEmail: user?.email })
 
   // 알림 설정(localStorage 영속) + 브라우저 알림 권한 상태
   const [prefs, setPrefs] = useState(getPrefs())
@@ -92,6 +85,13 @@ export default function SettingsPage() {
   const [showWithdraw, setShowWithdraw] = useState(false)
   const [withdrawText, setWithdrawText] = useState('')
   const [withdrawing, setWithdrawing] = useState(false)
+
+  const genderLabel = genderState === 'male' ? t('signup.genderMale')
+    : genderState === 'female' ? t('signup.genderFemale')
+      : genderState === 'na' ? t('signup.genderNA')
+        : t('set.notSet')
+  const ageLabel = ageGroup ? (ageGroup === '50+' ? t('signup.age50') : t(`signup.age${ageGroup}`)) : t('set.notSet')
+  const fmtDate = iso => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '-')
 
   if (!team) {
     return (
@@ -106,14 +106,78 @@ export default function SettingsPage() {
   function flash(msg) { setToast(msg); setTimeout(() => setToast(''), 1800) }
   function handleLogout() { logout(); navigate('/') }
 
-  // 알림 설정 토글(영속 저장)
-  function togglePref(key) {
-    const next = !prefs[key]
-    const updated = setPref(key, next)
-    setPrefs({ ...updated })
+  // ── 프로필 수정 열기/닫기 ──
+  function openEdit() {
+    setNickEdit(nickState); setGenderEdit(genderState); setAgeEdit(ageGroup); setTeamEdit(team.id)
+    setProfileMsg(null); setEditing(true)
+  }
+  function cancelEdit() { setProfileMsg(null); setEditing(false) }
+
+  const nickChanged = nickEdit.trim() !== (nickState || '')
+  const nickBlocked = nickChanged && (!nickInfo.canChange || nickCheck.state !== 'available')
+  const anyChanged = nickChanged
+    || (genderEdit || '') !== (genderState || '')
+    || ageEdit !== ageGroup
+    || (teamEdit && teamEdit !== team.id)
+
+  async function onSaveProfile() {
+    setProfileMsg(null); setProfileSaving(true)
+    // 1) 닉네임 (변경 시에만 — 90일 쿨다운/검증은 changeNickname 이 처리)
+    if (nickChanged) {
+      const r = await changeNickname(nickEdit.trim())
+      if (!r.ok) { setProfileSaving(false); setProfileMsg({ ok: false, text: r.nextChangeAt ? t('profile.nicknameLocked') : r.error }); return }
+      setNickState(nickEdit.trim())
+    }
+    // 2) 성별
+    if ((genderEdit || '') !== (genderState || '')) {
+      const r = await changeGender(genderEdit || null)
+      if (!r.ok) { setProfileSaving(false); setProfileMsg({ ok: false, text: r.error || t('set.ageFail') }); return }
+      setGenderState(genderEdit || '')
+    }
+    // 3) 나이대
+    if (ageEdit !== ageGroup) {
+      const r = await changeAgeGroup(ageEdit)
+      if (!r.ok) { setProfileSaving(false); setProfileMsg({ ok: false, text: r.error || t('set.ageFail') }); return }
+      setAgeGroupState(ageEdit)
+    }
+    setProfileSaving(false)
+    // 4) 응원팀 (변경 시 마지막 — 새 구단 설정 화면으로 이동)
+    if (teamEdit && teamEdit !== team.id) {
+      await setSelectedTeam(teamEdit)
+      navigate(`/club/${teamEdit}/settings`, { replace: true })
+      return
+    }
+    setEditing(false)
+    flash(t('set.profileSaved'))
   }
 
-  // 브라우저 알림 켜기/끄기 — 켤 때 권한 요청
+  // ── 프로필 사진 (인라인 변경/제거) ──
+  function onPickAvatar(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const v = validateImageFile(file)
+    if (!v.ok) { setProfileMsg({ ok: false, text: v.code === 'size' ? t('profile.imageErrSize') : t('profile.imageErrType') }); return }
+    saveAndSetAvatar(file)
+  }
+  async function saveAndSetAvatar(blob) {
+    setProfileSaving(true)
+    const res = await saveAvatar(blob)
+    if (res.ok) { await updateAvatar(res.url); setAvatarUrl(res.url); setProfileMsg(null) }
+    else setProfileMsg({ ok: false, text: res.error || t('profile.imageErrType') })
+    setProfileSaving(false)
+  }
+  async function onRemoveAvatar() {
+    setProfileSaving(true)
+    await clearAvatar(); await updateAvatar(null); setAvatarUrl(null)
+    setProfileSaving(false)
+  }
+
+  // 알림 설정 토글(영속 저장)
+  function togglePref(key) {
+    const updated = setPref(key, !prefs[key])
+    setPrefs({ ...updated })
+  }
   async function toggleBrowser() {
     if (!prefs.browser) {
       let p = getPermission()
@@ -125,7 +189,6 @@ export default function SettingsPage() {
       setPrefs({ ...setPref('browser', false) })
     }
   }
-
   async function onTestNotification() {
     let p = getPermission()
     if (p === 'default') { p = await requestPermission(); setPerm(p) }
@@ -160,7 +223,7 @@ export default function SettingsPage() {
             <span className="ch-club-name">{teamName(team, lang)}</span>
           </div>
           <div className="ch-actions">
-            <span className="ch-user">{nickname}{t('common.honorific')}</span>
+            <span className="ch-user">{nickState}{t('common.honorific')}</span>
             <NotificationBell />
             <button className="ch-icon-btn" title={t('common.settings')} aria-label={t('common.settings')} onClick={() => navigate(`/club/${team.id}/settings`)}>
               <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="1.4"/></svg>
@@ -183,48 +246,165 @@ export default function SettingsPage() {
           <p>{t('set.subtitle')}</p>
         </section>
 
-        {/* Account */}
+        {/* ① 내 프로필 */}
         <section className="st-card">
-          <h2 className="st-card-title">{t('set.account')}</h2>
+          <h2 className="st-card-title">{t('set.myProfile')}</h2>
           <div className="st-profile">
-            {user?.avatarUrl
-              ? <LazyImage className="st-avatar" src={user.avatarUrl} alt=""
-                  placeholder={<span className="st-avatar" aria-hidden="true">{nickname[0]}</span>} />
-              : <span className="st-avatar" aria-hidden="true">{nickname[0]}</span>}
+            {avatarUrl
+              ? <LazyImage className="st-avatar" src={avatarUrl} alt=""
+                  placeholder={<span className="st-avatar" aria-hidden="true">{(nickState || 'F')[0]}</span>} />
+              : <span className="st-avatar" aria-hidden="true">{(nickState || 'F')[0]}</span>}
             <div className="st-profile-info">
-              <span className="st-profile-name">{nickname}</span>
+              <span className="st-profile-name">{nickState}</span>
               <span className="st-profile-email">{email}</span>
             </div>
           </div>
-          <div className="st-row" role="button" tabIndex={0}
-            onClick={() => navigate(`/club/${team.id}/profile`)}>
-            <span>{t('set.editProfile')}</span>
-            <span className="st-chevron" aria-hidden="true">›</span>
-          </div>
-          <div className="st-row" role="button" tabIndex={0}
-            onClick={() => navigate(`/club/${team.id}/password`)}>
-            <span>{t('set.changePw')}</span>
-            <span className="st-chevron" aria-hidden="true">›</span>
-          </div>
+
+          {!editing ? (
+            <>
+              <div className="st-row st-row-static"><span>{t('set.team')}</span>
+                <span className="st-team"><TeamEmblem color={team.color} size={22} className="st-team-emblem" />{teamName(team, lang)}</span></div>
+              <div className="st-row st-row-static"><span>{t('set.infoGender')}</span><span className="st-muted">{genderLabel}</span></div>
+              <div className="st-row st-row-static"><span>{t('set.infoAge')}</span><span className="st-muted">{ageLabel}</span></div>
+              <div className="st-row st-row-static"><span>{t('set.infoJoined')}</span><span className="st-muted">{fmtDate(user?.joinedAt)}</span></div>
+              <button className="st-btn-full" onClick={openEdit}>{t('set.editProfile')}</button>
+            </>
+          ) : (
+            <div className="st-edit">
+              {/* 프로필 사진 */}
+              <div className="st-edit-avatar">
+                {avatarUrl
+                  ? <LazyImage className="st-avatar" src={avatarUrl} alt=""
+                      placeholder={<span className="st-avatar" aria-hidden="true">{(nickEdit || 'F')[0]}</span>} />
+                  : <span className="st-avatar" aria-hidden="true">{(nickEdit || 'F')[0]}</span>}
+                <div className="st-edit-avatar-actions">
+                  <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onPickAvatar} />
+                  <button type="button" className="st-btn" onClick={() => fileRef.current?.click()} disabled={profileSaving}>
+                    {avatarUrl ? t('profile.replaceImage') : t('profile.changeImage')}
+                  </button>
+                  {avatarUrl && <button type="button" className="st-text-btn" onClick={onRemoveAvatar} disabled={profileSaving}>{t('profile.removeImage')}</button>}
+                </div>
+              </div>
+
+              {/* 닉네임 */}
+              <div className="st-edit-field">
+                <label className="st-edit-label">{t('profile.nickname')}</label>
+                <input type="text" className="st-edit-input" value={nickEdit} maxLength={12}
+                  disabled={!nickInfo.canChange}
+                  onChange={e => { setNickEdit(e.target.value); setProfileMsg(null) }} />
+                {!nickInfo.canChange
+                  ? <p className="st-edit-hint">{t('profile.nicknameLocked')}</p>
+                  : (nickChanged ? <NicknameStatus status={nickCheck} /> : null)}
+              </div>
+
+              {/* 응원팀 */}
+              <div className="st-edit-field">
+                <label className="st-edit-label">{t('set.team')}</label>
+                <select className="st-edit-input" value={teamEdit} onChange={e => { setTeamEdit(e.target.value); setProfileMsg(null) }}>
+                  {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{teamName(tm, lang)}</option>)}
+                </select>
+              </div>
+
+              {/* 성별 */}
+              <div className="st-edit-field">
+                <label className="st-edit-label">{t('set.infoGender')}</label>
+                <div className="st-age-chips" role="group" aria-label={t('set.infoGender')}>
+                  {GENDERS.map(([val, key]) => (
+                    <button type="button" key={val}
+                      className={`st-age-chip${genderEdit === val ? ' on' : ''}`}
+                      aria-pressed={genderEdit === val}
+                      onClick={() => { setGenderEdit(g => (g === val ? '' : val)); setProfileMsg(null) }}>
+                      {t(key)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 나이대 */}
+              <div className="st-edit-field">
+                <label className="st-edit-label">{t('set.infoAge')}</label>
+                <div className="st-age-chips" role="group" aria-label={t('set.infoAge')}>
+                  {AGE_GROUPS.map(([val, key]) => (
+                    <button type="button" key={val}
+                      className={`st-age-chip${ageEdit === val ? ' on' : ''}`}
+                      aria-pressed={ageEdit === val}
+                      onClick={() => { setAgeEdit(val); setProfileMsg(null) }}>
+                      {t(key)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {profileMsg && <p className={`st-age-msg ${profileMsg.ok ? 'ok' : 'err'}`} role="status" aria-live="polite">{profileMsg.text}</p>}
+
+              <div className="st-edit-actions">
+                <button type="button" className="st-edit-cancel" onClick={cancelEdit}>{t('common.cancel')}</button>
+                <button type="button" className="st-edit-save" onClick={onSaveProfile} disabled={profileSaving || nickBlocked || !anyChanged}>
+                  {profileSaving ? t('set.ageSaving') : t('set.saveBtn')}
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
-        {/* Profile info — 이메일 / 가입일 / 성별 / 나이대 + 수정 진입 */}
+        {/* ② 앱 설정 (언어 · 테마 · 브라우저 알림 · 알림 설정) */}
         <section className="st-card">
-          <h2 className="st-card-title">{t('set.profileInfo')}</h2>
-          <div className="st-row st-row-static"><span>{t('set.infoEmail')}</span><span className="st-muted">{email}</span></div>
-          <div className="st-row st-row-static"><span>{t('set.infoJoined')}</span><span className="st-muted">{fmtDate(user?.joinedAt)}</span></div>
-          <div className="st-row st-row-static"><span>{t('set.infoGender')}</span><span className="st-muted">{genderLabel}</span></div>
-          <div className="st-row st-row-static"><span>{t('set.infoAge')}</span><span className="st-muted">{ageLabel}</span></div>
-          <div className="st-row" role="button" tabIndex={0}
-            onClick={openAgeEdit} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAgeEdit() } }}>
-            <span>{t('set.editProfileInfo')}</span>
-            <span className="st-chevron" aria-hidden="true">›</span>
+          <h2 className="st-card-title">{t('set.appSettings')}</h2>
+
+          <h3 className="st-subsec">{t('set.language')}</h3>
+          <div className="st-lang-toggle" role="group" aria-label={t('set.language')}>
+            <button className={`st-lang${lang === 'ko' ? ' on' : ''}`} onClick={() => setLang('ko')}>{t('set.langKo')}</button>
+            <button className={`st-lang${lang === 'en' ? ' on' : ''}`} onClick={() => setLang('en')}>{t('set.langEn')}</button>
           </div>
+
+          <h3 className="st-subsec">{t('set.theme')}</h3>
+          <div className="st-lang-toggle" role="group" aria-label={t('set.theme')}>
+            {THEME_OPTIONS.map(([key, label]) => (
+              <button key={key} className={`st-lang st-theme${theme === key ? ' on' : ''}`}
+                aria-pressed={theme === key} onClick={() => setTheme(key)}>
+                <svg className="st-theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{THEME_ICONS[key]}</svg>
+                <span>{t(label)}</span>
+              </button>
+            ))}
+          </div>
+
+          <hr className="st-div" />
+
+          <h3 className="st-subsec">{t('set.browserTitle')}</h3>
+          <div className="st-row st-row-static">
+            <span>{t('set.browserPermission')}</span>
+            <span className={`st-vbadge ${perm === 'granted' ? 'ok' : perm === 'denied' ? 'no' : 'soon'}`}>{permLabel}</span>
+          </div>
+          <div className="st-row st-row-static">
+            <span>{t('set.notiBrowser')}</span>
+            <button className={`st-switch${prefs.browser ? ' on' : ''}`}
+              role="switch" aria-checked={prefs.browser} aria-label={t('set.notiBrowser')}
+              disabled={!isSupported() || perm === 'denied'} onClick={toggleBrowser}>
+              <span className="st-switch-knob" />
+            </button>
+          </div>
+          <button className="st-btn st-test-btn" onClick={onTestNotification} disabled={!isSupported()}>{t('set.testNotify')}</button>
+          {perm === 'denied' && <p className="st-hint">{t('set.browserBlockedHint')}</p>}
+
+          <hr className="st-div" />
+
+          <h3 className="st-subsec">{t('set.notifications')}</h3>
+          {NOTI_PREFS.map(([key, label]) => (
+            <div key={key} className="st-row st-row-static">
+              <span>{t(label)}</span>
+              <button className={`st-switch${prefs[key] ? ' on' : ''}`}
+                role="switch" aria-checked={prefs[key]} aria-label={t(label)} onClick={() => togglePref(key)}>
+                <span className="st-switch-knob" />
+              </button>
+            </div>
+          ))}
         </section>
 
-        {/* Account security — current login device (Mock 구조) */}
+        {/* ③ 계정 및 보안 */}
         <section className="st-card">
-          <h2 className="st-card-title">{t('set.security')}</h2>
+          <h2 className="st-card-title">{t('set.accountSecurity')}</h2>
+
           <div className="st-device">
             <span className="st-device-ic" aria-hidden="true"><Icon name="users" size={20} /></span>
             <div className="st-device-body">
@@ -233,17 +413,20 @@ export default function SettingsPage() {
             </div>
             <span className="st-device-badge">{t('set.currentLogin')}</span>
           </div>
-        </section>
 
-        {/* Verification status */}
-        <section className="st-card">
-          <h2 className="st-card-title">{t('set.verifyTitle')}</h2>
           <div className="st-row st-row-static">
             <span>{t('set.verifyEmail')}</span>
             <span className={`st-vbadge ${user?.isEmailVerified ? 'ok' : 'no'}`}>
               {user?.isEmailVerified ? t('set.verifyDone') : t('set.verifyNot')}
             </span>
           </div>
+          {!user?.isEmailVerified && (
+            <div className="st-row" role="button" tabIndex={0}
+              onClick={() => navigate('/verify-email', { state: { reason: 'login' } })}>
+              <span>{t('set.verifyGo')}</span>
+              <span className="st-chevron" aria-hidden="true">›</span>
+            </div>
+          )}
           <div className="st-row st-row-static">
             <span>{t('set.identityRow')}</span>
             <span className={`st-vbadge ${idInfo.verified ? 'ok' : 'no'}`}>
@@ -256,134 +439,40 @@ export default function SettingsPage() {
               <span className="st-muted">{IDENTITY_AGENCY_LABELS[idInfo.agency] || idInfo.agency}</span>
             </div>
           )}
-          {!user?.isEmailVerified && (
-            <div className="st-row" role="button" tabIndex={0}
-              onClick={() => navigate('/verify-email', { state: { reason: 'login' } })}>
-              <span>{t('set.verifyGo')}</span>
+          {!idInfo.verified && (
+            <div className="st-row" role="button" tabIndex={0} onClick={() => navigate('/verify-identity')}>
+              <span>{t('set.identityGo')}</span>
               <span className="st-chevron" aria-hidden="true">›</span>
             </div>
           )}
-          {!idInfo.verified && (
-            <>
-              <button className="st-phone-btn" onClick={() => navigate('/verify-identity')}>{t('set.identityGo')}</button>
-              <p className="st-phone-note">{t('set.identityNote')}</p>
-            </>
-          )}
-        </section>
 
-        {/* Team */}
-        <section className="st-card">
-          <h2 className="st-card-title">{t('set.team')}</h2>
-          <div className="st-row st-row-static">
-            <span className="st-team">
-              <TeamEmblem color={team.color} size={26} className="st-team-emblem" />
-              {team.name}
-            </span>
-            <button className="st-btn" onClick={() => navigate('/team-select')}>{t('set.changeTeam')}</button>
-          </div>
-        </section>
-
-        {/* Language */}
-        <section className="st-card">
-          <h2 className="st-card-title">{t('set.language')}</h2>
-          <div className="st-lang-toggle" role="group" aria-label={t('set.language')}>
-            <button className={`st-lang${lang === 'ko' ? ' on' : ''}`} onClick={() => setLang('ko')}>
-              {t('set.langKo')}
-            </button>
-            <button className={`st-lang${lang === 'en' ? ' on' : ''}`} onClick={() => setLang('en')}>
-              {t('set.langEn')}
-            </button>
-          </div>
-        </section>
-
-        {/* Theme */}
-        <section className="st-card">
-          <h2 className="st-card-title">{t('set.theme')}</h2>
-          <div className="st-lang-toggle" role="group" aria-label={t('set.theme')}>
-            {THEME_OPTIONS.map(([key, label]) => (
-              <button
-                key={key}
-                className={`st-lang st-theme${theme === key ? ' on' : ''}`}
-                aria-pressed={theme === key}
-                onClick={() => setTheme(key)}>
-                <svg className="st-theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  {THEME_ICONS[key]}
-                </svg>
-                <span>{t(label)}</span>
-              </button>
-            ))}
-          </div>
-          <p className="st-hint">{t('set.themeHint')}</p>
-        </section>
-
-        {/* Browser (push) notification */}
-        <section className="st-card">
-          <h2 className="st-card-title">{t('set.browserTitle')}</h2>
-          <div className="st-row st-row-static">
-            <span>{t('set.browserPermission')}</span>
-            <span className={`st-vbadge ${perm === 'granted' ? 'ok' : perm === 'denied' ? 'no' : 'soon'}`}>{permLabel}</span>
-          </div>
-          <div className="st-row st-row-static">
-            <span>{t('set.notiBrowser')}</span>
-            <button
-              className={`st-switch${prefs.browser ? ' on' : ''}`}
-              role="switch" aria-checked={prefs.browser} aria-label={t('set.notiBrowser')}
-              disabled={!isSupported() || perm === 'denied'}
-              onClick={toggleBrowser}>
-              <span className="st-switch-knob" />
-            </button>
-          </div>
-          <button className="st-btn st-test-btn" onClick={onTestNotification} disabled={!isSupported()}>
-            {t('set.testNotify')}
-          </button>
-          {perm === 'denied' && <p className="st-hint">{t('set.browserBlockedHint')}</p>}
-        </section>
-
-        {/* Notification preferences */}
-        <section className="st-card">
-          <h2 className="st-card-title">{t('set.notifications')}</h2>
-          {NOTI_PREFS.map(([key, label]) => (
-            <div key={key} className="st-row st-row-static">
-              <span>{t(label)}</span>
-              <button
-                className={`st-switch${prefs[key] ? ' on' : ''}`}
-                role="switch" aria-checked={prefs[key]} aria-label={t(label)}
-                onClick={() => togglePref(key)}>
-                <span className="st-switch-knob" />
-              </button>
-            </div>
-          ))}
-        </section>
-
-        {/* App info */}
-        <section className="st-card">
-          <h2 className="st-card-title">{t('set.appInfo')}</h2>
-          <div className="st-row st-row-static">
-            <span>{t('set.appVersion')}</span>
-            <span className="st-muted">{APP_VERSION}</span>
-          </div>
-          <div className="st-row" role="button" tabIndex={0} onClick={() => navigate(`/club/${team.id}/about`)}>
-            <span>{t('set.about')}</span>
+          <div className="st-row" role="button" tabIndex={0} onClick={() => navigate(`/club/${team.id}/password`)}>
+            <span>{t('set.changePw')}</span>
             <span className="st-chevron" aria-hidden="true">›</span>
+          </div>
+
+          <button className="st-logout" onClick={handleLogout}>{t('set.logout')}</button>
+
+          {/* 위험 영역 — 회원탈퇴 */}
+          <div className="st-danger">
+            <button className="st-withdraw" onClick={() => { setWithdrawText(''); setShowWithdraw(true) }}>{t('set.withdraw')}</button>
+          </div>
+        </section>
+
+        {/* ④ 서비스 정보 */}
+        <section className="st-card">
+          <h2 className="st-card-title">{t('set.serviceInfo')}</h2>
+          <div className="st-row st-row-static"><span>{t('set.appVersion')}</span><span className="st-muted">{APP_VERSION}</span></div>
+          <div className="st-row" role="button" tabIndex={0} onClick={() => navigate(`/club/${team.id}/about`)}>
+            <span>{t('set.about')}</span><span className="st-chevron" aria-hidden="true">›</span>
           </div>
           <div className="st-row" role="button" tabIndex={0} onClick={() => navigate(`/club/${team.id}/privacy`)}>
-            <span>{t('set.privacy')}</span>
-            <span className="st-chevron" aria-hidden="true">›</span>
+            <span>{t('set.privacy')}</span><span className="st-chevron" aria-hidden="true">›</span>
           </div>
           <div className="st-row" role="button" tabIndex={0} onClick={() => navigate(`/club/${team.id}/terms`)}>
-            <span>{t('set.terms')}</span>
-            <span className="st-chevron" aria-hidden="true">›</span>
+            <span>{t('set.terms')}</span><span className="st-chevron" aria-hidden="true">›</span>
           </div>
         </section>
-
-        {/* Logout */}
-        <button className="st-logout" onClick={handleLogout}>{t('set.logout')}</button>
-
-        {/* Withdraw */}
-        <button className="st-withdraw" onClick={() => { setWithdrawText(''); setShowWithdraw(true) }}>
-          {t('set.withdraw')}
-        </button>
       </main>
 
       {/* 회원탈퇴 확인 모달 */}
@@ -394,53 +483,12 @@ export default function SettingsPage() {
             <h3 className="st-modal-title">{t('set.withdrawTitle')}</h3>
             <p className="st-modal-desc">{t('set.withdrawDesc')}</p>
             <p className="st-modal-phrase">{t('set.withdrawPrompt', { phrase: withdrawPhrase })}</p>
-            <input
-              type="text"
-              className="st-modal-input"
-              placeholder={withdrawPhrase}
-              value={withdrawText}
-              onChange={e => setWithdrawText(e.target.value)}
-              autoFocus
-            />
+            <input type="text" className="st-modal-input" placeholder={withdrawPhrase}
+              value={withdrawText} onChange={e => setWithdrawText(e.target.value)} autoFocus />
             <div className="st-modal-actions">
               <button className="st-modal-cancel" onClick={() => setShowWithdraw(false)}>{t('common.cancel')}</button>
-              <button
-                className="st-modal-confirm"
-                disabled={withdrawText.trim() !== withdrawPhrase || withdrawing}
-                onClick={handleWithdraw}>
+              <button className="st-modal-confirm" disabled={withdrawText.trim() !== withdrawPhrase || withdrawing} onClick={handleWithdraw}>
                 {withdrawing ? t('set.withdrawing') : t('set.withdrawConfirm')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 프로필 정보 수정 (나이대) — 별도 수정 화면(모달) */}
-      {ageEditOpen && (
-        <div className="st-modal-overlay" role="dialog" aria-modal="true" aria-label={t('set.editProfileInfo')}
-          onClick={e => { if (e.target === e.currentTarget) setAgeEditOpen(false) }}>
-          <div className="st-modal">
-            <h3 className="st-modal-title">{t('set.editProfileInfo')}</h3>
-            <p className="st-modal-desc">{t('set.ageEditDesc')}</p>
-            <label className="st-modal-label">{t('set.infoAge')}</label>
-            <div className="st-age-chips" role="group" aria-label={t('set.infoAge')}>
-              {AGE_GROUPS.map(([val, key]) => (
-                <button type="button" key={val}
-                  className={`st-age-chip${ageEdit === val ? ' on' : ''}`}
-                  aria-pressed={ageEdit === val}
-                  onClick={() => { setAgeEdit(val); setAgeMsg(null) }}>
-                  {t(key)}
-                </button>
-              ))}
-            </div>
-            {ageMsg && (
-              <p className={`st-age-msg ${ageMsg.ok ? 'ok' : 'err'}`} role="status" aria-live="polite">{ageMsg.text}</p>
-            )}
-            <div className="st-modal-actions">
-              <button className="st-modal-cancel" onClick={() => setAgeEditOpen(false)}>{t('common.close')}</button>
-              <button className="st-modal-confirm st-age-confirm" onClick={onSaveAge}
-                disabled={ageSaving || !ageEdit || ageEdit === ageGroup}>
-                {ageSaving ? t('set.ageSaving') : t('set.ageSave')}
               </button>
             </div>
           </div>

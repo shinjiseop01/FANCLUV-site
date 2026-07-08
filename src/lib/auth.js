@@ -647,6 +647,16 @@ export async function changeAgeGroup(ageGroup) {
   return mockPatchSessionUser({ ageGroup: ag })
 }
 
+// ── 성별 변경 ── 선택 항목(빈 값 허용 = '미설정'). 닉네임 쿨다운과 무관.
+export async function changeGender(gender) {
+  const g = gender || null // 'male' | 'female' | 'na' | null
+  if (isSupabaseConfigured) {
+    if (cachedUser) cachedUser = { ...cachedUser, gender: g } // 낙관적 반영
+    return patchSupabaseProfile({ gender: g })
+  }
+  return mockPatchSessionUser({ gender: g })
+}
+
 // ── 비밀번호 변경 ──
 export async function changePassword(currentPassword, newPassword) {
   if (isSupabaseConfigured) {

@@ -1348,4 +1348,11 @@ export default {
   'set.ageSaving': '저장 중…',
   'set.ageSaved': '나이대가 저장되었습니다.',
   'set.ageFail': '저장에 실패했습니다. 다시 시도해 주세요.',
+  // 설정 4카드 통합
+  'set.myProfile': '내 프로필',
+  'set.appSettings': '앱 설정',
+  'set.accountSecurity': '계정 및 보안',
+  'set.serviceInfo': '서비스 정보',
+  'set.saveBtn': '저장',
+  'set.profileSaved': '프로필이 저장되었습니다.',
 }
