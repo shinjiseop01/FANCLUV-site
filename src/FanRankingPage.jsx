@@ -110,6 +110,7 @@ export default function FanRankingPage() {
   const loading = useFakeLoading()
   const [scope, setScope] = useState('league') // 'league' | 'club'
   const [criteria, setCriteria] = useState('score')
+  const [expanded, setExpanded] = useState(false) // 랭킹 목록: 기본 20위까지, 더보기 시 50위까지
 
   // build + sort the ranking for current scope/criteria
   const ranking = useMemo(() => {
@@ -161,6 +162,9 @@ export default function FanRankingPage() {
 
   const top3 = ranking.slice(0, 3)
   const rest = ranking.slice(3, 50)
+  // 기본은 1~20위까지만(상위 3위는 포디움, 목록은 4~20위) → "더보기" 시 50위까지.
+  const visibleRest = expanded ? rest : rest.filter(p => p.rank <= 20)
+  const canExpand = rest.some(p => p.rank > 20)
 
   return (
     <div className="ch-root" style={themeStyle}>
@@ -205,7 +209,6 @@ export default function FanRankingPage() {
         <section className="fr-pagehead">
           <h1>{t('rank.title')}</h1>
           <p>{t('rank.subtitle')}</p>
-          <p className="fr-update-note">{t('rank.updateNote')}</p>
         </section>
 
         {/* Scope tabs */}
@@ -278,9 +281,6 @@ export default function FanRankingPage() {
                   <span className="fr-myrank-label">지난주 대비</span>
                 </div>
               </div>
-              {activity.pending > 0 && (
-                <p className="fr-pending" role="status">{t('rank.pending', { n: activity.pending })}</p>
-              )}
               <p className="fr-myrank-hint">
                 현재 상위 <strong>{percentile}%</strong> 입니다. 의견을 하나 더 남기면 순위가 올라가요!
               </p>
@@ -290,11 +290,14 @@ export default function FanRankingPage() {
             {/* Full ranking */}
             <section className="fr-panel">
               <div className="fr-panel-head">
-                <h2 className="fr-panel-title">{scopeLabel} {t('rank.top50')}</h2>
+                <h2 className="fr-panel-title">
+                  {scopeLabel} {t('rank.top50')}
+                  <span className="fr-update-note">{t('rank.updateNote')}</span>
+                </h2>
                 <span className="fr-week">{t('rank.criteriaBasis', { c: critLabel })}</span>
               </div>
               <ul className={`fr-list ${scope}`}>
-                {rest.map(p => (
+                {visibleRest.map(p => (
                   <li key={p.rank} className="fr-row">
                     <span className="fr-rank">{p.rank}</span>
                     <span className="fr-rowchg"><Change value={p.change} /></span>
@@ -307,6 +310,14 @@ export default function FanRankingPage() {
                   </li>
                 ))}
               </ul>
+              {canExpand && (
+                <button type="button" className="fr-more-btn" onClick={() => setExpanded(v => !v)}>
+                  {expanded ? t('rank.showLess') : t('rank.showMore')}
+                  <svg viewBox="0 0 20 20" fill="none" className={`fr-more-ic${expanded ? ' up' : ''}`} aria-hidden="true">
+                    <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              )}
             </section>
           </div>
 

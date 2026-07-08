@@ -427,7 +427,7 @@ function KpiPanel({ k, t }) {
           <div className="adm-kpi-cats-title">{t('admin.kpi.byCategory')}</div>
           {cats.map(c => (
             <div key={c.key} className="adm-kpi-cat-row">
-              <span className="adm-kpi-cat-name">{c.name}</span>
+              <span className="adm-kpi-cat-name">{t('admin.kpiCat.' + c.key)}</span>
               <span className="adm-kpi-cat-bar"><span style={{ width: `${c.score}%` }} /></span>
               <span className="adm-kpi-cat-score">{c.score}{c.change != null && c.change !== 0 && changeBadge(c.change)}</span>
               <span className="adm-kpi-cat-count">{t('admin.unit.countN', { n: c.count })}</span>
@@ -439,7 +439,7 @@ function KpiPanel({ k, t }) {
         <div className="adm-kpi-topics">
           <span className="adm-kpi-cats-title">{t('admin.kpi.topicTrend')}:</span>
           {k.topicTrend.map(tp => (
-            <span key={tp.key} className={`adm-kpi-topic ${tp.direction}`}>{tp.topic} {tp.direction === 'up' ? '▲' : tp.direction === 'down' ? '▼' : ''}</span>
+            <span key={tp.key} className={`adm-kpi-topic ${tp.direction}`}>{t('admin.kpiCat.' + tp.key)} {tp.direction === 'up' ? '▲' : tp.direction === 'down' ? '▼' : ''}</span>
           ))}
         </div>
       )}

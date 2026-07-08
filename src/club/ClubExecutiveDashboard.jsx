@@ -94,7 +94,7 @@ export default function ClubExecutiveDashboard() {
       <main className="exec-main">
         <div className="exec-title-row">
           <h1 className="exec-title">{t('exec.title')}</h1>
-          <p className="exec-sub">{team?.name} · {t('exec.subtitle')}</p>
+          <p className="exec-sub">{teamName(team, lang)} · {t('exec.subtitle')}</p>
         </div>
 
         {loading ? <SkeletonList count={4} lines={3} /> : !data?.ok ? (

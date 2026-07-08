@@ -382,10 +382,12 @@ select:focus-visible {
   overflow-wrap: break-word;
   word-break: keep-all;
 }
-/* 안내(hint) 문구는 대비를 높여 입력창 아래에서 잘 보이도록 한다(라이트/다크 자동 대응). */
-.nick-status.hint { color: color-mix(in srgb, var(--ink) 68%, transparent); }
-.nick-status.err { color: #D93A2F; font-weight: 600; }
-.nick-status.ok { color: #0B8A5F; }
+/* 안내(hint)·"확인 중" 문구 가독성.
+   회원가입/온보딩은 고정 다크 카드라 --ink 미정의 → var() 폴백(#FFFFFF)으로 밝게 표시.
+   프로필 수정(테마 인식)에서는 --ink 가 정의돼 라이트/다크 모두 충분한 대비를 얻는다. */
+.nick-status.hint { color: color-mix(in srgb, var(--ink, #FFFFFF) 78%, transparent); }
+.nick-status.err { color: #E0463C; font-weight: 600; }
+.nick-status.ok { color: #0E9F6E; }
 
 /* ───────────── Inline icon + text (수직 중앙 정렬 유틸) ───────────── */
 .ic-txt { display: inline-flex; align-items: center; gap: 5px; }

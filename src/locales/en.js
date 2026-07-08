@@ -1324,9 +1324,26 @@ export default {
   'admin.rpt.sugPh': 'Seating | Prioritize obstructed-view areas first\nBooking | Introduce a queue system',
   // News source default label
   'admin.ns.defaultLabel': 'News',
-  // Fan ranking update notice
+  // KPI category display names (classification stays canonical — display only)
+  'admin.kpiCat.performance': 'Match',
+  'admin.kpiCat.manager': 'Manager',
+  'admin.kpiCat.player': 'Players',
+  'admin.kpiCat.referee': 'Referee',
+  'admin.kpiCat.ticket': 'Tickets',
+  'admin.kpiCat.md': 'Merch',
+  'admin.kpiCat.stadium': 'Stadium',
+  'admin.kpiCat.facility': 'Facilities',
+  'admin.kpiCat.food': 'Food',
+  'admin.kpiCat.event': 'Events',
+  'admin.kpiCat.marketing': 'Marketing',
+  'admin.kpiCat.etc': 'Other',
+  // Fan ranking update notice + show more/less
   'rank.updateNote': 'Rankings are updated daily at 00:00.',
-  // Settings — age group edit
+  'rank.showMore': 'Show more',
+  'rank.showLess': 'Show less',
+  // Settings — edit profile info (age group)
+  'set.editProfileInfo': 'Edit profile info',
+  'set.ageEditDesc': 'Select your age group and save.',
   'set.ageSave': 'Save age group',
   'set.ageSaving': 'Saving…',
   'set.ageSaved': 'Your age group has been saved.',

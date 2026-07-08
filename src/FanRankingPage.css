@@ -11,21 +11,30 @@
 .fr-pagehead { margin-bottom: 28px; }
 .fr-pagehead h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.6px; color: var(--ink); margin-bottom: 8px; }
 .fr-pagehead p { font-size: 15px; color: var(--muted); }
-/* 랭킹 갱신 안내 — 작은 보조 텍스트(과하지 않게). 라이트/다크 자동 대응. */
+/* 랭킹 갱신 안내 — "전체 랭킹 TOP 50" 옆 작은 보조 텍스트(과하지 않게). 라이트/다크 대응. */
 .fr-update-note {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 10px;
-  font-size: 12.5px !important;
-  color: color-mix(in srgb, var(--ink) 55%, transparent) !important;
+  margin-left: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--ink) 52%, transparent);
+  white-space: nowrap;
 }
-.fr-update-note::before {
-  content: "";
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--team, #4F46E5);
-  flex-shrink: 0;
+@media (max-width: 560px) {
+  .fr-update-note { display: block; margin-left: 0; margin-top: 4px; }
 }
+
+/* 랭킹 더보기 / 접기 버튼 */
+.fr-more-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; margin-top: 14px; padding: 11px;
+  background: var(--page-bg); color: var(--team-deep, #1D4ED8);
+  border: 1px solid var(--border); border-radius: 10px;
+  font-size: 13.5px; font-weight: 700; font-family: inherit; cursor: pointer;
+  transition: background .14s, border-color .14s;
+}
+.fr-more-btn:hover { border-color: var(--team, #4F46E5); background: color-mix(in srgb, var(--team, #4F46E5) 6%, var(--mix-base, #fff)); }
+.fr-more-ic { width: 16px; height: 16px; transition: transform .18s; }
+.fr-more-ic.up { transform: rotate(180deg); }
 
 /* ── Scope tabs ── */
 .fr-tabs {

@@ -1324,9 +1324,26 @@ export default {
   'admin.rpt.sugPh': '좌석 개선 | 시야 방해 구역 우선 정비\n예매 안정화 | 대기열 시스템 도입',
   // 뉴스 소스 기본 라벨
   'admin.ns.defaultLabel': '뉴스',
-  // 팬 랭킹 갱신 안내
+  // KPI 카테고리 표시명(분류 로직은 canonical 그대로 — 표시만 다국어)
+  'admin.kpiCat.performance': '경기력',
+  'admin.kpiCat.manager': '감독',
+  'admin.kpiCat.player': '선수',
+  'admin.kpiCat.referee': '심판',
+  'admin.kpiCat.ticket': '티켓',
+  'admin.kpiCat.md': 'MD',
+  'admin.kpiCat.stadium': '경기장',
+  'admin.kpiCat.facility': '편의시설',
+  'admin.kpiCat.food': '음식',
+  'admin.kpiCat.event': '이벤트',
+  'admin.kpiCat.marketing': '마케팅',
+  'admin.kpiCat.etc': '기타',
+  // 팬 랭킹 갱신 안내 + 더보기/접기
   'rank.updateNote': '랭킹은 매일 00시에 업데이트됩니다.',
-  // 설정 — 나이대 수정
+  'rank.showMore': '더보기',
+  'rank.showLess': '접기',
+  // 설정 — 프로필 정보 수정(나이대)
+  'set.editProfileInfo': '프로필 정보 수정',
+  'set.ageEditDesc': '나이대를 선택한 뒤 저장해 주세요.',
   'set.ageSave': '나이대 저장',
   'set.ageSaving': '저장 중…',
   'set.ageSaved': '나이대가 저장되었습니다.',

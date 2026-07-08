@@ -146,7 +146,7 @@ export default function AdminActionTracker() {
                       <span className="tr-impact-title">{t('admin.tracker.impacted')}:</span>
                       {r.impacted.map(c => {
                         const d = deltaStr(c.scoreDelta)
-                        return <span key={c.key} className={`tr-impact-chip ${d.cls}`}>{c.name} {d.arrow}{Math.abs(c.scoreDelta)}</span>
+                        return <span key={c.key} className={`tr-impact-chip ${d.cls}`}>{t('admin.kpiCat.' + c.key)} {d.arrow}{Math.abs(c.scoreDelta)}</span>
                       })}
                     </div>
                   )}

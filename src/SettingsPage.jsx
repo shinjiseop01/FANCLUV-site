@@ -53,22 +53,35 @@ export default function SettingsPage() {
   const device = getCurrentDevice()
   const idInfo = identityInfo(user) // 본인인증 여부/시각/기관 (개인정보 없음)
 
-  // 나이대 수정 (닉네임 90일 제한과 무관하게 언제든 변경 가능)
-  const [ageEdit, setAgeEdit] = useState(user?.ageGroup || '')
+  // 프로필 정보 수정 — 나이대 (닉네임 90일 제한과 무관하게 언제든 변경 가능)
+  const [ageGroup, setAgeGroupState] = useState(user?.ageGroup || '') // 저장된 현재 나이대(표시용)
+  const [ageEditOpen, setAgeEditOpen] = useState(false)               // 수정 화면(모달) 열림
+  const [ageEdit, setAgeEdit] = useState(user?.ageGroup || '')        // 모달 내 선택값
   const [ageSaving, setAgeSaving] = useState(false)
   const [ageMsg, setAgeMsg] = useState(null)
 
+  function openAgeEdit() {
+    setAgeEdit(ageGroup)
+    setAgeMsg(null)
+    setAgeEditOpen(true)
+  }
   async function onSaveAge() {
     setAgeMsg(null)
     setAgeSaving(true)
     const res = await changeAgeGroup(ageEdit)
     setAgeSaving(false)
-    setAgeMsg(res.ok ? { ok: true, text: t('set.ageSaved') } : { ok: false, text: res.error || t('set.ageFail') })
+    if (res.ok) {
+      setAgeGroupState(ageEdit)
+      setAgeMsg({ ok: true, text: t('set.ageSaved') })
+    } else {
+      setAgeMsg({ ok: false, text: res.error || t('set.ageFail') })
+    }
   }
 
   const genderLabel = user?.gender === 'male' ? t('signup.genderMale')
     : user?.gender === 'female' ? t('signup.genderFemale')
       : t('set.notSet')
+  const ageLabel = ageGroup ? (ageGroup === '50+' ? t('signup.age50') : t(`signup.age${ageGroup}`)) : t('set.notSet')
   const fmtDate = iso => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '-')
 
   // 알림 설정(localStorage 영속) + 브라우저 알림 권한 상태
@@ -195,34 +208,18 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Profile info — 이메일 / 가입일 / 성별 (간결) */}
+        {/* Profile info — 이메일 / 가입일 / 성별 / 나이대 + 수정 진입 */}
         <section className="st-card">
           <h2 className="st-card-title">{t('set.profileInfo')}</h2>
           <div className="st-row st-row-static"><span>{t('set.infoEmail')}</span><span className="st-muted">{email}</span></div>
           <div className="st-row st-row-static"><span>{t('set.infoJoined')}</span><span className="st-muted">{fmtDate(user?.joinedAt)}</span></div>
           <div className="st-row st-row-static"><span>{t('set.infoGender')}</span><span className="st-muted">{genderLabel}</span></div>
-        </section>
-
-        {/* 나이대 수정 (설정에서 언제든 변경 가능) */}
-        <section className="st-card">
-          <h2 className="st-card-title">{t('set.infoAge')}</h2>
-          <div className="st-age-chips" role="group" aria-label={t('set.infoAge')}>
-            {AGE_GROUPS.map(([val, key]) => (
-              <button type="button" key={val}
-                className={`st-age-chip${ageEdit === val ? ' on' : ''}`}
-                aria-pressed={ageEdit === val}
-                onClick={() => { setAgeEdit(val); setAgeMsg(null) }}>
-                {t(key)}
-              </button>
-            ))}
+          <div className="st-row st-row-static"><span>{t('set.infoAge')}</span><span className="st-muted">{ageLabel}</span></div>
+          <div className="st-row" role="button" tabIndex={0}
+            onClick={openAgeEdit} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAgeEdit() } }}>
+            <span>{t('set.editProfileInfo')}</span>
+            <span className="st-chevron" aria-hidden="true">›</span>
           </div>
-          {ageMsg && (
-            <p className={`st-age-msg ${ageMsg.ok ? 'ok' : 'err'}`} role="status" aria-live="polite">{ageMsg.text}</p>
-          )}
-          <button className="st-age-save" onClick={onSaveAge}
-            disabled={ageSaving || !ageEdit || ageEdit === (user?.ageGroup || '')}>
-            {ageSaving ? t('set.ageSaving') : t('set.ageSave')}
-          </button>
         </section>
 
         {/* Account security — current login device (Mock 구조) */}
@@ -412,6 +409,38 @@ export default function SettingsPage() {
                 disabled={withdrawText.trim() !== withdrawPhrase || withdrawing}
                 onClick={handleWithdraw}>
                 {withdrawing ? t('set.withdrawing') : t('set.withdrawConfirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 프로필 정보 수정 (나이대) — 별도 수정 화면(모달) */}
+      {ageEditOpen && (
+        <div className="st-modal-overlay" role="dialog" aria-modal="true" aria-label={t('set.editProfileInfo')}
+          onClick={e => { if (e.target === e.currentTarget) setAgeEditOpen(false) }}>
+          <div className="st-modal">
+            <h3 className="st-modal-title">{t('set.editProfileInfo')}</h3>
+            <p className="st-modal-desc">{t('set.ageEditDesc')}</p>
+            <label className="st-modal-label">{t('set.infoAge')}</label>
+            <div className="st-age-chips" role="group" aria-label={t('set.infoAge')}>
+              {AGE_GROUPS.map(([val, key]) => (
+                <button type="button" key={val}
+                  className={`st-age-chip${ageEdit === val ? ' on' : ''}`}
+                  aria-pressed={ageEdit === val}
+                  onClick={() => { setAgeEdit(val); setAgeMsg(null) }}>
+                  {t(key)}
+                </button>
+              ))}
+            </div>
+            {ageMsg && (
+              <p className={`st-age-msg ${ageMsg.ok ? 'ok' : 'err'}`} role="status" aria-live="polite">{ageMsg.text}</p>
+            )}
+            <div className="st-modal-actions">
+              <button className="st-modal-cancel" onClick={() => setAgeEditOpen(false)}>{t('common.close')}</button>
+              <button className="st-modal-confirm st-age-confirm" onClick={onSaveAge}
+                disabled={ageSaving || !ageEdit || ageEdit === ageGroup}>
+                {ageSaving ? t('set.ageSaving') : t('set.ageSave')}
               </button>
             </div>
           </div>
