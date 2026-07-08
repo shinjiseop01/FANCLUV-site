@@ -4,7 +4,8 @@ import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import LazyImage from './components/LazyImage.jsx'
 import { useTheme } from './contexts/ThemeContext.jsx'
-import { logout, getCurrentUser, deleteAccount } from './lib/auth.js'
+import { logout, getCurrentUser, deleteAccount, identityInfo } from './lib/auth.js'
+import { IDENTITY_AGENCY_LABELS } from './lib/identity/identityProvider.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getCurrentDevice } from './lib/deviceInfo.js'
 import { getPrefs, setPref } from './lib/notifyPrefs.js'
@@ -48,6 +49,7 @@ export default function SettingsPage() {
   const nickname = user?.nickname || '팬'
   const email = user?.email || '-'
   const device = getCurrentDevice()
+  const idInfo = identityInfo(user) // 본인인증 여부/시각/기관 (개인정보 없음)
 
   const genderLabel = user?.gender === 'male' ? t('signup.genderMale')
     : user?.gender === 'female' ? t('signup.genderFemale')
@@ -211,19 +213,17 @@ export default function SettingsPage() {
             </span>
           </div>
           <div className="st-row st-row-static">
-            <span>{t('set.verifyPhone')}</span>
-            <span className="st-vbadge soon">{t('set.verifySoon')}</span>
-          </div>
-          <div className="st-row st-row-static">
-            <span>{t('set.verifyMethod')}</span>
-            <span className="st-muted">
-              {user?.verificationMethod === 'email'
-                ? t('set.verifyMethodEmail')
-                : user?.verificationMethod === 'phone'
-                  ? t('set.verifyMethodPhone')
-                  : t('set.verifyMethodNone')}
+            <span>{t('set.identityRow')}</span>
+            <span className={`st-vbadge ${idInfo.verified ? 'ok' : 'no'}`}>
+              {idInfo.verified ? t('set.identityDone') : t('set.identityNot')}
             </span>
           </div>
+          {idInfo.verified && idInfo.agency && (
+            <div className="st-row st-row-static">
+              <span>{t('set.identityAgency')}</span>
+              <span className="st-muted">{IDENTITY_AGENCY_LABELS[idInfo.agency] || idInfo.agency}</span>
+            </div>
+          )}
           {!user?.isEmailVerified && (
             <div className="st-row" role="button" tabIndex={0}
               onClick={() => navigate('/verify-email', { state: { reason: 'login' } })}>
@@ -231,8 +231,12 @@ export default function SettingsPage() {
               <span className="st-chevron" aria-hidden="true">›</span>
             </div>
           )}
-          <button className="st-phone-btn" disabled>{t('set.verifyPhoneBtn')}</button>
-          <p className="st-phone-note">{t('set.verifyPhoneNote')}</p>
+          {!idInfo.verified && (
+            <>
+              <button className="st-phone-btn" onClick={() => navigate('/verify-identity')}>{t('set.identityGo')}</button>
+              <p className="st-phone-note">{t('set.identityNote')}</p>
+            </>
+          )}
         </section>
 
         {/* Team */}

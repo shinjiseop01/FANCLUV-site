@@ -1,0 +1,71 @@
+/* FANCLUV — 본인인증 화면 (signup 카드 스타일 재사용 + 전용 요소) */
+
+.vi-shield {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin: 4px auto 18px;
+  border-radius: 18px;
+  color: var(--team-deep, #1D4ED8);
+  background: color-mix(in srgb, var(--team, #2563EB) 12%, var(--mix-base, #fff));
+}
+.vi-shield svg { width: 34px; height: 34px; }
+
+.vi-points {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: grid;
+  gap: 9px;
+}
+.vi-points li {
+  position: relative;
+  padding-left: 24px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--muted, #6B7280);
+}
+.vi-points li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--team, #2563EB);
+}
+
+.vi-agency {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--muted, #6B7280);
+}
+.vi-agency strong { color: var(--ink, #111827); font-weight: 700; }
+
+.vi-mock-note {
+  margin: 0 0 16px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted, #6B7280);
+  background: color-mix(in srgb, var(--ink, #111827) 5%, var(--mix-base, #fff));
+  border-radius: 10px;
+}
+
+.vi-later {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted, #6B7280);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.vi-later:hover { color: var(--ink, #111827); }
+.vi-later:disabled { opacity: .5; cursor: default; }

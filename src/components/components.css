@@ -385,3 +385,47 @@ select:focus-visible {
 /* ───────────── Inline icon + text (수직 중앙 정렬 유틸) ───────────── */
 .ic-txt { display: inline-flex; align-items: center; gap: 5px; }
 .ic-txt svg { flex-shrink: 0; }
+
+/* ───────────── 본인인증 필요 안내 배너 (IdentityNotice) ───────────── */
+.id-notice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  margin: 8px 0 20px;
+  background: color-mix(in srgb, var(--team, #2563EB) 7%, var(--mix-base, #fff));
+  border: 1px solid color-mix(in srgb, var(--team, #2563EB) 28%, var(--border, #E5E7EB));
+  border-radius: 14px;
+}
+.id-notice-ic {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  color: var(--team-deep, #1D4ED8);
+  background: color-mix(in srgb, var(--team, #2563EB) 14%, var(--mix-base, #fff));
+}
+.id-notice-ic svg { width: 22px; height: 22px; }
+.id-notice-body { flex: 1; min-width: 0; }
+.id-notice-body strong { display: block; font-size: 14.5px; font-weight: 700; color: var(--ink, #111827); }
+.id-notice-body p { margin: 3px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted, #6B7280); }
+.id-notice-btn {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--team-deep, #1D4ED8);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: filter .15s ease;
+}
+.id-notice-btn:hover { filter: brightness(1.06); }
+@media (max-width: 560px) {
+  .id-notice { flex-wrap: wrap; }
+  .id-notice-btn { width: 100%; }
+}

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
-import { logout, getCurrentUser } from './lib/auth.js'
+import IdentityNotice from './components/IdentityNotice.jsx'
+import { logout, getCurrentUser, requiresIdentityVerification } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getSurvey, submitResponse } from './lib/surveysRepo.js'
 import { SkeletonList } from './components/Skeleton.jsx'
@@ -131,6 +132,12 @@ export default function SurveyDetailPage() {
               <button className="sv-btn-primary" onClick={backToList}>{t('survey.backList')}</button>
             </div>
           </div>
+        ) : requiresIdentityVerification() ? (
+          /* 본인인증 미완료 — 설문 참여 불가 안내 */
+          <>
+            <button className="sv-back" onClick={backToList}>{t('common.back')}</button>
+            <IdentityNotice />
+          </>
         ) : (
           <>
             <button className="sv-back" onClick={backToList}>{t('common.back')}</button>

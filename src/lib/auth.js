@@ -71,6 +71,11 @@ function mapSupabaseUser(authUser, profile) {
     verificationStatus:
       p.verification_status ||
       (emailVerified ? VERIFICATION.EMAIL_VERIFIED : VERIFICATION.UNVERIFIED),
+    // 본인인증(휴대폰 CI/DI) — 여부/시각/기관만 클라이언트로 매핑한다.
+    // ⚠️ CI/DI 원문(identity_ci/identity_di)은 앱 사용자 객체에 담지 않는다(노출 최소화).
+    identityVerified: !!p.identity_verified,
+    identityVerifiedAt: p.identity_verified_at || null,
+    identityProvider: p.identity_provider || null,
   }
 }
 
@@ -129,7 +134,8 @@ function readUsers() {
 function writeUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)) }
 function publicUser(u) {
   if (!u) return null
-  const { password, ...rest } = u
+  // password 는 물론, 본인인증 CI/DI 원문도 화면으로 내보내지 않는다(노출 최소화).
+  const { password, identityCi, identityDi, ...rest } = u
   return rest
 }
 function setSession(email) { localStorage.setItem(SESSION_KEY, email) }
@@ -163,6 +169,15 @@ function ensureSeed() {
     if (!('avatarUrl' in u)) { u.avatarUrl = null; changed = true }
     if (!('lastNicknameChangeAt' in u)) { u.lastNicknameChangeAt = null; changed = true }
     if (!('provider' in u)) { u.provider = null; changed = true }
+    // 데모 계정은 본인인증 완료 상태로 시드(기존 데모 흐름이 깨지지 않도록).
+    if (!('identityVerified' in u)) {
+      u.identityVerified = true
+      u.identityVerifiedAt = u.joinedAt
+      u.identityProvider = 'mock'
+      u.identityCi = `MOCKCI-seed-${u.email}`
+      u.identityDi = `MOCKDI-seed-${u.email}`
+      changed = true
+    }
   }
   if (changed) writeUsers(users)
 }
@@ -183,6 +198,9 @@ function mockSignup({ nickname, email, password, gender = null, ageGroup = null 
     gender, ageGroup, avatarUrl: null, lastNicknameChangeAt: null,
     joinedAt: now, selectedTeam: null, role: ROLES.FAN,
     ...seededEmailVerified(now),
+    // 신규 가입은 본인인증 미완료 → /verify-identity 에서 완료해야 핵심 기능 사용 가능.
+    identityVerified: false, identityVerifiedAt: null, identityProvider: null,
+    identityCi: null, identityDi: null,
   }
   users.push(user); writeUsers(users); setSession(email)
   return { ok: true, user: publicUser(user) }
@@ -236,6 +254,9 @@ function mockSocialLogin(profile, isNewRef) {
       avatarUrl: profile.profileImage, gender: null, ageGroup: null,
       lastNicknameChangeAt: null, joinedAt: now, selectedTeam: null, role: ROLES.FAN,
       ...seededEmailVerified(now),
+      // 소셜 최초 가입도 본인인증 미완료 → 온보딩 후 /verify-identity 에서 완료.
+      identityVerified: false, identityVerifiedAt: null, identityProvider: null,
+      identityCi: null, identityDi: null,
     }
     users.push(user); writeUsers(users); if (isNewRef) isNewRef.value = true
   }
@@ -463,6 +484,89 @@ export function verifyPhone(email) {
     isPhoneVerified: true, phoneVerifiedAt: new Date().toISOString(),
     verificationMethod: 'phone', verificationStatus: VERIFICATION.PHONE_VERIFIED,
   })
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  본인인증 (PASS / NICE / KCB — CI/DI). Provider 구조: src/lib/identity/
+// ════════════════════════════════════════════════════════════════════════
+
+// 본인인증 완료 여부. 관리자/구단 계정은 운영자 발급이라 면제(true 취급).
+export function isIdentityVerified(user = getCurrentUser()) {
+  if (!user) return false
+  if (NO_VERIFY_ROLES.includes(user.role)) return true
+  return !!user.identityVerified
+}
+
+// 핵심 기능(설문·의견·댓글) 사용 전 본인인증이 필요한지.
+export function requiresIdentityVerification(user = getCurrentUser()) {
+  if (!user) return false
+  if (NO_VERIFY_ROLES.includes(user.role)) return false
+  return !user.identityVerified
+}
+
+// 설정/화면 표시용 본인인증 상태(개인정보 없이 여부/시각/기관만).
+export function identityInfo(user = getCurrentUser()) {
+  return {
+    verified: isIdentityVerified(user),
+    verifiedAt: user?.identityVerifiedAt || null,
+    agency: user?.identityProvider || null,
+  }
+}
+
+// Mock 모드: localStorage 에 본인인증 결과 저장(+ 동일 CI 중복가입 방지).
+function mockClaimIdentity({ agency, ci, di }) {
+  const email = localStorage.getItem(SESSION_KEY)
+  if (!email) return { ok: false, error: '로그인이 필요합니다.' }
+  const users = readUsers()
+  const meIdx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase())
+  if (meIdx === -1) return { ok: false, error: '사용자를 찾을 수 없습니다.' }
+  // 동일 CI 는 하나의 계정만(중복가입 방지).
+  if (ci && users.some((u, i) => i !== meIdx && u.identityCi === ci))
+    return { ok: false, code: 'duplicate', error: '이미 다른 계정에서 본인인증된 정보입니다.' }
+  const now = new Date().toISOString()
+  users[meIdx] = {
+    ...users[meIdx],
+    identityVerified: true, identityVerifiedAt: now, identityProvider: agency || 'mock',
+    identityCi: ci || null, identityDi: di || null,
+    // 본인인증 완료는 휴대폰 인증 완료로 간주(기존 VERIFICATION 체계와 매핑).
+    isPhoneVerified: true, phoneVerifiedAt: now,
+    verificationMethod: 'phone', verificationStatus: VERIFICATION.PHONE_VERIFIED,
+  }
+  writeUsers(users)
+  return { ok: true, user: publicUser(users[meIdx]) }
+}
+
+// 본인인증 결과 저장(facade). Provider verify() 결과를 그대로 넘긴다.
+//   • 실 Provider(serverWritten): Edge Function 이 이미 profiles 에 CI/DI 저장 →
+//     세션 프로필만 재로드해 최신 상태 반영.
+//   • Mock Provider(ci/di 보유): Supabase 는 RPC claim_identity(중복확인·저장, CI 비교는
+//     서버에서), Mock 모드는 localStorage 에 저장.
+export async function completeIdentityVerification(result) {
+  if (!result || result.ok === false) {
+    return { ok: false, code: result?.code || 'failed', error: result?.error || '본인인증에 실패했습니다.' }
+  }
+  const { agency, ci, di, serverWritten } = result
+  if (isSupabaseConfigured) {
+    if (!cachedUser) return { ok: false, error: '로그인이 필요합니다.' }
+    if (serverWritten) {
+      await loadCurrentSupabaseUser()
+      return cachedUser?.identityVerified
+        ? { ok: true }
+        : { ok: false, error: '본인인증 상태를 확인하지 못했습니다.' }
+    }
+    // Mock Provider + Supabase: CI/DI 를 서버 RPC 로 저장(중복확인 포함, CI 비교는 서버).
+    const { data, error } = await supabase.rpc('claim_identity', {
+      p_ci: ci, p_di: di, p_agency: agency || 'mock',
+    })
+    if (error) return { ok: false, error: '본인인증 저장에 실패했습니다.' }
+    if (!data?.ok) {
+      return { ok: false, code: data?.code || 'failed',
+        error: data?.code === 'duplicate' ? '이미 다른 계정에서 본인인증된 정보입니다.' : '본인인증에 실패했습니다.' }
+    }
+    await loadCurrentSupabaseUser()
+    return { ok: true }
+  }
+  return mockClaimIdentity({ agency, ci, di })
 }
 
 // 이메일 인증번호 발급.

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { login, ADMIN_ROLES, CLUB_ROLES, needsOnboarding } from './lib/auth.js'
+import { login, ADMIN_ROLES, CLUB_ROLES, needsOnboarding, requiresIdentityVerification } from './lib/auth.js'
 import { isSupabaseConfigured } from './lib/supabase.js'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { useLang } from './contexts/LanguageContext.jsx'
@@ -35,6 +35,7 @@ export default function LoginPage() {
     if (CLUB_ROLES.includes(user.role)) navigate('/executive')      // 구단(고객) → Executive Dashboard
     else if (needsOnboarding(user)) navigate('/onboarding')
     else if (ADMIN_ROLES.includes(user.role)) navigate('/admin')
+    else if (requiresIdentityVerification(user)) navigate('/verify-identity') // 본인인증 미완료 팬
     else if (user.selectedTeam) navigate(`/club/${user.selectedTeam}`)
     else navigate('/team-select')
   }

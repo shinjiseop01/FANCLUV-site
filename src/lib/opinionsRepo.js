@@ -5,7 +5,7 @@
 // 사용하고, 아니면 기존 Mock(seeded 풀 + localStorage)으로 자동 폴백한다.
 // 모든 함수는 async 이며, 두 모드에서 동일한 UI 형태의 객체를 반환한다.
 import { supabase, isSupabaseConfigured } from './supabase.js'
-import { getCurrentUser } from './auth.js'
+import { getCurrentUser, requiresIdentityVerification } from './auth.js'
 import { getCreatedOpinions, addOpinion as addCreatedOpinion } from '../opinionStore.js'
 import { pushMockNotification } from './notificationsRepo.js'
 import { recordActivity } from './activityScore.js'
@@ -197,6 +197,9 @@ export async function getOpinionDetail(teamId, id) {
 // 의견 작성
 export async function createOpinion(teamId, { category, rating, title, body, hasPhoto = false }) {
   const me = getCurrentUser()
+  // 본인인증 미완료 계정은 팬 의견을 작성할 수 없다(핵심 기능 보호).
+  if (requiresIdentityVerification(me))
+    return { ok: false, code: 'identity_required', error: '본인인증 후 이용할 수 있습니다.' }
   if (isSupabaseConfigured) {
     if (!me) return { ok: false, error: '로그인이 필요합니다.' }
     const { data, error } = await supabase
@@ -241,6 +244,9 @@ export async function addComment(opinionId, content, teamId = null) {
   const me = getCurrentUser()
   const text = (content || '').trim()
   if (!text) return { ok: false }
+  // 본인인증 미완료 계정은 댓글을 작성할 수 없다(핵심 기능 보호).
+  if (requiresIdentityVerification(me))
+    return { ok: false, code: 'identity_required', error: '본인인증 후 이용할 수 있습니다.' }
   if (isSupabaseConfigured) {
     if (!me) return { ok: false, error: '로그인이 필요합니다.' }
     const { data, error } = await supabase

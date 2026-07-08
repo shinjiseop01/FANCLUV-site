@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
-import { logout, getCurrentUser } from './lib/auth.js'
+import IdentityNotice from './components/IdentityNotice.jsx'
+import { logout, getCurrentUser, requiresIdentityVerification } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getOpinionDetail, listComments, addComment, getLikeState, toggleLike as toggleLikeApi } from './lib/opinionsRepo.js'
 import { submitReport } from './lib/reportsRepo.js'
@@ -246,17 +247,21 @@ export default function OpinionDetailPage() {
                 ))}
               </ul>
 
-              <form className="od-comment-form" onSubmit={handleSubmit}>
-                <textarea
-                  className="od-comment-input"
-                  placeholder={t('detail.commentPh')}
-                  value={draft}
-                  onChange={e => setDraft(e.target.value)}
-                  onKeyDown={handleCommentKeyDown}
-                  rows={2}
-                />
-                <button type="submit" className="od-comment-submit" disabled={!draft.trim()}>{t('detail.commentSubmit')}</button>
-              </form>
+              {requiresIdentityVerification() ? (
+                <IdentityNotice />
+              ) : (
+                <form className="od-comment-form" onSubmit={handleSubmit}>
+                  <textarea
+                    className="od-comment-input"
+                    placeholder={t('detail.commentPh')}
+                    value={draft}
+                    onChange={e => setDraft(e.target.value)}
+                    onKeyDown={handleCommentKeyDown}
+                    rows={2}
+                  />
+                  <button type="submit" className="od-comment-submit" disabled={!draft.trim()}>{t('detail.commentSubmit')}</button>
+                </form>
+              )}
             </section>
           </div>
 

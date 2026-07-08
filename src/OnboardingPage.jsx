@@ -33,7 +33,8 @@ export default function OnboardingPage() {
     setLoading(true)
     const res = await completeOnboarding({ nickname: nickname.trim(), gender: gender || null, ageGroup })
     setLoading(false)
-    if (res.ok) navigate('/team-select', { replace: true })
+    // 온보딩 완료 → 본인인증 단계로. 이미 인증된 사용자면 그 화면이 곧바로 넘겨준다.
+    if (res.ok) navigate('/verify-identity', { replace: true })
     else setError(res.error)
   }
 

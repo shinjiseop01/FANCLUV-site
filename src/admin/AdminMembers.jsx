@@ -8,8 +8,8 @@ import AdminNoteBox from './AdminNoteBox.jsx'
 import { MOCK_MEMBERS } from './adminData.js'
 import { exportCsv } from '../lib/admin/csv.js'
 
-// 필터: 전체 / 정상 / 비활성 / 이메일 인증 완료 / 이메일 인증 미완료
-const FILTERS = ['all', 'active', 'inactive', 'email_verified', 'email_unverified']
+// 필터: 전체 / 정상 / 비활성 / 이메일 인증 / 본인인증 여부
+const FILTERS = ['all', 'active', 'inactive', 'email_verified', 'email_unverified', 'identity_verified', 'identity_unverified']
 
 // Verification badge: class + label key per status.
 function vMeta(status) {
@@ -33,6 +33,8 @@ function matchFilter(m, f) {
   if (f === 'inactive') return m.status === 'inactive'
   if (f === 'email_verified') return m.verificationStatus === 'email_verified' || m.verificationStatus === 'phone_verified'
   if (f === 'email_unverified') return (m.verificationStatus || 'unverified') === 'unverified'
+  if (f === 'identity_verified') return !!m.identityVerified
+  if (f === 'identity_unverified') return !m.identityVerified
   return true
 }
 
@@ -83,6 +85,7 @@ export default function AdminMembers() {
       { key: 'gender', label: t('admin.mem.fGender') },
       { key: 'age', label: t('admin.mem.fAge') },
       { key: 'verify', label: t('admin.mem.fVerifyEmail') },
+      { key: 'identity', label: t('admin.mem.fIdentity') },
       { key: 'status', label: t('admin.mem.colStatus') },
       { key: 'lastActive', label: t('admin.mem.fLastActive') },
     ]
@@ -91,6 +94,7 @@ export default function AdminMembers() {
       team: getTeam(m.team)?.name || '', login: loginLabel(m.provider, t),
       gender: genderLabel(m.gender), age: ageLabel(m.ageGroup),
       verify: m.verificationStatus === 'unverified' ? t('admin.mem.verifiedNo') : t('admin.mem.verifiedYes'),
+      identity: m.identityVerified ? t('admin.mem.identityYes') : t('admin.mem.identityNo'),
       status: statusLabel(m.status), lastActive: m.lastActiveAt || '',
     }))
     exportCsv('fancluv_members', cols, rows)
@@ -138,6 +142,7 @@ export default function AdminMembers() {
                 <th>{t('admin.mem.colJoined')}</th>
                 <th>{t('admin.mem.colTeam')}</th>
                 <th>{t('admin.mem.colVerify')}</th>
+                <th>{t('admin.mem.colIdentity')}</th>
                 <th>{t('admin.mem.colStatus')}</th>
                 <th className="adm-col-actions">{t('admin.actions')}</th>
               </tr>
@@ -158,6 +163,11 @@ export default function AdminMembers() {
                     <td className="adm-cell-muted">{m.joinedAt}</td>
                     <td>{team ? team.name : '-'}</td>
                     <td><span className={`adm-badge ${v.cls}`}>{t(v.key)}</span></td>
+                    <td>
+                      <span className={`adm-badge ${m.identityVerified ? 'vphone' : 'vnone'}`}>
+                        {m.identityVerified ? t('admin.mem.identityYes') : t('admin.mem.identityNo')}
+                      </span>
+                    </td>
                     <td>
                       <span className={`adm-badge ${m.status}`}>{statusLabel(m.status)}</span>
                     </td>
@@ -201,6 +211,14 @@ export default function AdminMembers() {
               <dd>
                 <span className={`adm-badge ${selected.verificationStatus === 'unverified' ? 'vnone' : 'vemail'}`}>
                   {selected.verificationStatus === 'unverified' ? t('admin.mem.verifiedNo') : t('admin.mem.verifiedYes')}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>{t('admin.mem.fIdentity')}</dt>
+              <dd>
+                <span className={`adm-badge ${selected.identityVerified ? 'vphone' : 'vnone'}`}>
+                  {selected.identityVerified ? t('admin.mem.identityYes') : t('admin.mem.identityNo')}
                 </span>
               </dd>
             </div>

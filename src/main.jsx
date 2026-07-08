@@ -23,6 +23,7 @@ const FindIdPage = lazy(() => import('./FindIdPage.jsx'))
 const FindPasswordPage = lazy(() => import('./FindPasswordPage.jsx'))
 const VerifyEmailPage = lazy(() => import('./VerifyEmailPage.jsx'))
 const OnboardingPage = lazy(() => import('./OnboardingPage.jsx'))
+const VerifyIdentityPage = lazy(() => import('./VerifyIdentityPage.jsx'))
 const ProfileEditPage = lazy(() => import('./ProfileEditPage.jsx'))
 const ChangePasswordPage = lazy(() => import('./ChangePasswordPage.jsx'))
 const InfoPage = lazy(() => import('./InfoPage.jsx'))
@@ -131,6 +132,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/find-password" element={<FindPasswordPage />} />
         <Route path="/verify-email" element={<RequireAuth><VerifyEmailPage /></RequireAuth>} />
         <Route path="/onboarding" element={<RequireAuth><OnboardingPage /></RequireAuth>} />
+        <Route path="/verify-identity" element={<RequireAuth><VerifyIdentityPage /></RequireAuth>} />
         <Route path="/team-select" element={<RequireAuth><TeamSelectPage /></RequireAuth>} />
         <Route path="/club/:teamId" element={<RequireAuth><ClubHomePage /></RequireAuth>} />
         <Route path="/club/:teamId/opinions" element={<RequireAuth><OpinionsPage /></RequireAuth>} />

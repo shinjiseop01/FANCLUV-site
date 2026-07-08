@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { signup, issueEmailCode, confirmEmailCode, needsOnboarding } from './lib/auth.js'
+import { signup, issueEmailCode, confirmEmailCode, needsOnboarding, requiresIdentityVerification } from './lib/auth.js'
 import { isSupabaseConfigured } from './lib/supabase.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import { useNicknameCheck } from './lib/useNicknameCheck.js'
@@ -69,6 +69,7 @@ export default function SignupPage() {
   // 소셜 회원가입/로그인 성공 → 온보딩 필요 시 온보딩, 팀 있으면 구단 홈, 아니면 팀 선택.
   function handleSocialSuccess(res) {
     if (needsOnboarding(res.user)) navigate('/onboarding')
+    else if (requiresIdentityVerification(res.user)) navigate('/verify-identity')
     else if (res.user.selectedTeam) navigate(`/club/${res.user.selectedTeam}`)
     else navigate('/team-select')
   }
@@ -96,7 +97,8 @@ export default function SignupPage() {
     if (!result.ok) { setError(result.error); return }
     // Supabase 에서 (프로젝트 설정상) 확인 메일이 추가로 필요하면 안내 후 대기.
     if (result.needsConfirm) { setConfirmSent(true); return }
-    navigate('/team-select')
+    // 이메일 인증 완료 → 본인인증 단계로. 본인인증 성공 시에만 가입이 최종 완료된다.
+    navigate('/verify-identity')
   }
 
   return (

@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
-import { logout, getCurrentUser } from './lib/auth.js'
+import IdentityNotice from './components/IdentityNotice.jsx'
+import { logout, getCurrentUser, requiresIdentityVerification } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { createOpinion } from './lib/opinionsRepo.js'
 import './ClubHomePage.css'
@@ -25,6 +26,8 @@ export default function CreateOpinionPage() {
   const [photoName, setPhotoName] = useState('')
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  // 본인인증 미완료 계정은 의견을 작성할 수 없다(작성 폼 대신 안내 노출).
+  const gated = requiresIdentityVerification()
 
   if (!team) {
     return (
@@ -98,6 +101,8 @@ export default function CreateOpinionPage() {
             <h1>{t('create.doneTitle')}</h1>
             <p>{t('create.doneDesc')}</p>
           </div>
+        ) : gated ? (
+          <IdentityNotice />
         ) : (
           <div className="cw-card">
             <header className="cw-head">

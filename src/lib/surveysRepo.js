@@ -4,7 +4,7 @@
 // Supabase 설정 시 실제 테이블(surveys/survey_responses + surveys_view)을 사용하고,
 // 아니면 기존 Mock 으로 자동 폴백한다. 모든 함수는 async.
 import { supabase, isSupabaseConfigured } from './supabase.js'
-import { getCurrentUser } from './auth.js'
+import { getCurrentUser, requiresIdentityVerification } from './auth.js'
 import { MOCK_SURVEYS } from '../admin/adminData.js'
 import { pushMockNotification } from './notificationsRepo.js'
 import { recordActivity } from './activityScore.js'
@@ -109,6 +109,9 @@ export async function getSurvey(teamId, surveyId) {
 
 // 설문 응답 제출 (1인 1회). answers = { satisfaction, improve, revisit, comment }
 export async function submitResponse(surveyId, teamId, answers) {
+  // 본인인증 미완료 계정은 설문에 참여할 수 없다(핵심 기능 보호).
+  if (requiresIdentityVerification())
+    return { ok: false, code: 'identity_required', error: '본인인증 후 이용할 수 있습니다.' }
   if (isSupabaseConfigured) {
     const me = getCurrentUser()
     if (!me) return { ok: false, error: '로그인이 필요합니다.' }

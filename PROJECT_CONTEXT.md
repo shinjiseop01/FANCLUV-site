@@ -34,6 +34,7 @@ npm run lint     # oxlint
 | `/find-id` | FindIdPage (아이디 찾기) | ✗ |
 | `/find-password` | FindPasswordPage (비밀번호 찾기) | ✗ |
 | `/verify-email` | VerifyEmailPage (이메일 인증) | ✓ |
+| `/verify-identity` | VerifyIdentityPage (본인인증 PASS/NICE/KCB — 40차) | ✓ |
 | `/team-select` | TeamSelectPage | ✓ |
 | `/club/:teamId` | ClubHomePage (구단 홈) | ✓ |
 | `/club/:teamId/opinions` | OpinionsPage (팬 의견 목록) | ✓ |
@@ -134,8 +135,23 @@ npm run lint     # oxlint
 - 데모 시드 계정(Mock 모드 전용): **`fan@fancluv.kr` / `1234`**(닉네임 `민준`), **`admin@fancluv.kr` / `admin123`**(admin), **`club.seoul@fancluv.kr` / `club1234`**(role=`club`, 구단=FC 서울 → `/executive`).
 - export 함수: `signup`, `login`, `logout`, `getCurrentUser`, `isAuthenticated`, `setSelectedTeam` 등 + `isAdmin()`(관리자 판정).
 - **권한 체계(`ROLES`/`ADMIN_ROLES`/`CLUB_ROLES`)**: `fan`(기본) / `admin`(+예정 `superadmin`·`staff`·`club_admin`) / **`club`(B2B 구단 고객 — 38차)**. 관리자 판정 `isAdmin()`=`ADMIN_ROLES`. **구단 고객 판정 `isClub()`=`CLUB_ROLES`(admin과 완전 분리)**, `getClubId()`=담당 구단(자기 구단만). 로그인 이메일 인증 없이 가능한 역할 `NO_VERIFY_ROLES`(=admin+club, 운영자 발급).
-- **본인인증 체계(`VERIFICATION`)**: `unverified` / `email_verified` / `phone_verified`. MVP는 **이메일 Mock 인증만 동작**. 사용자 객체에 `isEmailVerified`/`emailVerifiedAt`/`isPhoneVerified`/`isPhoneVerifiedAt` 플래그 보관 → 향후 휴대폰 본인인증(PASS/NICE/KCB)을 그대로 얹을 수 있게 구조 선반영.
+- **본인인증 체계(`VERIFICATION`)**: `unverified` / `email_verified` / `phone_verified`. 이메일 인증 + **휴대폰 본인인증(PASS/NICE/KCB, 40차) 실동작**. 본인인증 완료 시 `phone_verified` 로 매핑. → 아래 **본인인증** 섹션 참조.
 - ⚠️ 비밀번호 평문 저장 (MVP 한정). 실서비스 전 반드시 교체.
+
+### 본인인증 (PASS / NICE / KCB) — `src/lib/identity/` + `VerifyIdentityPage` + Edge Function (40차)
+- **Provider 아키텍처**: `identityProvider.js`(facade — Provider 선택 + 표준 결과) → `providers/mockIdentityProvider.js`(개발/데모) + `providers/agencyProviders.js`(`PassProvider`/`NiceProvider`/`KcbProvider`, 하나의 `AgencyIdentityProvider` 베이스). 화면은 `getIdentityProvider().verify()` 하나만 호출 → **어느 업체든 UI/로직 불변**.
+- **Provider 선택**: `VITE_IDENTITY_PROVIDER = mock | pass | nice | kcb`(미설정/미지원 → mock). `identityProviderId()`/`isIdentityMock()`.
+- **가입 흐름(요구사항 2/3)**: 이메일 회원가입 = 이메일 인증 완료 → `/verify-identity`. 소셜(Google/Kakao/NAVER) 최초 = 온보딩 → `/verify-identity`. **본인인증 성공 시에만 가입 최종 완료**. `routeAfterAuth`/`handleSocialSuccess` 가 `requiresIdentityVerification()` 이면 `/verify-identity` 로 보냄. **이미 인증된 사용자는 재인증하지 않음**(VerifyIdentityPage 진입 즉시 다음 화면으로).
+- **저장 정보(요구사항 4)**: `profiles.identity_verified`(여부)·`identity_verified_at`(시각)·`identity_provider`(기관)·`identity_ci`(CI)·`identity_di`(DI)만 저장. **주민등록번호·이름·휴대폰 등 민감정보는 저장하지 않음.** 앱 사용자 객체(`mapSupabaseUser`/`publicUser`)에는 **CI/DI 원문을 담지 않고** 여부/시각/기관만 노출.
+- **중복가입 방지(요구사항 5)**: **동일 CI = 한 계정만**. Supabase = `profiles.identity_ci` unique 인덱스 + RPC `claim_identity`(SECURITY DEFINER, 서버에서 CI 비교·저장 → 클라이언트가 남의 CI 조회 불가). Mock = localStorage 에서 동일 CI 존재 시 `duplicate`. 실 Provider = Edge Function 이 저장 전 중복확인.
+- **핵심 기능 보호(요구사항 6)**: `requiresIdentityVerification()` — 미인증 계정은 **설문 참여·팬 의견 작성·댓글 작성 불가**(뉴스·경기·랭킹 등 열람은 그대로 허용). ① 화면 게이팅(`IdentityNotice` 배너 — CreateOpinion/OpinionDetail/SurveyDetail), ② repo 게이팅(`createOpinion`/`addComment`/`submitResponse` 가 `identity_required` 반환), ③ RLS 게이팅(`0026` 의 insert 정책에 `is_identity_verified()` 추가) — **3중 방어**.
+- **관리자(요구사항 7)**: `AdminMembers` 에 **본인인증 여부만** 표시(완료/미완료 배지 + 필터 + 상세 + CSV). **CI/DI·개인정보 미표시**(요구사항 7).
+- **Mock vs Production(요구사항 8)**:
+  - **Mock(개발/데모)**: 실제 인증창 없이 즉시 성공. CI/DI 는 seed(이메일)로 결정적 생성. Supabase 설정 시 RPC `claim_identity` 저장, Mock 모드는 localStorage. 데모 계정(fan/admin/club)은 인증 완료로 시드.
+  - **Production**: `VITE_IDENTITY_PROVIDER=pass|nice|kcb` → 업체 인증창(팝업) → 콜백 토큰 → **Edge Function `identity-verify`**(업체 비밀키 서버 보관)가 CI/DI 조회·중복확인·`profiles` 저장. **클라이언트는 CI/DI 원문을 받지 않음**(서버가 여부만 반환).
+- **Provider 교체 방법**: ① 업체 전환(pass↔nice↔kcb) = `.env` 의 `VITE_IDENTITY_PROVIDER` + Edge Function 시크릿 `IDENTITY_VENDOR` 만 변경. ② 새 업체 추가 = `agencyProviders.js` 에 `AgencyIdentityProvider` 상속 클래스 정의 후 `identityProvider.js` `REGISTRY` 에 등록 + `identity-verify` 의 `callVendorStart/callVendorComplete` 분기만 맞춤. **앱/DB 계약(CI/DI/agency)은 불변.**
+- **Edge Function `identity-verify`(Deno)**: `action:'start'`(업체 인증창 URL 발급) / `action:'complete'`(콜백 토큰 → 업체 API 로 CI/DI 조회 → 중복확인 → `profiles` 저장, service_role). 요청자 JWT 로 본인 식별(본인 프로필만 저장). verify_jwt 유지. 시크릿: `IDENTITY_VENDOR/CLIENT_ID/CLIENT_SECRET/API_BASE/SITE_URL`. SQL: `0026_identity_verification.sql`.
+- **auth.js API**: `isIdentityVerified(user)`·`requiresIdentityVerification(user)`·`identityInfo(user)`·`completeIdentityVerification(result)`(Provider verify() 결과 저장 — mock=RPC/localStorage, 실=serverWritten 재로드).
 
 ### 소셜 로그인 — `src/lib/oauth.js` + `auth.socialLogin()`
 - **OAuth Provider 추상화**: `OAuthProvider` 베이스 + `GoogleProvider`/`KakaoProvider`/`NaverProvider`. `OAUTH_PROVIDERS` 배열에 등록 → 화면(SocialAuth)에서 순회 렌더. Provider 추가는 클래스 정의 후 배열에만 추가하면 됨.
@@ -332,6 +348,7 @@ npm run lint     # oxlint
 
 **운영 준비 · 실연동 시리즈 (최신)**
 
+0. 본인인증(PASS/NICE/KCB) 실연동 — 40차: `src/lib/identity/`(identityProvider facade + mock/pass/nice/kcb) + `VerifyIdentityPage`(`/verify-identity`) + Edge Function `identity-verify` + `0026_identity_verification.sql`(profiles CI/DI 컬럼·unique·`claim_identity` RPC·`is_identity_verified()` insert 게이트). 회원가입=이메일 인증 후, 소셜=온보딩 후 본인인증 완료해야 가입 최종 완료(이미 인증 시 스킵). 저장=여부/시각/기관/CI·DI만(민감정보 없음), 동일 CI 한 계정만. 미인증 계정은 설문/의견/댓글 차단(3중 방어: 화면 `IdentityNotice`·repo·RLS), 뉴스 등 열람은 허용. 관리자는 본인인증 여부만 확인(개인정보 없음). Mock(개발 즉시 성공)·Production(업체 인증창→Edge Function 서버 저장) 분리 ("Implement production identity verification").
 0. UX/인증 개선 — 39차: (1) **관리자 라이트모드 수정** — 라이트 `.ch-root` 뉴트럴 토큰을 `theme.css`에 전역 정의 + `.admin-shell` 배경(`--page-bg`) 명시 → 어두운 body가 비치던 문제 해결(다크 유지). (2) **활동 점수 다음날 00시 반영** — `lib/activityScore.js`(의견/댓글/설문/공감 타임스탬프 기록, reflected=어제까지·pending=오늘). 의견/댓글/공감/설문 성공 지점(`opinionsRepo`/`surveysRepo`)에서 기록, 팬 랭킹·내 활동에 반영 + "오늘 +N점 내일 반영" 안내. (3) **소셜 로그인 Mock 흐름 검증**(Google/Kakao/NAVER → 신규 시 온보딩 → 홈, 재로그인 시 온보딩 스킵; 실 OAuth는 Supabase 프로바이더 자격증명 필요) ("Improve admin light mode, activity scoring, social login flow"). ※ 실제 팀 로고(라이선스 이미지 자산 필요)·팬 화면 사이드바 전면 리디자인(15개 페이지 공통 헤더 리팩터)은 별도 작업 필요.
 0. Club Executive Dashboard(B2B) — 38차: `ClubExecutiveDashboard`(`/executive`) + `clubDashboardRepo` + `role='club'`(`CLUB_ROLES`, admin 완전 분리) + `RequireClub` 가드. 구단 고객이 **원본 팬 데이터 없이** 운영자 검토 AI 인사이트·집계 KPI·전달 리포트·Benchmark만 확인. Executive Brief(AI 자동생성)·KPI Trend·Club Action 효과·Report Center. 테스트 계정 `club.seoul@fancluv.kr`/`club1234`(FC 서울) ("Implement club executive dashboard").
 0. Club Action Tracker(핵심 기능) — 37차: `AdminActionTracker`(`/admin/tracker`) + `actionTracker.js` + `result_note`(`0025`). 팬 의견→AI 분석→구단 Action→KPI 변화→AI 효과 분석 전체 루프 연결. Timeline·Before/After KPI 변화량·AI 효과 서술·영향 카테고리·효과 등급·Club Intelligence Score·기간비교·운영자 메모 + Dashboard "최근 Club Action 효과" 패널 ("Implement club action tracker").
@@ -423,7 +440,7 @@ npm run lint     # oxlint
 - [x] **실제 팀별 뉴스 연동** — 완료(31차). Edge Function `news-fetcher`(RSS→공식 홈 스크래핑, 10분 캐시) + `edgeNewsProvider`(VITE_NEWS_PROVIDER=edge) + `news_cache`(`0019`). **남은 일**: (1) 각 구단 실제 `rssUrl`/정확한 뉴스 경로를 `SOURCE_OVERRIDES`에 확정(현재 newsUrl best-effort, 실패 시 Mock 폴백), (2) 사이트별 스크래핑 셀렉터 정교화(현재 범용 앵커 추출), (3) `news-fetcher` 배포 + `VITE_NEWS_PROVIDER=edge` 설정.
 - [x] **관리자 대시보드 실집계** — 완료(24차). KPI 10종·구단별 현황·최근 활동·차트 전부 Supabase RPC `admin_dashboard_stats`(`0013`) 실집계 or Mock, 30초 캐시(`adminStats.js`). **남은 여지**: RPC 미배포 환경 검증, 기간별(월/분기) 세분화.
 - [ ] **리포트 실제 전달 채널** — 구단 리포트 전달(`deliverReport`)의 `email`/`link` 방식은 구조만 있고 실제 전송 미구현(현재 pdf 다운로드만 실동작). 이메일/공유링크 발송 연동 필요.
-- [ ] **휴대폰 본인인증(PASS / NICE / KCB) 실제 연동** — 사용자 스키마·`VERIFICATION` 상태(`phone_verified`)·설정 UI 자리만 준비됨. 이메일 인증만 실동작. 실제 본인인증 게이트웨이 연동 필요.
+- [x] **휴대폰 본인인증(PASS / NICE / KCB) 실제 연동** — 완료(40차). Provider 구조(`src/lib/identity/`) + `/verify-identity` + Edge Function `identity-verify` + `0026`(CI/DI 저장·중복방지·insert 게이트). 미인증 계정 핵심기능 차단, 관리자 여부만 확인. Mock/Production 분리. **남은 일**: (1) 실제 업체 선택 후 시크릿(`IDENTITY_VENDOR/CLIENT_ID/CLIENT_SECRET/API_BASE/SITE_URL`) 설정 + `identity-verify` 배포 + `VITE_IDENTITY_PROVIDER=nice(등)`, (2) 업체 규격에 맞춰 `identity-verify` 의 `callVendorStart/callVendorComplete` 실 API 연동, (3) 인증창 콜백 정적 페이지(`/identity/callback`, postMessage) 추가.
 
 ### Edge Function 배포 확인 (Supabase)
 - [ ] `send-email-code` — 이메일 인증번호 발송(Resend, 미설정 시 devCode 폴백).
