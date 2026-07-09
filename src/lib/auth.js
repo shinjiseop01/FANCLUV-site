@@ -429,10 +429,10 @@ export async function socialLogin(providerId) {
 
     // Google · Kakao — Supabase 기본 지원 provider.
     if (cfg.native) {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: cfg.supabaseProvider,
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      })
+      const options = { redirectTo: `${window.location.origin}/auth/callback` }
+      // Kakao 등 provider 별 scope 재정의(비즈 앱 아닌 Kakao 는 account_email 제외).
+      if (cfg.scopes) options.scopes = cfg.scopes
+      const { error } = await supabase.auth.signInWithOAuth({ provider: cfg.supabaseProvider, options })
       if (error) return { ok: false, error: translateAuthError(error) }
       return { ok: true, redirecting: true } // 브라우저가 provider 로 리다이렉트됨
     }

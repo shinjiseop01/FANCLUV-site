@@ -87,9 +87,14 @@ Kakao 는 **Supabase 기본 지원 Provider** 입니다(별도 Edge Function 불
 3. **제품 설정 → 카카오 로그인 → 활성화 ON**
 4. **카카오 로그인 → Redirect URI 등록** (Supabase 주소):
    - `https://cuuzbddxnzhhlrqmmebz.supabase.co/auth/v1/callback`
-5. **제품 설정 → 카카오 로그인 → 동의항목**: **닉네임**, **카카오계정(이메일)** 을
-   "필수 동의" 또는 "선택 동의"로 설정
-   (이메일은 비즈앱 심사가 필요할 수 있음 → 미제공 시 앱이 닉네임 기반 fallback 처리)
+5. **제품 설정 → 카카오 로그인 → 동의항목**: **닉네임(profile_nickname)** 을
+   "필수 동의"로 설정 (프로필 사진은 선택). ⚠️ **카카오계정(이메일, account_email)**
+   은 **비즈 앱 전환 후에만** 사용 가능합니다.
+   - **현재 베타(개인/일반 앱)**: 코드가 `profile_nickname profile_image` 만 요청하므로
+     **이메일 동의항목을 켤 필요가 없습니다.** (이메일 동의항목을 요청하면
+     `KOE205 – 설정하지 않은 동의 항목: account_email` 오류가 납니다.)
+   - **비즈 앱 전환 후**: 이메일 동의항목을 활성화하고, 코드의 Kakao scope 에
+     `account_email` 을 추가하면 이메일도 수집됩니다(아래 §3-4).
 6. **앱 키**: **REST API 키** 를 Client ID 로 사용.
 7. **보안 → Client Secret**: 생성 후 **활성화 상태로 ON** → 그 값을 Client Secret 으로 사용.
 
@@ -105,8 +110,19 @@ Authentication → Providers → **Kakao** → Enable →
 | REST API 키 | Kakao Provider → Client ID |
 | Client Secret(보안) | Kakao Provider → Client Secret |
 
-> **이메일 미제공 처리**: Kakao가 이메일을 내려주지 않으면 `profiles.email` 은 비고,
-> 닉네임은 카카오 닉네임으로 저장됩니다(트리거 `handle_new_user`가 처리).
+### 3-4. 이메일 scope (비즈 앱 전환 전/후)
+- **현재 베타**: `src/lib/oauth.js` 의 Kakao scope = `profile_nickname profile_image`
+  (account_email 제외). 이메일 미제공이라 `profiles.email` 은 NULL 이며, 닉네임은
+  카카오 닉네임(없으면 `카카오사용자`)으로 저장됩니다(트리거 `handle_new_user`).
+  로그인은 정상 성공하고, 이메일은 추후 설정 화면에서 추가 입력하도록 남겨둡니다
+  (`ProfileEditPage` 의 `TODO(email-later)`).
+- **비즈 앱 전환 후**: Kakao Developers 에서 앱을 비즈 앱으로 전환하고 이메일 동의항목을
+  활성화한 뒤, `SUPABASE_PROVIDER_CONFIG.kakao.scopes` 를
+  `'profile_nickname profile_image account_email'` 로 바꾸면 이메일도 수집됩니다.
+
+> **KOE205 정리**: "설정하지 않은 동의 항목: account_email" 은 비즈 앱이 아닌데
+> account_email scope 를 요청할 때 납니다. 베타에서는 account_email 을 **요청하지 않으므로**
+> 발생하지 않습니다.
 
 ---
 

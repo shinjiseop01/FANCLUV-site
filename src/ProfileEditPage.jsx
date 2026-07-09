@@ -15,6 +15,11 @@ import './AccountPages.css'
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
+// TODO(email-later): 이메일 미제공 소셜 계정(비즈 앱 전환 전 Kakao 등)은 profiles.email
+//   이 NULL 일 수 있다. 이 설정 화면에 "이메일 추가 입력" 필드를 두어, 이메일이 없는
+//   계정이 나중에 이메일을 등록/인증할 수 있게 한다(본인인증·비밀번호 재설정 등에서 필요).
+//   구현 시: user.email 이 비어 있으면 입력 필드 노출 → supabase.auth.updateUser({ email })
+//   → 확인 메일 인증 → profiles.email 동기화.
 export default function ProfileEditPage() {
   const { teamId } = useParams()
   const navigate = useNavigate()
