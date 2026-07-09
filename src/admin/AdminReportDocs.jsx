@@ -5,7 +5,7 @@ import EmptyState from '../components/EmptyState.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
 import {
-  DELIVERY_METHODS, adminListReports, createReport, updateReport,
+  adminListReports, createReport, updateReport,
   setStatus, deliverReport, deleteReport, listDeliveries,
 } from '../lib/admin/clubReportsRepo.js'
 
@@ -373,10 +373,11 @@ export default function AdminReportDocs() {
 
             <div className="adm-field">
               <label>{t('admin.rpt.deliverMethod')}</label>
-              <select className="adm-input" value={deliver.method} onChange={e => setD('method', e.target.value)}>
-                {DELIVERY_METHODS.map(m => <option key={m} value={m}>{t(`admin.rpt.method.${m}`)}</option>)}
+              {/* 베타: PDF 다운로드만 제공(email/link 전달은 준비 중이라 노출하지 않음). */}
+              <select className="adm-input" value="pdf" disabled>
+                <option value="pdf">{t('admin.rpt.method.pdf')}</option>
               </select>
-              {deliver.method !== 'pdf' && <p className="adm-rpt-lockhint">{t('admin.rpt.methodPrep')}</p>}
+              <p className="adm-rpt-lockhint">{t('admin.rpt.methodPrep')}</p>
             </div>
 
             <div className="adm-field">

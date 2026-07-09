@@ -9,7 +9,7 @@
 // getCurrentUser()/isAuthenticated()/isAdmin() 는 화면 여러 곳에서 "동기"로
 // 호출된다. Supabase 세션은 비동기이므로, AuthContext 가 세션/프로필을 로드해
 // 아래 동기 캐시(cachedUser)에 반영하고, 그 값을 동기로 반환한다.
-import { supabase, isSupabaseConfigured } from './supabase.js'
+import { supabase, isSupabaseConfigured, isProdMisconfigured } from './supabase.js'
 import { invokeFunction } from './edgeFunctions.js'
 import { getProvider, SUPABASE_PROVIDER_CONFIG } from './oauth.js'
 import { sendWelcomeEmail } from './welcomeEmail.js'
@@ -18,20 +18,36 @@ import { validateNicknameFormat } from './nicknameValidation.js'
 const USERS_KEY = 'fancluv_users'
 const SESSION_KEY = 'fancluv_session' // (Mock) 현재 로그인한 사용자의 email
 
-// 권한(Role) 체계 — 관리자 콘솔 접근 가능한 역할을 ADMIN_ROLES 한 곳에서 관리.
+// 권한(Role) 체계 — 베타 역할: Fan / Club Account / Admin / Super Admin.
+//   (staff = 운영 직원 = 관리자 계열 / club_admin = 구단 담당자 = Club Account 로 취급)
 export const ROLES = {
   FAN: 'fan',
   ADMIN: 'admin',
-  SUPER_ADMIN: 'superadmin', // 예정
-  STAFF: 'staff',            // 예정 (FANCLUV 직원)
-  CLUB_ADMIN: 'club_admin',  // 예정 (구단 관리자 — FANCLUV 내부)
+  SUPER_ADMIN: 'superadmin', // 최상위 관리자
+  STAFF: 'staff',            // FANCLUV 운영 직원(관리자 계열)
+  CLUB_ADMIN: 'club_admin',  // 구단 담당자(= Club Account 로 취급, club 과 동일 권한)
   CLUB: 'club',              // B2B 구단 담당자(고객) — Admin 과 완전 분리, Executive Dashboard 전용
 }
-export const ADMIN_ROLES = [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.STAFF, ROLES.CLUB_ADMIN]
+// 관리자 콘솔 접근 가능 역할(= Admin/Super Admin/Staff). club_admin 은 구단 계정이라 제외.
+export const ADMIN_ROLES = [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.STAFF]
 // 구단(고객) 계정 역할 — 관리자 권한과 완전 분리. 원본 팬 데이터 접근 불가, 자기 구단만.
-export const CLUB_ROLES = [ROLES.CLUB]
+export const CLUB_ROLES = [ROLES.CLUB, ROLES.CLUB_ADMIN]
 // 이메일 인증 없이 로그인 가능한 역할(관리자/구단 계정은 운영자가 발급).
 const NO_VERIFY_ROLES = [...ADMIN_ROLES, ...CLUB_ROLES]
+
+// DB profiles.role → 앱 role 매핑. 관리자 계열이 fan 으로 강등되지 않도록 명시적으로 매핑한다.
+//   superadmin→Super Admin / staff→Staff(관리자) / admin→Admin /
+//   club_admin→Club Account / club→Club Account / 그 외/미상→Fan
+export function mapDbRole(dbRole) {
+  switch (String(dbRole || '').toLowerCase()) {
+    case 'superadmin': return ROLES.SUPER_ADMIN
+    case 'staff': return ROLES.STAFF
+    case 'admin': return ROLES.ADMIN
+    case 'club_admin': return ROLES.CLUB_ADMIN
+    case 'club': return ROLES.CLUB
+    default: return ROLES.FAN
+  }
+}
 
 // 본인인증(Verification) 체계.
 export const VERIFICATION = {
@@ -62,7 +78,7 @@ function mapSupabaseUser(authUser, profile) {
     gender: p.gender || null,
     ageGroup: p.age_group || null,
     avatarUrl: p.avatar_url || null,
-    role: p.role === 'admin' ? ROLES.ADMIN : p.role === 'club' ? ROLES.CLUB : ROLES.FAN,
+    role: mapDbRole(p.role),
     clubId: p.club_id || p.selected_team || null,
     provider: p.provider || 'email',
     providerUserId: p.provider_user_id || null,
@@ -181,13 +197,17 @@ function ensureSeed() {
   }
   if (changed) writeUsers(users)
 }
-// 데모 계정(fan@fancluv.kr / admin@fancluv.kr) 은 **Supabase 미설정(Mock) 모드에서 항상** 시드한다.
-// → dev 뿐 아니라 프로덕션 빌드의 Mock fallback 에서도 admin@fancluv.kr / admin123 로
-//   관리자 로그인이 가능해야 한다는 요구사항. (실서비스는 Supabase 설정 → 데모 계정 미시드,
-//   profiles.role 기반 권한. supabase.js 가 프로덕션+미설정 시 콘솔 경고로 Mock 모드를 알림.)
-if (!isSupabaseConfigured) ensureSeed()
+// 데모 계정(fan@fancluv.kr / admin@fancluv.kr / club.seoul@fancluv.kr)은
+// **개발(DEV) Mock 모드에서만** 시드한다. → 프로덕션 빌드에서 Supabase 미설정 시에는
+// 데모 관리자 자격증명이 절대 생성되지 않는다(보안). 프로덕션+미설정은 LoginPage 가
+// "서비스 설정 미완료" 화면으로 로그인 자체를 차단한다(isProdMisconfigured).
+if (!isSupabaseConfigured && import.meta.env.DEV) ensureSeed()
+
+// 프로덕션에서 Supabase 미설정 시 Mock 인증을 방어적으로 차단(데모 계정도 미시드된 상태).
+const SETUP_INCOMPLETE = { ok: false, error: '서비스 설정이 완료되지 않았습니다. 관리자에게 문의해 주세요.', code: 'setup_incomplete' }
 
 function mockSignup({ nickname, email, password, gender = null, ageGroup = null }) {
+  if (isProdMisconfigured) return SETUP_INCOMPLETE
   const users = readUsers()
   if (users.find(u => u.email.toLowerCase() === email.toLowerCase()))
     return { ok: false, error: '이미 가입된 이메일입니다.' }
@@ -206,6 +226,7 @@ function mockSignup({ nickname, email, password, gender = null, ageGroup = null 
   return { ok: true, user: publicUser(user) }
 }
 function mockLogin({ email, password }) {
+  if (isProdMisconfigured) return SETUP_INCOMPLETE
   const users = readUsers()
   const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password)
   if (!user) return { ok: false, error: '이메일 또는 비밀번호가 올바르지 않습니다.' }
@@ -490,15 +511,25 @@ export function verifyPhone(email) {
 //  본인인증 (PASS / NICE / KCB — CI/DI). Provider 구조: src/lib/identity/
 // ════════════════════════════════════════════════════════════════════════
 
-// 본인인증 완료 여부. 관리자/구단 계정은 운영자 발급이라 면제(true 취급).
+// 실제 본인인증 업체(PASS/NICE/KCB)가 설정된 경우에만 휴대폰 본인인증을 강제한다.
+// 미설정(mock/미지정) = 베타는 **이메일 인증 기준**으로 운영 → 본인인증 단계/게이팅/버튼을 노출하지 않는다.
+const REAL_IDENTITY_VENDORS = ['pass', 'nice', 'kcb']
+const IDENTITY_ACTIVE = REAL_IDENTITY_VENDORS.includes(String(import.meta.env.VITE_IDENTITY_PROVIDER || '').toLowerCase())
+// 화면에서 본인인증 UI 노출 여부 판단용.
+export function isIdentityVerificationEnabled() { return IDENTITY_ACTIVE }
+
+// 본인인증 완료 여부. 실 업체 미설정 시(베타 이메일 인증) 또는 관리자/구단 계정은 true 취급.
 export function isIdentityVerified(user = getCurrentUser()) {
   if (!user) return false
+  if (!IDENTITY_ACTIVE) return true
   if (NO_VERIFY_ROLES.includes(user.role)) return true
   return !!user.identityVerified
 }
 
 // 핵심 기능(설문·의견·댓글) 사용 전 본인인증이 필요한지.
+// 실 업체 미설정(베타 이메일 인증)이면 항상 false → 이메일 인증만으로 이용 가능.
 export function requiresIdentityVerification(user = getCurrentUser()) {
+  if (!IDENTITY_ACTIVE) return false
   if (!user) return false
   if (NO_VERIFY_ROLES.includes(user.role)) return false
   return !user.identityVerified

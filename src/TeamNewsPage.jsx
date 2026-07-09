@@ -7,6 +7,8 @@ import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getClubLinks, CLUB_LINK_CHANNELS } from './clubLinks.js'
 import Icon from './components/Icon.jsx'
 import { getTeamNews } from './lib/news/teamNewsProvider.js'
+import { isEdgeNewsEnabled } from './lib/news/providers/edgeNewsProvider.js'
+import DemoBadge from './components/DemoBadge.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import LazyImage from './components/LazyImage.jsx'
@@ -130,7 +132,7 @@ export default function TeamNewsPage() {
         ) : (
           <>
             <section className="tn-pagehead">
-              <h1>{t('news.title')}</h1>
+              <h1>{t('news.title')} {!isEdgeNewsEnabled && <DemoBadge />}</h1>
               <p>{t('news.subtitle')}</p>
             </section>
 

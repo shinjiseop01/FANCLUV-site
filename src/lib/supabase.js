@@ -23,14 +23,17 @@ export const isSupabaseConfigured = Boolean(
 // "운영에서 노출되면 안 되는" 로직은 이 값 + import.meta.env.DEV 로 이중 게이트한다.
 export const isMockMode = !isSupabaseConfigured
 
-// 운영(프로덕션) 빌드인데 Supabase 가 설정되지 않았으면 → 배포 설정 오류.
-// Mock 데모 데이터/계정으로 서비스가 뜨는 것을 막기 위해 크게 경고한다.
-// (앱을 강제 종료하진 않는다 — 의도된 데모 배포까지 깨뜨리지 않기 위해.)
-if (import.meta.env.PROD && !isSupabaseConfigured) {
+// ⚠️ 운영(프로덕션) 빌드인데 Supabase 가 설정되지 않은 상태 = 배포 설정 미완.
+//   이 경우 데모 관리자 계정을 시드하지 않고(auth.js DEV 게이트), 로그인도 차단하며
+//   로그인 화면에 "서비스 설정 미완료" 안내만 표시한다(LoginPage). → 데모 자격증명이
+//   프로덕션에 절대 생성/노출되지 않도록 안전하게 차단한다. Mock 데이터는 개발(DEV)에서만 허용.
+export const isProdMisconfigured = Boolean(import.meta.env.PROD && !isSupabaseConfigured)
+
+if (isProdMisconfigured) {
   logger.error(
     '운영 빌드에서 Supabase 환경변수가 설정되지 않았습니다. ' +
       'VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY 를 설정하세요. ' +
-      '설정 전까지는 실데이터 없이 Mock 모드로 동작합니다(데모 계정 admin@fancluv.kr 로 접근 가능).',
+      '설정 전까지는 로그인이 차단되며(데모 계정 미시드) 서비스가 정상 동작하지 않습니다.',
   )
 }
 

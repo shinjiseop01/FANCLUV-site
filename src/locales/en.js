@@ -6,6 +6,8 @@ export default {
   'common.settings': 'Settings',
   'common.backToHome': 'Back to Home',
   'common.back': '← Back',
+  'common.demoData': 'Demo data',
+  'common.demoDataHint': 'Sample (demo) data shown before the live API is connected.',
   'common.search': 'Search',
   'common.searchResultEmpty': 'No results found.',
   'common.notFoundTeam': 'This club does not exist.',
@@ -126,6 +128,7 @@ export default {
   'login.errPw': 'Please enter your password.',
   // Social login notices
   'login.welcome': 'Welcome! You are signed in.',
+  'login.setupIncomplete': 'Service setup is not complete. Please contact the administrator.',
   'login.conflictGoogle': 'This email is already registered with Google. Please sign in with your existing method.',
   'login.conflictKakao': 'This email is already registered with Kakao. Please sign in with your existing method.',
   'login.conflictNaver': 'This email is already registered with NAVER. Please sign in with your existing method.',

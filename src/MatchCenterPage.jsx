@@ -7,7 +7,8 @@ import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import Icon from './components/Icon.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
-import { loadStandings, loadMatchData, refreshMatch } from './lib/matchRepo.js'
+import { loadStandings, loadMatchData, refreshMatch, isLeagueApiConfigured } from './lib/matchRepo.js'
+import DemoBadge from './components/DemoBadge.jsx'
 import './ClubHomePage.css'
 import './MatchCenterPage.css'
 
@@ -118,7 +119,7 @@ export default function MatchCenterPage() {
         ) : <>
         <section className="mc-pagehead">
           <div className="mc-pagehead-text">
-            <h1>{t('match.title')}</h1>
+            <h1>{t('match.title')} {!isLeagueApiConfigured && <DemoBadge />}</h1>
             <p>{t('match.subtitle')}</p>
           </div>
           <button className="mc-refresh" onClick={refresh} aria-label={t('common.refresh')}>

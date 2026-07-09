@@ -23,7 +23,6 @@ export default function CreateOpinionPage() {
   const [rating, setRating] = useState(0)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
-  const [photoName, setPhotoName] = useState('')
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
   // 본인인증 미완료 계정은 의견을 작성할 수 없다(작성 폼 대신 안내 노출).
@@ -49,7 +48,7 @@ export default function CreateOpinionPage() {
     if (!body.trim()) { setError(t('create.errBody')); return }
 
     const res = await createOpinion(team.id, {
-      category, rating, title: title.trim(), body: body.trim(), hasPhoto: !!photoName,
+      category, rating, title: title.trim(), body: body.trim(), hasPhoto: false,
     })
     if (!res.ok) { setError(res.error || t('create.errBody')); return }
 
@@ -156,19 +155,7 @@ export default function CreateOpinionPage() {
                   placeholder={t('create.bodyPh')}
                   value={body} onChange={e => { setBody(e.target.value); setError('') }} rows={6} />
               </div>
-
-              {/* 5. Photo (optional) */}
-              <div className="cw-field">
-                <label className="cw-label">{t('create.photo')} <span className="cw-optional">{t('create.optional')}</span></label>
-                <label className="cw-photo">
-                  <input type="file" accept="image/*" hidden
-                    onChange={e => setPhotoName(e.target.files?.[0]?.name || '')} />
-                  <span className="cw-photo-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.6"/><circle cx="8.5" cy="10" r="1.6" stroke="currentColor" strokeWidth="1.4"/><path d="M21 16l-5-5-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </span>
-                  <span className="cw-photo-text">{photoName || t('create.photoPh')}</span>
-                </label>
-              </div>
+              {/* 사진 첨부는 실제 업로드 연동(Storage) 후 제공 예정 — 베타에서는 노출하지 않음 */}
 
               {error && <div className="cw-error" role="alert">⚠ {error}</div>}
 

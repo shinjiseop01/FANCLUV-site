@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { login, ADMIN_ROLES, CLUB_ROLES, needsOnboarding, requiresIdentityVerification } from './lib/auth.js'
-import { isSupabaseConfigured } from './lib/supabase.js'
+import { isSupabaseConfigured, isProdMisconfigured } from './lib/supabase.js'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { useLang } from './contexts/LanguageContext.jsx'
 import SocialAuth from './components/SocialAuth.jsx'
@@ -81,6 +81,24 @@ export default function LoginPage() {
     // 이메일 미인증 계정은 login()에서 차단되어 여기 도달하지 않는다.
     if (result.ok) routeAfterAuth(result.user)
     else setError(result.error)
+  }
+
+  // 운영 배포인데 Supabase 미설정 → 로그인/서비스 차단, 설정 미완료 안내만 표시.
+  if (isProdMisconfigured) {
+    return (
+      <div className="login-root">
+        <div className="form-panel" style={{ width: '100%' }}>
+          <div className="form-inner" style={{ textAlign: 'center' }}>
+            <div className="form-header">
+              <h2 className="form-title">FANCLUV</h2>
+            </div>
+            <div className="auth-alert error" role="alert" style={{ marginTop: 16 }}>
+              {t('login.setupIncomplete')}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

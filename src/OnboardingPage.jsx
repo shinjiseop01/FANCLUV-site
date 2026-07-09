@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getCurrentUser, completeOnboarding } from './lib/auth.js'
+import { getCurrentUser, completeOnboarding, isIdentityVerificationEnabled } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import { useNicknameCheck } from './lib/useNicknameCheck.js'
 import NicknameStatus from './components/NicknameStatus.jsx'
@@ -33,8 +33,8 @@ export default function OnboardingPage() {
     setLoading(true)
     const res = await completeOnboarding({ nickname: nickname.trim(), gender: gender || null, ageGroup })
     setLoading(false)
-    // 온보딩 완료 → 본인인증 단계로. 이미 인증된 사용자면 그 화면이 곧바로 넘겨준다.
-    if (res.ok) navigate('/verify-identity', { replace: true })
+    // 온보딩 완료 → 실 본인인증 업체 설정 시 본인인증 단계로, 아니면(베타) 팀 선택으로.
+    if (res.ok) navigate(isIdentityVerificationEnabled() ? '/verify-identity' : '/team-select', { replace: true })
     else setError(res.error)
   }
 

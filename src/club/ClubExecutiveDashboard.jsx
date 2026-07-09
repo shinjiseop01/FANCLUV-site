@@ -5,6 +5,8 @@ import { useTheme } from '../contexts/ThemeContext.jsx'
 import { logout, getClubId, isAdmin } from '../lib/auth.js'
 import { TEAMS, getTeam, TeamEmblem, teamName } from '../teams.jsx'
 import Icon from '../components/Icon.jsx'
+import DemoBadge from '../components/DemoBadge.jsx'
+import { isMockMode } from '../lib/supabase.js'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { LineChart } from '../admin/AdminCharts.jsx'
@@ -93,7 +95,7 @@ export default function ClubExecutiveDashboard() {
 
       <main className="exec-main">
         <div className="exec-title-row">
-          <h1 className="exec-title">{t('exec.title')}</h1>
+          <h1 className="exec-title">{t('exec.title')} {isMockMode && <DemoBadge />}</h1>
           <p className="exec-sub">{teamName(team, lang)} · {t('exec.subtitle')}</p>
         </div>
 

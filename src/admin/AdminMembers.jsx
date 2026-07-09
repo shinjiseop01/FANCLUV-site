@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { getTeam, teamName } from '../teams.jsx'
 import Avatar from '../components/Avatar.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
 import AdminNoteBox from './AdminNoteBox.jsx'
-import { MOCK_MEMBERS } from './adminData.js'
+import { adminListMembers, setMemberActive } from '../lib/admin/membersRepo.js'
 import { exportCsv } from '../lib/admin/csv.js'
 
 // 필터: 전체 / 정상 / 비활성 / 이메일 인증 / 본인인증 여부
@@ -40,10 +41,18 @@ function matchFilter(m, f) {
 
 export default function AdminMembers() {
   const { t, lang } = useLang()
-  const [members, setMembers] = useState(MOCK_MEMBERS)
+  const [members, setMembers] = useState([])
+  const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
   const [selectedId, setSelectedId] = useState(null)   // 회원 상세 패널 (운영자 전용)
+
+  // 실 데이터(Supabase RPC admin_list_members) 또는 Mock 폴백으로 회원 목록 로드.
+  useEffect(() => {
+    let active = true
+    adminListMembers().then(list => { if (active) { setMembers(list); setLoading(false) } })
+    return () => { active = false }
+  }, [])
 
   // 성별 / 나이대 표시 라벨 (회원가입 폼과 동일 키 재사용)
   const genderLabel = g => g === 'male' ? t('signup.genderMale') : g === 'female' ? t('signup.genderFemale') : t('set.notSet')
@@ -64,9 +73,12 @@ export default function AdminMembers() {
   }, [members, query, filter, t])
 
   function toggleActive(id) {
-    setMembers(list => list.map(m =>
-      m.id === id ? { ...m, status: m.status === 'active' ? 'inactive' : 'active' } : m,
-    ))
+    const cur = members.find(m => m.id === id)
+    if (!cur) return
+    const nextActive = cur.status !== 'active'
+    setMembers(list => list.map(m => (m.id === id ? { ...m, status: nextActive ? 'active' : 'inactive' } : m)))
+    // Supabase 모드면 profiles.deactivated_at 반영(관리자 RPC). Mock 은 화면 상태만.
+    setMemberActive(id, nextActive)
   }
 
   function remove(id) {
@@ -130,7 +142,9 @@ export default function AdminMembers() {
         </div>
       </div>
 
-      {visible.length === 0 ? (
+      {loading ? (
+        <SkeletonList count={6} lines={1} />
+      ) : visible.length === 0 ? (
         <EmptyState iconName="search" title={t('empty.searchTitle')} message={t('empty.searchMsg')} />
       ) : (
         <div className="adm-table-wrap">

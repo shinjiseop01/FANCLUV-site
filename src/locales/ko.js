@@ -6,6 +6,8 @@ export default {
   'common.settings': '설정',
   'common.backToHome': '홈으로 돌아가기',
   'common.back': '← 뒤로가기',
+  'common.demoData': '데모 데이터',
+  'common.demoDataHint': '실제 API 연동 전 예시(데모) 데이터입니다.',
   'common.search': '검색',
   'common.searchResultEmpty': '검색 결과가 없습니다.',
   'common.notFoundTeam': '존재하지 않는 구단입니다.',
@@ -126,6 +128,7 @@ export default {
   'login.errPw': '비밀번호를 입력해주세요.',
   // 소셜 로그인 안내
   'login.welcome': '환영합니다. 로그인이 완료되었습니다.',
+  'login.setupIncomplete': '서비스 설정이 완료되지 않았습니다. 관리자에게 문의해 주세요.',
   'login.conflictGoogle': 'Google 계정으로 이미 가입되어 있습니다. 기존 방식으로 로그인해 주세요.',
   'login.conflictKakao': 'Kakao 계정으로 이미 가입되어 있습니다. 기존 방식으로 로그인해 주세요.',
   'login.conflictNaver': 'NAVER 계정으로 이미 가입되어 있습니다. 기존 방식으로 로그인해 주세요.',

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { signup, issueEmailCode, confirmEmailCode, needsOnboarding, requiresIdentityVerification } from './lib/auth.js'
+import { signup, issueEmailCode, confirmEmailCode, needsOnboarding, requiresIdentityVerification, isIdentityVerificationEnabled } from './lib/auth.js'
 import { isSupabaseConfigured } from './lib/supabase.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import { useNicknameCheck } from './lib/useNicknameCheck.js'
@@ -97,8 +97,9 @@ export default function SignupPage() {
     if (!result.ok) { setError(result.error); return }
     // Supabase 에서 (프로젝트 설정상) 확인 메일이 추가로 필요하면 안내 후 대기.
     if (result.needsConfirm) { setConfirmSent(true); return }
-    // 이메일 인증 완료 → 본인인증 단계로. 본인인증 성공 시에만 가입이 최종 완료된다.
-    navigate('/verify-identity')
+    // 이메일 인증 완료 → 실 본인인증 업체가 설정된 경우에만 본인인증 단계로,
+    // 아니면(베타 이메일 인증) 바로 팀 선택으로.
+    navigate(isIdentityVerificationEnabled() ? '/verify-identity' : '/team-select')
   }
 
   return (

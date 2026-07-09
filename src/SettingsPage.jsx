@@ -5,7 +5,7 @@ import NotificationBell from './components/NotificationBell.jsx'
 import LazyImage from './components/LazyImage.jsx'
 import { useTheme } from './contexts/ThemeContext.jsx'
 import {
-  logout, getCurrentUser, deleteAccount, identityInfo,
+  logout, getCurrentUser, deleteAccount, identityInfo, isIdentityVerificationEnabled,
   changeAgeGroup, changeGender, changeNickname, nicknameChangeInfo, setSelectedTeam, updateAvatar,
 } from './lib/auth.js'
 import { IDENTITY_AGENCY_LABELS } from './lib/identity/identityProvider.js'
@@ -438,23 +438,28 @@ export default function SettingsPage() {
               <span className="st-chevron" aria-hidden="true">›</span>
             </div>
           )}
-          <div className="st-row st-row-static">
-            <span>{t('set.identityRow')}</span>
-            <span className={`st-vbadge ${idInfo.verified ? 'ok' : 'no'}`}>
-              {idInfo.verified ? t('set.identityDone') : t('set.identityNot')}
-            </span>
-          </div>
-          {idInfo.verified && idInfo.agency && (
-            <div className="st-row st-row-static">
-              <span>{t('set.identityAgency')}</span>
-              <span className="st-muted">{IDENTITY_AGENCY_LABELS[idInfo.agency] || idInfo.agency}</span>
-            </div>
-          )}
-          {!idInfo.verified && (
-            <div className="st-row" role="button" tabIndex={0} onClick={() => navigate('/verify-identity')}>
-              <span>{t('set.identityGo')}</span>
-              <span className="st-chevron" aria-hidden="true">›</span>
-            </div>
+          {/* 본인인증(PASS/NICE/KCB) — 실 업체 설정 시에만 노출. 베타(미설정)는 이메일 인증만. */}
+          {isIdentityVerificationEnabled() && (
+            <>
+              <div className="st-row st-row-static">
+                <span>{t('set.identityRow')}</span>
+                <span className={`st-vbadge ${idInfo.verified ? 'ok' : 'no'}`}>
+                  {idInfo.verified ? t('set.identityDone') : t('set.identityNot')}
+                </span>
+              </div>
+              {idInfo.verified && idInfo.agency && (
+                <div className="st-row st-row-static">
+                  <span>{t('set.identityAgency')}</span>
+                  <span className="st-muted">{IDENTITY_AGENCY_LABELS[idInfo.agency] || idInfo.agency}</span>
+                </div>
+              )}
+              {!idInfo.verified && (
+                <div className="st-row" role="button" tabIndex={0} onClick={() => navigate('/verify-identity')}>
+                  <span>{t('set.identityGo')}</span>
+                  <span className="st-chevron" aria-hidden="true">›</span>
+                </div>
+              )}
+            </>
           )}
 
           <div className="st-row" role="button" tabIndex={0} onClick={() => navigate(`/club/${team.id}/password`)}>
