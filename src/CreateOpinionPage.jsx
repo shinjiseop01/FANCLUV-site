@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import IdentityNotice from './components/IdentityNotice.jsx'
 import { logout, getCurrentUser, requiresIdentityVerification } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
-import { createOpinion } from './lib/opinionsRepo.js'
+import { createOpinion, updateOpinion, getOpinionDetail } from './lib/opinionsRepo.js'
 import './ClubHomePage.css'
 import './CreateOpinionPage.css'
 
@@ -14,7 +14,8 @@ const CATEGORIES = ['경기장', '응원문화', '티켓', 'MD', '선수', '구�
 
 export default function CreateOpinionPage() {
   const NICKNAME = getCurrentUser()?.nickname || '팬'
-  const { teamId } = useParams()
+  const { teamId, opinionId } = useParams()
+  const isEdit = !!opinionId // /opinions/:opinionId/edit 로 진입하면 수정 모드
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, t } = useLang()
@@ -27,6 +28,22 @@ export default function CreateOpinionPage() {
   const [submitted, setSubmitted] = useState(false)
   // 본인인증 미완료 계정은 의견을 작성할 수 없다(작성 폼 대신 안내 노출).
   const gated = requiresIdentityVerification()
+
+  // 수정 모드: 기존 값을 불러와 폼에 채운다. 본인 글이 아니면 상세로 되돌린다(RLS 이중방어).
+  useEffect(() => {
+    if (!isEdit || !team) return
+    let active = true
+    getOpinionDetail(team.id, opinionId).then(d => {
+      if (!active) return
+      if (!d || !d.opinion) { navigate(`/club/${team.id}/opinions`); return }
+      if (!d.opinion.mine) { navigate(`/club/${team.id}/opinions/${opinionId}`); return }
+      setCategory(d.opinion.category || '')
+      setRating(d.opinion.rating || 0)
+      setTitle(d.opinion.title || '')
+      setBody(d.opinion.body || '')
+    })
+    return () => { active = false }
+  }, [isEdit, team, opinionId, navigate])
 
   if (!team) {
     return (
@@ -47,14 +64,18 @@ export default function CreateOpinionPage() {
     if (!title.trim()) { setError(t('create.errTitle')); return }
     if (!body.trim()) { setError(t('create.errBody')); return }
 
-    const res = await createOpinion(team.id, {
-      category, rating, title: title.trim(), body: body.trim(), hasPhoto: false,
-    })
-    if (!res.ok) { setError(res.error || t('create.errBody')); return }
+    const payload = { category, rating, title: title.trim(), body: body.trim() }
+    const res = isEdit
+      ? await updateOpinion(team.id, opinionId, payload)
+      : await createOpinion(team.id, { ...payload, hasPhoto: false })
+    if (!res.ok) {
+      setError(res.code === 'forbidden' ? t('create.forbidden') : (res.error || t('create.errBody')))
+      return
+    }
 
     setSubmitted(true)
-    // optimistic 삽입 없이 목록으로 이동 → 목록이 Supabase 실데이터를 재조회해 노출.
-    setTimeout(() => navigate(`/club/${team.id}/opinions`), 1300)
+    // 수정=상세로, 작성=목록으로 이동 → 실데이터 재조회로 반영.
+    setTimeout(() => navigate(isEdit ? `/club/${team.id}/opinions/${opinionId}` : `/club/${team.id}/opinions`), 1300)
   }
 
   return (
@@ -98,15 +119,15 @@ export default function CreateOpinionPage() {
             <div className="cw-done-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
-            <h1>{t('create.doneTitle')}</h1>
-            <p>{t('create.doneDesc')}</p>
+            <h1>{isEdit ? t('create.editDone') : t('create.doneTitle')}</h1>
+            <p>{isEdit ? t('create.editDoneDesc') : t('create.doneDesc')}</p>
           </div>
         ) : gated ? (
           <IdentityNotice />
         ) : (
           <div className="cw-card">
             <header className="cw-head">
-              <h1 className="cw-title">{t('create.title')}</h1>
+              <h1 className="cw-title">{isEdit ? t('create.editTitle') : t('create.title')}</h1>
               <p className="cw-desc">여러분의 의견은 구단 운영 개선을 위한 소중한 데이터가 됩니다.</p>
             </header>
 
@@ -160,7 +181,7 @@ export default function CreateOpinionPage() {
 
               {error && <div className="cw-error" role="alert">⚠ {error}</div>}
 
-              <button type="submit" className="cw-submit">{t('create.submit')}</button>
+              <button type="submit" className="cw-submit">{isEdit ? t('create.editSubmit') : t('create.submit')}</button>
             </form>
           </div>
         )}

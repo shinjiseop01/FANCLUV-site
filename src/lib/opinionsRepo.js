@@ -7,7 +7,7 @@
 import { supabase, isSupabaseConfigured } from './supabase.js'
 import { logger } from './logger.js'
 import { getCurrentUser, requiresIdentityVerification } from './auth.js'
-import { getCreatedOpinions, addOpinion as addCreatedOpinion } from '../opinionStore.js'
+import { getCreatedOpinions, addOpinion as addCreatedOpinion, updateOpinion as updateCreatedOpinion, removeOpinion as removeCreatedOpinion } from '../opinionStore.js'
 import { pushMockNotification } from './notificationsRepo.js'
 import { recordActivity } from './activityScore.js'
 
@@ -43,6 +43,12 @@ function removeStoredComment(opinionId, commentId) {
   const all = readJSON(COMMENTS_KEY, {})
   const arr = all[String(opinionId)] || []
   all[String(opinionId)] = arr.filter(c => String(c.id) !== String(commentId))
+  writeJSON(COMMENTS_KEY, all)
+}
+function updateStoredComment(opinionId, commentId, text) {
+  const all = readJSON(COMMENTS_KEY, {})
+  const arr = all[String(opinionId)] || []
+  all[String(opinionId)] = arr.map(c => (String(c.id) === String(commentId) ? { ...c, text } : c))
   writeJSON(COMMENTS_KEY, all)
 }
 function splitParas(body) {
@@ -144,6 +150,8 @@ function mapBaseRow(o, extra) {
     likes: extra.likes || 0,
     comments: extra.comments || 0,
     hasPhoto: !!o.has_photo,
+    authorId: o.author_id,
+    mine: !!extra.mine, // 작성자 본인 여부 → 수정/삭제 버튼·자기공감 차단에 사용
   }
 }
 
@@ -151,6 +159,7 @@ function mapBaseRow(o, extra) {
 async function enrichOpinions(rows) {
   const list = rows || []
   if (list.length === 0) return []
+  const me = getCurrentUser()
   const ids = list.map(o => o.id)
   const authorIds = [...new Set(list.map(o => o.author_id).filter(Boolean))]
   const [likesRes, commentsRes, profilesRes] = await Promise.all([
@@ -173,6 +182,7 @@ async function enrichOpinions(rows) {
     avatarUrl: profById[o.author_id]?.avatar_url,
     likes: likeCount[o.id],
     comments: commentCount[o.id],
+    mine: !!me && o.author_id === me.id,
   }))
 }
 // ════════════════════════════════════════════════════════════════════════
@@ -223,6 +233,7 @@ export async function getOpinionDetail(teamId, id) {
     ...item, avatarUrl: item.avatarUrl || null, full: item.full || splitParas(item.body),
     likes: item.likes + likeDelta,
     comments: item.comments + extraComments,
+    mine: !!created, // Mock: 로컬에 작성한 의견이면 본인 것
   }
   const related = base
     .filter(o => o.category === item.category && o.id !== item.id)
@@ -263,6 +274,39 @@ export async function createOpinion(teamId, { category, rating, title, body, has
   addCreatedOpinion(teamId, opinion)
   recordActivity('opinion')
   return { ok: true, id, opinion }
+}
+
+// 의견 수정 (본인만 — Supabase RLS "update own opinion" 이 보장, UI 도 mine 만 노출)
+export async function updateOpinion(teamId, id, { category, rating, title, body }) {
+  const me = getCurrentUser()
+  if (isSupabaseConfigured) {
+    if (!me) return { ok: false, error: '로그인이 필요합니다.' }
+    const { data, error } = await supabase
+      .from('opinions')
+      .update({ category, rating, title, body })
+      .eq('id', id)
+      .select('id') // RLS 로 본인 아니면 0행 → 권한 없음
+    if (error) { logger.error('의견 수정 실패(opinions update)', { error, context: { id } }); return { ok: false, error: error.message } }
+    if (!data || data.length === 0) return { ok: false, code: 'forbidden' }
+    return { ok: true }
+  }
+  updateCreatedOpinion(teamId, id, { category, rating, title, body })
+  return { ok: true }
+}
+
+// 의견 삭제 (본인만 — RLS "delete own opinion". 댓글/공감은 FK on delete cascade 로 자동 정리)
+export async function deleteOpinion(teamId, id) {
+  const me = getCurrentUser()
+  if (isSupabaseConfigured) {
+    if (!me) return { ok: false, error: '로그인이 필요합니다.' }
+    const { data, error } = await supabase
+      .from('opinions').delete().eq('id', id).select('id')
+    if (error) { logger.error('의견 삭제 실패(opinions delete)', { error, context: { id } }); return { ok: false, error: error.message } }
+    if (!data || data.length === 0) return { ok: false, code: 'forbidden' }
+    return { ok: true }
+  }
+  removeCreatedOpinion(teamId, id)
+  return { ok: true }
 }
 
 // 댓글 목록
@@ -317,6 +361,23 @@ export async function deleteComment(opinionId, commentId) {
     return { ok: true }
   }
   removeStoredComment(opinionId, commentId)
+  return { ok: true }
+}
+
+// 댓글 수정 (본인만 — RLS "update own comment")
+export async function updateComment(opinionId, commentId, content) {
+  const text = (content || '').trim()
+  if (!text) return { ok: false }
+  const me = getCurrentUser()
+  if (isSupabaseConfigured) {
+    if (!me) return { ok: false, error: '로그인이 필요합니다.' }
+    const { data, error } = await supabase
+      .from('comments').update({ content: text }).eq('id', commentId).select('id')
+    if (error) { logger.error('댓글 수정 실패(comments update)', { error, context: { commentId } }); return { ok: false, error: error.message } }
+    if (!data || data.length === 0) return { ok: false, code: 'forbidden' }
+    return { ok: true }
+  }
+  updateStoredComment(opinionId, commentId, text)
   return { ok: true }
 }
 

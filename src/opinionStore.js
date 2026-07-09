@@ -18,11 +18,30 @@ export function getCreatedOpinions(teamId) {
   return store[teamId] || []
 }
 
-export function addOpinion(teamId, opinion) {
-  store = { ...store, [teamId]: [opinion, ...(store[teamId] || [])] }
+function persist() {
   try {
     localStorage.setItem(KEY, JSON.stringify(store))
   } catch {
     // ignore storage failures — in-memory store still works for the session
   }
+}
+
+export function addOpinion(teamId, opinion) {
+  store = { ...store, [teamId]: [opinion, ...(store[teamId] || [])] }
+  persist()
+}
+
+// 본인 작성 의견 수정(Mock). patch = { category, rating, title, body }
+export function updateOpinion(teamId, id, patch) {
+  store = {
+    ...store,
+    [teamId]: (store[teamId] || []).map(o => (String(o.id) === String(id) ? { ...o, ...patch } : o)),
+  }
+  persist()
+}
+
+// 본인 작성 의견 삭제(Mock)
+export function removeOpinion(teamId, id) {
+  store = { ...store, [teamId]: (store[teamId] || []).filter(o => String(o.id) !== String(id)) }
+  persist()
 }

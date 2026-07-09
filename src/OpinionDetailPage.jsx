@@ -5,7 +5,7 @@ import NotificationBell from './components/NotificationBell.jsx'
 import IdentityNotice from './components/IdentityNotice.jsx'
 import { logout, getCurrentUser, requiresIdentityVerification } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
-import { getOpinionDetail, listComments, addComment, deleteComment, getLikeState, toggleLike as toggleLikeApi } from './lib/opinionsRepo.js'
+import { getOpinionDetail, listComments, addComment, deleteComment, updateComment, deleteOpinion, getLikeState, toggleLike as toggleLikeApi } from './lib/opinionsRepo.js'
 import { submitReport } from './lib/reportsRepo.js'
 import ReportModal from './components/ReportModal.jsx'
 import Icon from './components/Icon.jsx'
@@ -43,7 +43,10 @@ export default function OpinionDetailPage() {
   const [toast, setToast] = useState('')
   const [reportOpen, setReportOpen] = useState(false)
   const [reporting, setReporting] = useState(false)
-  const [deleteId, setDeleteId] = useState(null) // 삭제 확인 중인 댓글 id
+  const [deleteId, setDeleteId] = useState(null)   // 삭제 확인 중인 댓글 id
+  const [opDeleteOpen, setOpDeleteOpen] = useState(false) // 의견 삭제 확인 모달
+  const [editingId, setEditingId] = useState(null) // 인라인 수정 중인 댓글 id
+  const [editText, setEditText] = useState('')
 
   // 의견 상세 + 댓글 + 공감 상태 로드 (Supabase 우선, 아니면 Mock — opinionsRepo)
   useEffect(() => {
@@ -91,6 +94,8 @@ export default function OpinionDetailPage() {
   }
 
   async function toggleLike() {
+    // 본인 의견에는 공감할 수 없다(UI 차단 + DB RLS 이중방어).
+    if (base?.mine) { flash(t('detail.selfLike')); return }
     const next = !liked
     setLiked(next)
     setLikeCount(c => c + (next ? 1 : -1))
@@ -136,6 +141,32 @@ export default function OpinionDetailPage() {
       flash(t('detail.commentDeleted'))
     } else {
       flash(t('detail.commentDeleteFail'))
+    }
+  }
+
+  // 의견 삭제(본인) → 목록으로. 댓글/공감은 FK cascade 로 함께 정리된다.
+  async function confirmDeleteOpinion() {
+    setOpDeleteOpen(false)
+    const res = await deleteOpinion(team.id, opinionId)
+    if (res.ok) {
+      flash(t('detail.opinionDeleted'))
+      setTimeout(() => navigate(`/club/${team.id}/opinions`), 800)
+    } else {
+      flash(res.code === 'forbidden' ? t('detail.forbidden') : t('detail.opinionDeleteFail'))
+    }
+  }
+
+  function startEditComment(c) { setEditingId(c.id); setEditText(c.text) }
+  async function saveEditComment() {
+    const id = editingId, text = editText.trim()
+    if (!id || !text) { setEditingId(null); return }
+    const res = await updateComment(opinionId, id, text)
+    setEditingId(null); setEditText('')
+    if (res.ok) {
+      setComments(await listComments(opinionId))
+      flash(t('detail.commentEdited'))
+    } else {
+      flash(res.code === 'forbidden' ? t('detail.forbidden') : t('detail.commentEditFail'))
     }
   }
 
@@ -216,6 +247,18 @@ export default function OpinionDetailPage() {
                   </span>
                 </div>
                 <Stars rating={base.rating} />
+                {base.mine && (
+                  <div className="od-owner-actions">
+                    <button type="button" className="od-owner-btn"
+                      onClick={() => navigate(`/club/${team.id}/opinions/${opinionId}/edit`)}>
+                      {t('detail.edit')}
+                    </button>
+                    <button type="button" className="od-owner-btn danger"
+                      onClick={() => setOpDeleteOpen(true)}>
+                      {t('detail.delete')}
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="od-content">
@@ -233,9 +276,11 @@ export default function OpinionDetailPage() {
 
               {/* Interaction bar */}
               <div className="od-actions">
-                <button className={`od-act od-empathy${liked ? ' on' : ''}`} onClick={toggleLike}>
+                <button className={`od-act od-empathy${liked ? ' on' : ''}`} onClick={toggleLike}
+                  disabled={base.mine} title={base.mine ? t('detail.selfLike') : undefined}>
                   <Icon name="heart" size={17} /> {t('detail.agree')} <strong>{likeCount}</strong>
                 </button>
+                {base.mine && <span className="od-selflike-note">{t('detail.selfLike')}</span>}
                 <button className="od-act" onClick={() => document.querySelector('.od-comment-input')?.focus()}>
                   <Icon name="comment" size={17} /> {t('detail.comment')} <strong>{comments.length}</strong>
                 </button>
@@ -260,14 +305,31 @@ export default function OpinionDetailPage() {
                       <div className="od-comment-head">
                         <span className="od-comment-name">{c.author}</span>
                         <span className="od-comment-time">{relativeTime(c.hours, lang)}</span>
-                        {c.mine && (
-                          <button type="button" className="od-comment-del"
-                            onClick={() => setDeleteId(c.id)}>
-                            {t('detail.commentDelete')}
-                          </button>
+                        {c.mine && editingId !== c.id && (
+                          <>
+                            <button type="button" className="od-comment-del"
+                              onClick={() => startEditComment(c)}>
+                              {t('detail.commentEdit')}
+                            </button>
+                            <button type="button" className="od-comment-del"
+                              onClick={() => setDeleteId(c.id)}>
+                              {t('detail.commentDelete')}
+                            </button>
+                          </>
                         )}
                       </div>
-                      <p className="od-comment-text">{c.text}</p>
+                      {editingId === c.id ? (
+                        <div className="od-comment-edit">
+                          <textarea className="od-comment-input" rows={2}
+                            value={editText} onChange={e => setEditText(e.target.value)} />
+                          <div className="od-comment-edit-actions">
+                            <button type="button" className="od-comment-del" onClick={() => { setEditingId(null); setEditText('') }}>{t('common.cancel')}</button>
+                            <button type="button" className="od-comment-save" disabled={!editText.trim()} onClick={saveEditComment}>{t('detail.commentEditSave')}</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="od-comment-text">{c.text}</p>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -327,6 +389,20 @@ export default function OpinionDetailPage() {
         onClose={() => setReportOpen(false)}
         onSubmit={handleReport}
       />
+
+      {/* 의견 삭제 확인 모달 */}
+      {opDeleteOpen && (
+        <div className="rpt-overlay" role="dialog" aria-modal="true" onClick={() => setOpDeleteOpen(false)}>
+          <div className="rpt-modal" onClick={e => e.stopPropagation()}>
+            <h2 className="rpt-title">{t('detail.opinionDeleteConfirm')}</h2>
+            <p className="rpt-desc">{t('detail.opinionDeleteDesc')}</p>
+            <div className="rpt-actions">
+              <button type="button" className="rpt-cancel" onClick={() => setOpDeleteOpen(false)}>{t('common.cancel')}</button>
+              <button type="button" className="rpt-submit" onClick={confirmDeleteOpinion}>{t('detail.delete')}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 댓글 삭제 확인 모달 (ReportModal 과 동일 스타일 재사용) */}
       {deleteId && (

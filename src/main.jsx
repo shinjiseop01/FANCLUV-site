@@ -141,6 +141,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/survey" element={<RequireAuth><SurveyPage /></RequireAuth>} />
         <Route path="/club/:teamId/survey/:surveyId" element={<RequireAuth><SurveyDetailPage /></RequireAuth>} />
         <Route path="/club/:teamId/write" element={<RequireAuth><CreateOpinionPage /></RequireAuth>} />
+        <Route path="/club/:teamId/opinions/:opinionId/edit" element={<RequireAuth><CreateOpinionPage /></RequireAuth>} />
         <Route path="/club/:teamId/activity" element={<RequireAuth><MyActivityPage /></RequireAuth>} />
         <Route path="/club/:teamId/matches" element={<RequireAuth><MatchCenterPage /></RequireAuth>} />
         <Route path="/club/:teamId/news" element={<RequireAuth><TeamNewsPage /></RequireAuth>} />

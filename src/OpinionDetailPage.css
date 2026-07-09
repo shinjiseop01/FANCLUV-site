@@ -166,6 +166,26 @@
   font-size: 12px; color: var(--muted); padding: 2px 4px; border-radius: 6px; transition: color 0.15s;
 }
 .od-comment-del:hover { color: #DC2626; }
+.od-comment-save {
+  background: var(--team, #2563EB); color: #fff; border: none; cursor: pointer; font-family: inherit;
+  font-size: 12.5px; font-weight: 700; padding: 6px 12px; border-radius: 8px;
+}
+.od-comment-save:disabled { opacity: 0.5; cursor: not-allowed; }
+.od-comment-edit { display: flex; flex-direction: column; gap: 6px; }
+.od-comment-edit-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+
+/* 소유자(본인) 의견 수정/삭제 — 절제된 배치(눈에 덜 띄게) */
+.od-owner-actions { margin-left: auto; display: flex; gap: 4px; }
+.od-owner-btn {
+  background: none; border: none; cursor: pointer; font-family: inherit;
+  font-size: 12.5px; color: var(--muted); padding: 4px 8px; border-radius: 7px; transition: all 0.15s;
+}
+.od-owner-btn:hover { background: color-mix(in srgb, var(--team) 10%, transparent); color: var(--team-deep); }
+.od-owner-btn.danger:hover { background: color-mix(in srgb, #DC2626 10%, transparent); color: #DC2626; }
+
+/* 자기 의견 공감 차단 */
+.od-empathy:disabled { opacity: 0.45; cursor: not-allowed; }
+.od-selflike-note { font-size: 12px; color: var(--muted); align-self: center; }
 /* 줄바꿈(\n)을 그대로 표시하고, 긴 문자열은 카드 밖으로 넘치지 않게 한다. */
 .od-comment-text { font-size: 14px; color: var(--body); line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
 
