@@ -5,6 +5,7 @@
 // 사용하고, 아니면 기존 Mock(seeded 풀 + localStorage)으로 자동 폴백한다.
 // 모든 함수는 async 이며, 두 모드에서 동일한 UI 형태의 객체를 반환한다.
 import { supabase, isSupabaseConfigured } from './supabase.js'
+import { logger } from './logger.js'
 import { getCurrentUser, requiresIdentityVerification } from './auth.js'
 import { getCreatedOpinions, addOpinion as addCreatedOpinion } from '../opinionStore.js'
 import { pushMockNotification } from './notificationsRepo.js'
@@ -154,7 +155,9 @@ export async function listOpinions(teamId) {
       .from('opinions_view').select('*')
       .eq('team_id', teamId)
       .order('created_at', { ascending: false })
-    if (error) return []
+    // 에러를 조용히 삼키면(빈 목록) 라이브에서 원인이 안 보인다 → RLS/권한/뷰 문제를
+    // 진단할 수 있도록 로깅한다. 화면은 안전하게 빈 목록으로 폴백한다.
+    if (error) { logger.error('의견 목록 조회 실패(opinions_view)', { error, context: { teamId } }); return [] }
     return (data || []).map(mapOpinionRow)
   }
   // Mock: 작성한 의견(로컬)이 먼저, 그다음 seeded 풀
@@ -166,6 +169,7 @@ export async function getOpinionDetail(teamId, id) {
   if (isSupabaseConfigured) {
     const { data, error } = await supabase
       .from('opinions_view').select('*').eq('id', id).maybeSingle()
+    if (error) logger.error('의견 상세 조회 실패(opinions_view)', { error, context: { id } })
     if (error || !data) return null
     const opinion = { ...mapOpinionRow(data), full: splitParas(data.body) }
     const { data: rel } = await supabase
@@ -205,19 +209,27 @@ export async function createOpinion(teamId, { category, rating, title, body, has
     const { data, error } = await supabase
       .from('opinions')
       .insert({ author_id: me.id, team_id: teamId, category, rating, title, body, has_photo: hasPhoto })
-      .select('id').single()
-    if (error) return { ok: false, error: error.message }
+      .select('*').single()
+    if (error) { logger.error('의견 저장 실패(opinions insert)', { error, context: { teamId } }); return { ok: false, error: error.message } }
     recordActivity('opinion')
-    return { ok: true, id: data.id }
+    // 방금 저장한 행을 목록 화면이 즉시 prepend 할 수 있도록 표시용 객체로 반환한다
+    // (집계 뷰의 like/comment 수는 아직 0, 작성자 정보는 현재 사용자로 구성).
+    const opinion = {
+      id: data.id, author: me.nickname || '팬', avatarUrl: me.avatarUrl || null,
+      category: data.category, rating: data.rating, createdAt: data.created_at,
+      hours: 0, title: data.title, body: data.body, likes: 0, comments: 0, hasPhoto: !!data.has_photo,
+    }
+    return { ok: true, id: data.id, opinion }
   }
   // Mock: localStorage 에 저장 (목록 상단에 노출)
   const id = `u${Date.now()}`
-  addCreatedOpinion(teamId, {
+  const opinion = {
     id, author: me?.nickname || '팬', avatarUrl: me?.avatarUrl || null,
     category, rating, hours: 0, title, body, likes: 0, comments: 0, hasPhoto,
-  })
+  }
+  addCreatedOpinion(teamId, opinion)
   recordActivity('opinion')
-  return { ok: true, id }
+  return { ok: true, id, opinion }
 }
 
 // 댓글 목록

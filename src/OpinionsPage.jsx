@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
@@ -23,6 +23,7 @@ export default function OpinionsPage() {
   const NICKNAME = getCurrentUser()?.nickname || '팬'
   const { teamId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const team = getTeam(teamId)
   const { lang, t } = useLang()
   const [searchParams] = useSearchParams()
@@ -54,11 +55,17 @@ export default function OpinionsPage() {
     setLoading(true)
     listOpinions(team.id).then(list => {
       if (!active) return
-      setOpinions(list)
+      // 작성 직후 넘어온 새 의견은 즉시 상단에 노출한다. 서버 조회 결과에 이미
+      // 포함돼 있으면(정상) 중복 제거하고, 아직 안 보이면(반영 지연) prepend 로 보완.
+      const injected = location.state?.newOpinion
+      const merged = injected && !list.some(o => String(o.id) === String(injected.id))
+        ? [injected, ...list]
+        : list
+      setOpinions(merged)
       setLoading(false)
     })
     return () => { active = false }
-  }, [teamId, team])
+  }, [teamId, team, location.state])
 
   const popularThreshold = useMemo(() => {
     const sorted = [...opinions].map(o => o.likes).sort((a, b) => b - a)
