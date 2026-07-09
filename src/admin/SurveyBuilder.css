@@ -1,0 +1,134 @@
+/* FANCLUV — 관리자 설문 빌더 (Google Forms 스타일 카드 UI). admin 토큰 재사용. */
+
+.sb-page { padding-bottom: 96px; }
+
+.sb-back {
+  display: inline-flex; align-items: center; gap: 4px; background: none; border: none;
+  color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0 0 8px;
+}
+.sb-back:hover { color: var(--team-deep); }
+
+.sb-lock-note {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 11px 15px;
+  border-radius: 10px; font-size: 13.5px; font-weight: 600;
+  color: #B45309; background: rgba(245, 158, 11, .12); border: 1px solid rgba(245, 158, 11, .28);
+}
+
+/* 카드 공통 */
+.sb-card {
+  background: var(--canvas); border: 1px solid var(--border); border-radius: 16px;
+  padding: 22px; margin-bottom: 16px;
+}
+.sb-meta { border-top: 4px solid var(--team); }
+
+.sb-title-input { font-size: 18px; font-weight: 700; }
+.sb-meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 4px; }
+
+/* 스위치 */
+.sb-switch { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; font-size: 14px; color: var(--ink); font-weight: 600; margin-top: 14px; }
+.sb-switch.sm { font-size: 13px; margin-top: 0; }
+.sb-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.sb-switch-track { width: 40px; height: 23px; border-radius: 100px; background: var(--border); position: relative; transition: background .18s; flex-shrink: 0; }
+.sb-switch.sm .sb-switch-track { width: 34px; height: 20px; }
+.sb-switch-thumb { position: absolute; top: 2.5px; left: 2.5px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .18s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.sb-switch.sm .sb-switch-thumb { width: 15px; height: 15px; }
+.sb-switch input:checked + .sb-switch-track { background: var(--team); }
+.sb-switch input:checked + .sb-switch-track .sb-switch-thumb { transform: translateX(17px); }
+.sb-switch.sm input:checked + .sb-switch-track .sb-switch-thumb { transform: translateX(14px); }
+
+/* 질문 카드 */
+.sb-q { transition: box-shadow .15s, border-color .15s, opacity .15s; }
+.sb-q.dragging { opacity: .4; }
+.sb-q.over { border-color: var(--team); box-shadow: 0 0 0 2px color-mix(in srgb, var(--team) 30%, transparent); }
+
+.sb-q-head { display: flex; align-items: center; gap: 10px; }
+.sb-drag { color: var(--muted); cursor: grab; display: inline-flex; }
+.sb-drag:active { cursor: grabbing; }
+.sb-qnum { font-size: 13px; font-weight: 800; color: var(--team-deep); flex-shrink: 0; }
+.sb-q-title {
+  flex: 1; min-width: 0; border: none; border-bottom: 1.5px solid var(--border); background: transparent;
+  font-size: 15.5px; font-weight: 600; color: var(--ink); padding: 6px 2px; outline: none;
+}
+.sb-q-title:focus { border-bottom-color: var(--team); }
+.sb-q-type {
+  border: 1px solid var(--border); border-radius: 9px; background: var(--page-bg); color: var(--ink);
+  font-size: 13px; font-weight: 600; padding: 7px 9px; cursor: pointer; flex-shrink: 0;
+}
+
+.sb-q-body { margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border); }
+.sb-q-type-hint { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); margin-bottom: 14px; }
+
+/* 선택지 편집 */
+.sb-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.sb-opt-row { display: flex; align-items: center; gap: 9px; }
+.sb-opt-mark { width: 22px; text-align: center; color: var(--muted); font-size: 14px; flex-shrink: 0; }
+.sb-opt-input {
+  flex: 1; min-width: 0; border: none; border-bottom: 1.5px solid var(--border); background: transparent;
+  font-size: 14.5px; color: var(--ink); padding: 6px 2px; outline: none;
+}
+.sb-opt-input:focus { border-bottom-color: var(--team); }
+.sb-opt-actions { display: flex; gap: 2px; }
+.sb-add-opt {
+  display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; margin-left: 31px;
+  background: none; border: none; color: var(--team-deep); font-size: 13.5px; font-weight: 600; cursor: pointer; padding: 4px 0;
+}
+.sb-add-opt:hover { text-decoration: underline; }
+
+.sb-help-field { margin-bottom: 6px; }
+.sb-help-field label { font-size: 12.5px; }
+.sb-max { max-width: 120px; }
+
+/* 아이콘 버튼 */
+.sb-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+  border: none; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; transition: all .12s;
+}
+.sb-icon-btn:hover:not(:disabled) { background: var(--page-bg); color: var(--ink); }
+.sb-icon-btn.sm { width: 26px; height: 26px; }
+.sb-icon-btn.danger:hover:not(:disabled) { color: #E5484D; background: rgba(229, 72, 77, .1); }
+.sb-icon-btn:disabled { opacity: .3; cursor: default; }
+
+.sb-q-foot { display: flex; align-items: center; gap: 20px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.sb-q-foot-actions { margin-left: auto; display: flex; gap: 4px; }
+
+/* 질문 추가 팔레트 */
+.sb-palette { background: var(--canvas); border: 1px dashed var(--border); border-radius: 16px; padding: 18px; }
+.sb-palette-label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 12px; }
+.sb-palette-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.sb-palette-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 12px 14px; border: 1px solid var(--border);
+  border-radius: 11px; background: var(--page-bg); color: var(--ink); font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all .12s;
+}
+.sb-palette-btn:hover { border-color: var(--team); color: var(--team-deep); background: color-mix(in srgb, var(--team) 6%, var(--canvas)); }
+
+/* 하단 저장 바 */
+.sb-actionbar {
+  position: sticky; bottom: 0; left: 0; right: 0; margin: 20px -4px -4px; padding: 14px 20px;
+  background: color-mix(in srgb, var(--canvas) 92%, transparent); backdrop-filter: blur(8px);
+  border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;
+  border-radius: 0 0 12px 12px;
+}
+.sb-count { font-size: 13px; font-weight: 600; color: var(--muted); }
+.sb-actionbar-btns { display: flex; gap: 10px; }
+
+/* 미리보기 */
+.sb-preview { max-width: 680px; margin: 0 auto; }
+.sb-preview-badge {
+  display: inline-block; font-size: 12px; font-weight: 700; color: var(--team-deep);
+  background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); padding: 5px 12px; border-radius: 100px; margin-bottom: 14px;
+}
+.sb-preview-title { font-size: 24px; font-weight: 800; color: var(--ink); margin-bottom: 8px; }
+.sb-preview-desc { font-size: 15px; color: var(--body); margin-bottom: 24px; line-height: 1.55; }
+.sb-preview-q { background: var(--canvas); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin-bottom: 14px; }
+.sb-preview-q-title { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.sb-preview-qnum { color: var(--team-deep); }
+.sb-req { color: #E5484D; margin-left: 4px; }
+.sb-preview-help { font-size: 13.5px; color: var(--muted); margin-bottom: 14px; }
+
+@media (max-width: 720px) {
+  .sb-meta-grid { grid-template-columns: 1fr; }
+  .sb-palette-grid { grid-template-columns: repeat(2, 1fr); }
+  .sb-q-head { flex-wrap: wrap; }
+  .sb-q-title { order: 3; flex-basis: 100%; }
+  .sb-q-type { flex: 1; }
+}

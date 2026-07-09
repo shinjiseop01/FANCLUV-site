@@ -57,8 +57,11 @@ export default function SurveyPage() {
   const openSurvey = id => navigate(`/club/${team.id}/survey/${id}`)
 
   // 종료 후 3일 지난 설문은 repo(listSurveys)에서 이미 제외됨.
+  // 상태: 'published'(진행중) | 'closed'(종료). 필터 'open' 은 진행중을 의미.
   const visibleSurveys = surveys
-    .filter(s => (statusFilter === 'all' ? true : s.status === statusFilter))
+    .filter(s => (statusFilter === 'all' ? true
+      : statusFilter === 'open' ? s.status === 'published'
+      : s.status === 'closed'))
 
   return (
     <div className="ch-root" style={themeStyle}>
@@ -121,7 +124,7 @@ export default function SurveyPage() {
         ) : (
           <div className="sv-grid">
             {visibleSurveys.map(s => {
-              const open = s.status === 'open'
+              const open = s.status === 'published'
               const done = s.participated
               const clickable = open && !done
               const dday = s.dday === 0 ? 'D-DAY' : `D-${s.dday}`

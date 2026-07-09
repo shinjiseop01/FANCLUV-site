@@ -83,6 +83,13 @@
 }
 .sv-q-title em { font-style: normal; font-weight: 500; color: var(--muted); font-size: 13px; }
 .sv-qnum { flex-shrink: 0; font-size: 16px; font-weight: 700; line-height: 1.45; color: var(--team-deep); }
+.sv-req { font-style: normal; color: #E5484D; font-weight: 700; }
+.sv-q-help { margin: -8px 0 16px; font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+.sv-error {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 16px; padding: 12px 16px;
+  border-radius: 12px; font-size: 14px; font-weight: 600;
+  color: #E5484D; background: rgba(229, 72, 77, .1); border: 1px solid rgba(229, 72, 77, .25);
+}
 
 /* Stars */
 .sv-stars { display: flex; align-items: center; gap: 6px; }

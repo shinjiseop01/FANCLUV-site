@@ -232,6 +232,69 @@ const PATHS = {
       <path d="M10.5 6.5 12 5a4 4 0 0 1 5.7 5.7l-1.5 1.5M13.5 17.5 12 19a4 4 0 0 1-5.7-5.7l1.5-1.5" />
     </>
   ),
+  // ── 설문 빌더/질문 유형 ──
+  plus: (
+    <path d="M12 5v14M5 12h14" />
+  ),
+  trash: (
+    <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6" />
+  ),
+  copy: (
+    <>
+      <rect x="8.5" y="8.5" width="11" height="11" rx="2" />
+      <path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5" />
+    </>
+  ),
+  grip: (
+    <>
+      <circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none" />
+    </>
+  ),
+  chevron: (
+    <path d="M6 9l6 6 6-6" />
+  ),
+  chevronUp: (
+    <path d="M6 15l6-6 6 6" />
+  ),
+  close: (
+    <path d="M6 6l12 12M18 6L6 18" />
+  ),
+  download: (
+    <path d="M12 3v12M7 10l5 5 5-5M4 20h16" />
+  ),
+  // 질문 유형 아이콘
+  radio: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none" />
+    </>
+  ),
+  star: (
+    <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17.9 6.6 20l1-6.1L3.2 9.5l6.1-.9z" />
+  ),
+  gauge: (
+    <>
+      <path d="M4 16a8 8 0 1 1 16 0" />
+      <path d="M12 16l3.5-4" />
+    </>
+  ),
+  toggle: (
+    <>
+      <rect x="2.5" y="7.5" width="19" height="9" rx="4.5" />
+      <circle cx="16.5" cy="12" r="2.6" fill="currentColor" stroke="none" />
+    </>
+  ),
+  textLine: (
+    <path d="M4 9h16M4 14h10" />
+  ),
+  textBlock: (
+    <path d="M4 7h16M4 12h16M4 17h10" />
+  ),
 }
 
 export default function Icon({ name, size = 18, className = '', strokeWidth = 1.7, style }) {

@@ -3,17 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import IdentityNotice from './components/IdentityNotice.jsx'
+import QuestionField from './components/survey/QuestionField.jsx'
 import { logout, getCurrentUser, requiresIdentityVerification } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getSurvey, submitResponse } from './lib/surveysRepo.js'
+import { isAnswered, emptyAnswer, OTHER_VALUE } from './lib/surveys/questionTypes.js'
 import { SkeletonList } from './components/Skeleton.jsx'
 import './ClubHomePage.css'
 import './SurveyPage.css'
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
-
-const IMPROVE_OPTIONS = ['좌석 / 시야', '편의시설', '먹거리 / 매점', '접근성 / 교통', '응원 환경', '기타']
-const REVISIT_OPTIONS = ['매우 그렇다', '그렇다', '보통이다', '아니다']
 
 export default function SurveyDetailPage() {
   const NICKNAME = getCurrentUser()?.nickname || '팬'
@@ -24,13 +23,12 @@ export default function SurveyDetailPage() {
 
   const [survey, setSurvey] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [satisfaction, setSatisfaction] = useState(0)
-  const [improve, setImprove] = useState('')
-  const [revisit, setRevisit] = useState('')
-  const [comment, setComment] = useState('')
+  const [answers, setAnswers] = useState({})
+  const [otherText, setOtherText] = useState({})
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
-  // 설문 상세 로드 (Supabase 우선, 아니면 Mock — surveysRepo)
   useEffect(() => {
     if (!team) return
     let active = true
@@ -38,6 +36,11 @@ export default function SurveyDetailPage() {
     getSurvey(team.id, surveyId).then(s => {
       if (!active) return
       setSurvey(s)
+      if (s?.questions) {
+        const init = {}
+        for (const q of s.questions) init[q.id] = emptyAnswer(q.type)
+        setAnswers(init)
+      }
       setLoading(false)
       window.scrollTo({ top: 0 })
     })
@@ -54,24 +57,49 @@ export default function SurveyDetailPage() {
   }
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
-
-  // 제목/설명: Supabase 설문은 DB 값, Mock 설문은 locale 키(survey.item.<id>.*)
-  const surveyTitle = s => s.title || t(`survey.item.${s.id}.title`)
-  const surveyDesc = s => s.desc || t(`survey.item.${s.id}.desc`)
-
   const backToList = () => navigate(`/club/${team.id}/survey`)
+
+  const setAnswer = (qid, v) => setAnswers(a => ({ ...a, [qid]: v }))
+  const setOther = (qid, v) => setOtherText(o => ({ ...o, [qid]: v }))
+
+  // OTHER_VALUE sentinel → 실제 입력 텍스트로 치환.
+  function resolveAnswers() {
+    const out = {}
+    for (const q of survey.questions) {
+      let v = answers[q.id]
+      const other = (otherText[q.id] || '').trim()
+      if (q.type === 'single' && v === OTHER_VALUE) v = other
+      else if (q.type === 'multi' && Array.isArray(v)) v = v.map(x => (x === OTHER_VALUE ? other : x)).filter(Boolean)
+      out[q.id] = v
+    }
+    return out
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
-    await submitResponse(survey.id, team.id, { satisfaction, improve, revisit, comment })
+    // 필수 검증
+    for (let i = 0; i < survey.questions.length; i++) {
+      const q = survey.questions[i]
+      if (q.required && !isAnswered(q, answers[q.id])) {
+        setError(t('survey.errRequired', { n: i + 1 }))
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        return
+      }
+    }
+    setError(''); setSubmitting(true)
+    const res = await submitResponse(survey.id, team.id, resolveAnswers())
+    setSubmitting(false)
+    if (!res.ok) {
+      if (res.code === 'duplicate') { setSurvey(s => ({ ...s, participated: true })); return }
+      setError(res.error || t('survey.errSubmit'))
+      return
+    }
     setSubmitted(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
     <div className="ch-root" style={themeStyle}>
-
-      {/* ── Header (shared style) ── */}
       <header className="ch-header">
         <div className="ch-topbar">
           <div className="ch-logo" role="button" tabIndex={0} onClick={() => navigate(`/club/${teamId}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/club/${teamId}`) } }}>FANCLUV</div>
@@ -100,7 +128,6 @@ export default function SurveyDetailPage() {
         </nav>
       </header>
 
-      {/* ── Main ── */}
       <main className="sv-main">
         {loading ? (
           <SkeletonList count={1} lines={4} />
@@ -121,7 +148,6 @@ export default function SurveyDetailPage() {
             </div>
           </div>
         ) : survey.participated ? (
-          /* 이미 참여한 설문 — 참여 완료 안내 */
           <div className="sv-done">
             <div className="sv-done-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -132,8 +158,12 @@ export default function SurveyDetailPage() {
               <button className="sv-btn-primary" onClick={backToList}>{t('survey.backList')}</button>
             </div>
           </div>
+        ) : survey.status !== 'published' ? (
+          <div className="sv-notfound" role="status">
+            <p>{t('survey.closedMsg')}</p>
+            <button className="sv-btn-primary" onClick={backToList}>{t('survey.backList')}</button>
+          </div>
         ) : requiresIdentityVerification() ? (
-          /* 본인인증 미완료 — 설문 참여 불가 안내 */
           <>
             <button className="sv-back" onClick={backToList}>{t('common.back')}</button>
             <IdentityNotice />
@@ -143,81 +173,39 @@ export default function SurveyDetailPage() {
             <button className="sv-back" onClick={backToList}>{t('common.back')}</button>
             <header className="sv-head">
               <span className="sv-tag">{t('survey.statusOpen')} · {survey.dday === 0 ? 'D-DAY' : `D-${survey.dday}`}</span>
-              <h1 className="sv-title">{surveyTitle(survey)}</h1>
-              <p className="sv-desc">{surveyDesc(survey)}</p>
+              <h1 className="sv-title">{survey.title}</h1>
+              {survey.desc && <p className="sv-desc">{survey.desc}</p>}
             </header>
 
+            {error && <div className="sv-error" role="alert">⚠ {error}</div>}
+
             <form className="sv-form" onSubmit={handleSubmit}>
-              {/* Q1 */}
-              <div className="sv-q">
-                <div className="sv-q-head">
-                  <span className="sv-qnum">Q1.</span>
-                  <span className="sv-q-title">홈 경기장 전반에 대한 만족도는 어떠신가요?</span>
+              {survey.questions.map((q, i) => (
+                <div className="sv-q" key={q.id}>
+                  <div className="sv-q-head">
+                    <span className="sv-qnum">Q{i + 1}.</span>
+                    <span className="sv-q-title">
+                      {q.title}{q.required && <em className="sv-req"> *</em>}
+                    </span>
+                  </div>
+                  {q.help_text && <p className="sv-q-help">{q.help_text}</p>}
+                  <QuestionField
+                    question={q}
+                    value={answers[q.id] ?? emptyAnswer(q.type)}
+                    onChange={v => setAnswer(q.id, v)}
+                    otherText={otherText[q.id] || ''}
+                    onOther={v => setOther(q.id, v)}
+                  />
                 </div>
-                <div className="sv-stars" role="radiogroup" aria-label="만족도 별점">
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <button type="button" key={n}
-                      className={`sv-star${n <= satisfaction ? ' on' : ''}`}
-                      aria-label={`${n}점`}
-                      aria-pressed={n === satisfaction}
-                      onClick={() => setSatisfaction(n)}>
-                      <svg viewBox="0 0 24 24"><path d="M12 2l3 6.3 6.9 1-5 4.9 1.2 6.9L12 17.8 5.9 21l1.2-6.9-5-4.9 6.9-1z"/></svg>
-                    </button>
-                  ))}
-                  <span className="sv-stars-label">{satisfaction ? `${satisfaction}점` : '선택해 주세요'}</span>
-                </div>
-              </div>
+              ))}
 
-              {/* Q2 */}
-              <div className="sv-q">
-                <div className="sv-q-head">
-                  <span className="sv-qnum">Q2.</span>
-                  <span className="sv-q-title">가장 개선이 필요한 부분은 무엇인가요?</span>
-                </div>
-                <div className="sv-options">
-                  {IMPROVE_OPTIONS.map(opt => (
-                    <label key={opt} className={`sv-option${improve === opt ? ' on' : ''}`}>
-                      <input type="radio" name="improve" value={opt}
-                        checked={improve === opt} onChange={() => setImprove(opt)} />
-                      <span>{opt}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Q3 */}
-              <div className="sv-q">
-                <div className="sv-q-head">
-                  <span className="sv-qnum">Q3.</span>
-                  <span className="sv-q-title">다음 홈 경기에 다시 방문할 의향이 있으신가요?</span>
-                </div>
-                <div className="sv-options">
-                  {REVISIT_OPTIONS.map(opt => (
-                    <label key={opt} className={`sv-option${revisit === opt ? ' on' : ''}`}>
-                      <input type="radio" name="revisit" value={opt}
-                        checked={revisit === opt} onChange={() => setRevisit(opt)} />
-                      <span>{opt}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Q4 */}
-              <div className="sv-q">
-                <div className="sv-q-head">
-                  <span className="sv-qnum">Q4.</span>
-                  <span className="sv-q-title">구단에 전하고 싶은 의견을 자유롭게 남겨 주세요. <em>(선택)</em></span>
-                </div>
-                <textarea
-                  className="sv-textarea"
-                  placeholder="경기장, 응원 환경, 팬 서비스 등 자유롭게 작성해 주세요."
-                  value={comment}
-                  onChange={e => setComment(e.target.value)}
-                  rows={4}
-                />
-              </div>
-
-              <button type="submit" className="sv-submit">{t('survey.submit')}</button>
+              {survey.questions.length === 0 ? (
+                <p className="sv-desc">{t('survey.noQuestions')}</p>
+              ) : (
+                <button type="submit" className="sv-submit" disabled={submitting}>
+                  {submitting ? t('survey.submitting') : t('survey.submit')}
+                </button>
+              )}
             </form>
           </>
         )}

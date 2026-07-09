@@ -1,73 +1,41 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import Icon from '../components/Icon.jsx'
-import {
-  adminListSurveys, createSurvey, updateSurvey,
-  closeSurvey as closeSurveyApi, deleteSurvey,
-} from '../lib/surveysRepo.js'
-import { exportCsv } from '../lib/admin/csv.js'
+import { adminListSurveys, setSurveyStatus, deleteSurvey } from '../lib/surveysRepo.js'
 
-const EMPTY = { title: '', desc: '', question: '', endDate: '' }
+const STATUS_META = {
+  draft:     { key: 'admin.sv.stDraft',     cls: 'hidden' },
+  published: { key: 'admin.sv.stPublished', cls: 'active' },
+  closed:    { key: 'admin.sv.stClosed',    cls: 'muted' },
+}
 
 export default function AdminSurveys() {
   const { t } = useLang()
+  const navigate = useNavigate()
   const [surveys, setSurveys] = useState([])
-  const [form, setForm] = useState(null)   // null=closed, {id?, ...fields}=open
-  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState('')
 
-  // 설문 목록 로드 (Supabase 우선, 아니면 Mock — surveysRepo)
-  useEffect(() => {
-    let active = true
-    adminListSurveys().then(list => { if (active) setSurveys(list) })
-    return () => { active = false }
-  }, [])
-
-  function openCreate() { setError(''); setForm({ ...EMPTY }) }
-  function openEdit(s) { setError(''); setForm({ ...s }) }
-  function close() { setForm(null); setError('') }
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-
-  async function save(e) {
-    e.preventDefault()
-    if (!form.title.trim()) { setError(t('admin.sv.errTitle')); return }
-    if (!form.question.trim()) { setError(t('admin.sv.errQuestion')); return }
-    if (form.id) {
-      const res = await updateSurvey(form.id, form)
-      if (!res.ok) { setError(res.error || t('admin.sv.errTitle')); return }
-      setSurveys(list => list.map(s => (s.id === form.id ? res.survey : s)))
-    } else {
-      const res = await createSurvey(form)
-      if (!res.ok) { setError(res.error || t('admin.sv.errTitle')); return }
-      setSurveys(list => [res.survey, ...list])
-    }
-    close()
+  const load = () => {
+    setLoading(true)
+    adminListSurveys().then(list => { setSurveys(list); setLoading(false) })
   }
+  useEffect(() => { load() }, [])
 
-  async function closeSurvey(id) {
-    const res = await closeSurveyApi(id)
-    if (res.ok) setSurveys(list => list.map(s => (s.id === id ? { ...s, status: 'closed' } : s)))
+  async function changeStatus(id, status) {
+    setBusy(id)
+    const res = await setSurveyStatus(id, status)
+    if (res.ok) setSurveys(list => list.map(s => (s.id === id ? { ...s, status } : s)))
+    setBusy('')
   }
-
   async function remove(id) {
+    if (!window.confirm(t('admin.sv.confirmDelete'))) return
+    setBusy(id)
     const res = await deleteSurvey(id)
     if (res.ok) setSurveys(list => list.filter(s => s.id !== id))
-  }
-
-  function downloadCsv() {
-    const cols = [
-      { key: 'id', label: 'ID' },
-      { key: 'title', label: t('admin.sv.colTitle') },
-      { key: 'question', label: t('admin.sv.fQuestion') },
-      { key: 'endDate', label: t('admin.sv.colEnd') },
-      { key: 'responses', label: t('admin.sv.colResponses') },
-      { key: 'status', label: t('admin.sv.colStatus') },
-    ]
-    const rows = surveys.map(s => ({
-      id: s.id, title: s.title, question: s.question || '', endDate: s.endDate || '',
-      responses: s.responses, status: s.status === 'open' ? t('admin.sv.open') : t('admin.sv.closed'),
-    }))
-    exportCsv('fancluv_surveys', cols, rows)
+    setBusy('')
   }
 
   return (
@@ -78,41 +46,15 @@ export default function AdminSurveys() {
           <p className="adm-sub">{t('admin.sv.sub', { n: surveys.length })}</p>
         </div>
         <div className="adm-head-actions">
-          <button className="adm-btn-ghost adm-csv-btn" onClick={downloadCsv} disabled={surveys.length === 0}>
-            <Icon name="external" size={15} /> {t('admin.csv')}
+          <button className="adm-btn-primary" onClick={() => navigate('/admin/surveys/new')}>
+            <Icon name="plus" size={16} /> {t('admin.sv.create')}
           </button>
-          <button className="adm-btn-primary" onClick={openCreate}>+ {t('admin.sv.create')}</button>
         </div>
       </header>
 
-      {form && (
-        <form className="adm-form" onSubmit={save}>
-          <h2 className="adm-h2">{form.id ? t('admin.sv.editTitle') : t('admin.sv.createTitle')}</h2>
-          <div className="adm-field">
-            <label>{t('admin.sv.fTitle')}</label>
-            <input className="adm-input" value={form.title} onChange={e => set('title', e.target.value)} placeholder={t('admin.sv.fTitlePh')} />
-          </div>
-          <div className="adm-field">
-            <label>{t('admin.sv.fDesc')}</label>
-            <textarea className="adm-input" rows={2} value={form.desc} onChange={e => set('desc', e.target.value)} placeholder={t('admin.sv.fDescPh')} />
-          </div>
-          <div className="adm-field">
-            <label>{t('admin.sv.fQuestion')}</label>
-            <input className="adm-input" value={form.question} onChange={e => set('question', e.target.value)} placeholder={t('admin.sv.fQuestionPh')} />
-          </div>
-          <div className="adm-field">
-            <label>{t('admin.sv.fEnd')}</label>
-            <input className="adm-input" type="date" value={form.endDate} onChange={e => set('endDate', e.target.value)} />
-          </div>
-          {error && <div className="adm-error" role="alert">⚠ {error}</div>}
-          <div className="adm-form-actions">
-            <button type="submit" className="adm-btn-primary">{form.id ? t('admin.save') : t('admin.sv.create')}</button>
-            <button type="button" className="adm-btn-ghost" onClick={close}>{t('admin.cancel')}</button>
-          </div>
-        </form>
-      )}
-
-      {surveys.length === 0 ? (
+      {loading ? (
+        <div className="adm-loading">{t('common.loading')}</div>
+      ) : surveys.length === 0 ? (
         <EmptyState iconName="survey" title={t('empty.surveysTitle')} message={t('empty.surveysMsg')} />
       ) : (
         <div className="adm-table-wrap">
@@ -120,32 +62,45 @@ export default function AdminSurveys() {
             <thead>
               <tr>
                 <th>{t('admin.sv.colTitle')}</th>
-                <th>{t('admin.sv.colEnd')}</th>
+                <th>{t('admin.sv.colQuestions')}</th>
                 <th>{t('admin.sv.colResponses')}</th>
+                <th>{t('admin.sv.colEnd')}</th>
                 <th>{t('admin.sv.colStatus')}</th>
                 <th className="adm-col-actions">{t('admin.actions')}</th>
               </tr>
             </thead>
             <tbody>
-              {surveys.map(s => (
-                <tr key={s.id}>
-                  <td className="adm-cell-strong">{s.title}</td>
-                  <td className="adm-cell-muted">{s.endDate || '-'}</td>
-                  <td>{s.responses.toLocaleString()}</td>
-                  <td>
-                    <span className={`adm-badge ${s.status === 'open' ? 'active' : 'hidden'}`}>
-                      {s.status === 'open' ? t('admin.sv.open') : t('admin.sv.closed')}
-                    </span>
-                  </td>
-                  <td className="adm-col-actions">
-                    <div className="adm-actions">
-                      <button className="adm-btn-sm" onClick={() => openEdit(s)}>{t('admin.edit')}</button>
-                      {s.status === 'open' && <button className="adm-btn-sm" onClick={() => closeSurvey(s.id)}>{t('admin.sv.closeBtn')}</button>}
-                      <button className="adm-btn-sm danger" onClick={() => remove(s.id)}>{t('admin.delete')}</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {surveys.map(s => {
+                const sm = STATUS_META[s.status] || STATUS_META.draft
+                return (
+                  <tr key={s.id}>
+                    <td className="adm-cell-strong">
+                      {s.title || t('admin.sv.untitled')}
+                      {!s.isPublic && <span className="adm-badge muted adm-sv-private">{t('admin.sv.private')}</span>}
+                    </td>
+                    <td>{s.questionCount}</td>
+                    <td>{s.responses.toLocaleString()}</td>
+                    <td className="adm-cell-muted">{s.endDate || '-'}</td>
+                    <td><span className={`adm-badge ${sm.cls}`}>{t(sm.key)}</span></td>
+                    <td className="adm-col-actions">
+                      <div className="adm-actions">
+                        <button className="adm-btn-sm" onClick={() => navigate(`/admin/surveys/${s.id}/edit`)}>{t('admin.edit')}</button>
+                        <button className="adm-btn-sm" onClick={() => navigate(`/admin/surveys/${s.id}/results`)}>{t('admin.sv.results')}</button>
+                        {s.status === 'draft' && (
+                          <button className="adm-btn-sm accent" disabled={busy === s.id} onClick={() => changeStatus(s.id, 'published')}>{t('admin.sv.publish')}</button>
+                        )}
+                        {s.status === 'published' && (
+                          <button className="adm-btn-sm" disabled={busy === s.id} onClick={() => changeStatus(s.id, 'closed')}>{t('admin.sv.closeBtn')}</button>
+                        )}
+                        {s.status === 'closed' && (
+                          <button className="adm-btn-sm" disabled={busy === s.id} onClick={() => changeStatus(s.id, 'published')}>{t('admin.sv.reopen')}</button>
+                        )}
+                        <button className="adm-btn-sm danger" disabled={busy === s.id} onClick={() => remove(s.id)}>{t('admin.delete')}</button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
