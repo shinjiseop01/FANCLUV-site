@@ -38,8 +38,9 @@ Deno.serve(async (req) => {
     if (parsed?.r) appOrigin = parsed.r
   } catch { /* state 파싱 실패 시 폴백 사용 */ }
 
+  // 성공/실패 모두 앱의 /auth/callback 으로 돌려보내 일관되게 처리한다.
   const redirectApp = (params: string) =>
-    Response.redirect(`${appOrigin || 'https://example.com'}/?${params}`, 302)
+    Response.redirect(`${appOrigin || 'https://example.com'}/auth/callback?${params}`, 302)
   const fail = (reason: string) => redirectApp(`error=${encodeURIComponent(reason)}`)
 
   if (naverError || !code) return fail('naver_denied')

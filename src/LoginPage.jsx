@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { login, ADMIN_ROLES, CLUB_ROLES, needsOnboarding, requiresIdentityVerification } from './lib/auth.js'
+import { login } from './lib/auth.js'
+import { postAuthPath } from './lib/authRoute.js'
 import { isSupabaseConfigured, isProdMisconfigured } from './lib/supabase.js'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { useLang } from './contexts/LanguageContext.jsx'
@@ -29,16 +30,8 @@ export default function LoginPage() {
     return map[errCode] || t('login.conflictGeneric')
   }
 
-  // 로그인 성공 후 이동 경로: 온보딩 필요(소셜 신규) → 온보딩, 운영자 → 관리자 콘솔,
-  // 팀 선택 완료 → 구단 홈, 그 외 → 팀 선택.
-  function routeAfterAuth(user) {
-    if (CLUB_ROLES.includes(user.role)) navigate('/executive')      // 구단(고객) → Executive Dashboard
-    else if (needsOnboarding(user)) navigate('/onboarding')
-    else if (ADMIN_ROLES.includes(user.role)) navigate('/admin')
-    else if (requiresIdentityVerification(user)) navigate('/verify-identity') // 본인인증 미완료 팬
-    else if (user.selectedTeam) navigate(`/club/${user.selectedTeam}`)
-    else navigate('/team-select')
-  }
+  // 로그인 성공 후 이동 경로는 postAuthPath(공유 규칙)로 결정한다. (콜백 화면과 동일)
+  function routeAfterAuth(user) { navigate(postAuthPath(user)) }
 
   // 소셜 로그인 콜백의 ?error=account_exists_* 를 읽어 안내 후, 새로고침 반복을 막기 위해
   // Query Parameter 를 제거한다(history.replaceState).

@@ -17,6 +17,7 @@ import './components/components.css'
 // 랜딩 라우트(로그인)만 즉시 로드해 첫 페인트 지연을 막고,
 // 나머지 페이지는 라우트 단위 코드 스플리팅(React.lazy)으로 필요할 때 로드한다.
 import LoginPage from './LoginPage.jsx'
+import AuthCallbackPage from './AuthCallbackPage.jsx'
 
 const SignupPage = lazy(() => import('./SignupPage.jsx'))
 const FindIdPage = lazy(() => import('./FindIdPage.jsx'))
@@ -130,6 +131,7 @@ createRoot(document.getElementById('root')).render(
       <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<LoginPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/find-id" element={<FindIdPage />} />
         <Route path="/find-password" element={<FindPasswordPage />} />

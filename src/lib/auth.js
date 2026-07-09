@@ -117,6 +117,9 @@ function translateAuthError(error) {
   if (msg.includes('invalid login')) return '이메일 또는 비밀번호가 올바르지 않습니다.'
   if (msg.includes('email not confirmed')) return '이메일 인증이 완료되지 않은 계정입니다.'
   if (msg.includes('already registered') || msg.includes('already exists')) return '이미 가입된 이메일입니다.'
+  // 소셜 로그인 provider 가 Supabase 대시보드에서 아직 활성화되지 않은 경우.
+  if (msg.includes('provider is not enabled') || msg.includes('unsupported provider'))
+    return '이 소셜 로그인은 아직 활성화되지 않았습니다. 관리자에게 문의해 주세요. (Supabase Providers 설정 필요)'
   if (msg.includes('password')) return '비밀번호는 6자 이상이어야 합니다.'
   return error?.message || '요청을 처리하지 못했습니다. 다시 시도해 주세요.'
 }
@@ -428,7 +431,7 @@ export async function socialLogin(providerId) {
     if (cfg.native) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: cfg.supabaseProvider,
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
       })
       if (error) return { ok: false, error: translateAuthError(error) }
       return { ok: true, redirecting: true } // 브라우저가 provider 로 리다이렉트됨
@@ -439,9 +442,13 @@ export async function socialLogin(providerId) {
     if (providerId === 'naver') {
       const clientId = import.meta.env.VITE_NAVER_CLIENT_ID
       if (!clientId || clientId.includes('your-naver')) {
-        return { ok: false, error: 'NAVER 로그인 설정이 필요합니다. SOCIAL_LOGIN_SETUP.md 를 참고해 주세요.' }
+        return { ok: false, error: 'NAVER 로그인 설정이 필요합니다. OAUTH_SETUP.md 를 참고해 주세요.' }
       }
-      const redirectUri = import.meta.env.VITE_NAVER_CALLBACK_URL || `${window.location.origin}/auth/naver/callback`
+      // redirect_uri 는 반드시 NAVER 콘솔에 등록된 Supabase Edge Function 콜백이어야 한다.
+      // (앱 주소가 아니라 https://<ref>.supabase.co/functions/v1/naver-callback)
+      const supaUrl = import.meta.env.VITE_SUPABASE_URL || ''
+      const redirectUri = import.meta.env.VITE_NAVER_CALLBACK_URL
+        || (supaUrl ? `${supaUrl}/functions/v1/naver-callback` : `${window.location.origin}/auth/callback`)
       // state 에 nonce + 앱 복귀 주소(origin)를 담아 Edge Function 이 로그인 후 앱으로 되돌린다.
       const nonce = Math.random().toString(36).slice(2)
       const state = btoa(JSON.stringify({ n: nonce, r: window.location.origin }))
