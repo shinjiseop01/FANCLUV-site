@@ -327,6 +327,11 @@
 /* Charts */
 .adm-chart-svg { width: 100%; height: auto; display: block; }
 .adm-chart-axis { fill: var(--muted); font-size: 9px; font-weight: 600; }
+.adm-chart-value { fill: var(--ink); font-size: 9.5px; font-weight: 700; }
+.adm-bar rect, .adm-donut-seg { transition: opacity 0.15s, fill-opacity 0.15s; cursor: default; }
+.adm-bar:hover rect { fill-opacity: 1; }
+.adm-donut-seg:hover { opacity: 0.82; }
+.adm-stack-seg { cursor: default; }
 .adm-donut-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
 .adm-donut-svg { width: 150px; height: 150px; flex-shrink: 0; }
 .adm-donut-total { fill: var(--ink); font-size: 22px; font-weight: 800; }

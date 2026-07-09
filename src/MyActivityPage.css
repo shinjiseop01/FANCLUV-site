@@ -212,3 +212,5 @@
 @media (max-width: 420px) {
   .ma-stats { grid-template-columns: 1fr; }
 }
+
+.ma-tl-empty { font-size: 13.5px; color: var(--muted); padding: 8px 2px; }

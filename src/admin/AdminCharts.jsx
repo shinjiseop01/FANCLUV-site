@@ -1,12 +1,16 @@
 // FANCLUV Admin — lightweight inline-SVG charts (no chart library).
 // Token-driven so they read well in both light and dark. All charts take
 // plain data arrays, so swapping mock → Supabase only changes the data source.
+// 각 요소에 데이터 라벨 + hover 툴팁(<title>) + 축 값을 제공해 관리자가 정확한
+// 수치를 바로 확인할 수 있게 한다.
 import { useLang } from '../contexts/LanguageContext.jsx'
+
+const fmt = n => Number(n || 0).toLocaleString()
 
 // ── Line chart (일별 추이) ──
 export function LineChart({ data, color = 'var(--team-deep)', height = 150 }) {
-  const W = 320, H = height, padX = 10, padTop = 14, padBottom = 24
-  const plotW = W - padX * 2
+  const W = 320, H = height, padX = 34, padTop = 18, padBottom = 24
+  const plotW = W - padX - 10
   const plotH = H - padTop - padBottom
   const max = Math.max(...data.map(d => d.value)) * 1.15 || 1
   const stepX = data.length > 1 ? plotW / (data.length - 1) : 0
@@ -18,16 +22,28 @@ export function LineChart({ data, color = 'var(--team-deep)', height = 150 }) {
 
   return (
     <svg className="adm-chart-svg" viewBox={`0 0 ${W} ${H}`} role="img">
-      {/* grid */}
-      {[0.25, 0.5, 0.75, 1].map(g => (
-        <line key={g} x1={padX} x2={W - padX} y1={padTop + plotH * g} y2={padTop + plotH * g}
-          stroke="var(--border-soft)" strokeWidth="1" />
+      {/* grid + y축 값 */}
+      {[0, 0.25, 0.5, 0.75, 1].map(g => (
+        <g key={g}>
+          <line x1={padX} x2={W - 10} y1={padTop + plotH * g} y2={padTop + plotH * g}
+            stroke="var(--border-soft)" strokeWidth="1" />
+          <text x={padX - 6} y={padTop + plotH * g + 3} textAnchor="end" className="adm-chart-axis">
+            {fmt(Math.round(max * (1 - g)))}
+          </text>
+        </g>
       ))}
       <path d={area} fill={color} fillOpacity="0.12" />
       <polyline points={pts} fill="none" stroke={color} strokeWidth="2.5"
         strokeLinecap="round" strokeLinejoin="round" />
       {data.map((d, i) => (
-        <circle key={i} cx={px(i)} cy={py(d.value)} r="3.4" fill="var(--canvas)" stroke={color} strokeWidth="2" />
+        <g key={i} className="adm-point">
+          <circle cx={px(i)} cy={py(d.value)} r="3.6" fill="var(--canvas)" stroke={color} strokeWidth="2" />
+          <text x={px(i)} y={py(d.value) - 8} textAnchor="middle" className="adm-chart-value">{fmt(d.value)}</text>
+          {/* hover 시 정확한 수치 */}
+          <circle cx={px(i)} cy={py(d.value)} r="11" fill="transparent">
+            <title>{d.label}: {fmt(d.value)}</title>
+          </circle>
+        </g>
       ))}
       {data.map((d, i) => (
         <text key={i} x={px(i)} y={H - 7} textAnchor="middle" className="adm-chart-axis">{d.label}</text>
@@ -38,24 +54,37 @@ export function LineChart({ data, color = 'var(--team-deep)', height = 150 }) {
 
 // ── Bar chart (일별 개수) ──
 export function BarChart({ data, color = 'var(--team)', height = 150 }) {
-  const W = 320, H = height, padX = 10, padTop = 14, padBottom = 24
-  const plotW = W - padX * 2
+  const W = 320, H = height, padX = 34, padTop = 18, padBottom = 24
+  const plotW = W - padX - 10
   const plotH = H - padTop - padBottom
-  const max = Math.max(...data.map(d => d.value)) * 1.1 || 1
+  const max = Math.max(...data.map(d => d.value)) * 1.15 || 1
   const slot = plotW / data.length
   const barW = Math.min(26, slot * 0.55)
 
   return (
     <svg className="adm-chart-svg" viewBox={`0 0 ${W} ${H}`} role="img">
-      {[0.5, 1].map(g => (
-        <line key={g} x1={padX} x2={W - padX} y1={padTop + plotH * g} y2={padTop + plotH * g}
-          stroke="var(--border-soft)" strokeWidth="1" />
+      {[0, 0.5, 1].map(g => (
+        <g key={g}>
+          <line x1={padX} x2={W - 10} y1={padTop + plotH * g} y2={padTop + plotH * g}
+            stroke="var(--border-soft)" strokeWidth="1" />
+          <text x={padX - 6} y={padTop + plotH * g + 3} textAnchor="end" className="adm-chart-axis">
+            {fmt(Math.round(max * (1 - g)))}
+          </text>
+        </g>
       ))}
       {data.map((d, i) => {
         const h = (d.value / max) * plotH
-        const x = padX + slot * i + (slot - barW) / 2
+        const cx = padX + slot * i + slot / 2
+        const x = cx - barW / 2
         const y = padTop + plotH - h
-        return <rect key={i} x={x} y={y} width={barW} height={h} rx="4" fill={color} fillOpacity="0.9" />
+        return (
+          <g key={i} className="adm-bar">
+            <rect x={x} y={y} width={barW} height={h} rx="4" fill={color} fillOpacity="0.9">
+              <title>{d.label}: {fmt(d.value)}</title>
+            </rect>
+            <text x={cx} y={y - 6} textAnchor="middle" className="adm-chart-value">{fmt(d.value)}</text>
+          </g>
+        )
       })}
       {data.map((d, i) => (
         <text key={i} x={padX + slot * i + slot / 2} y={H - 7} textAnchor="middle" className="adm-chart-axis">{d.label}</text>
@@ -81,9 +110,11 @@ export function DonutChart({ data }) {
         {data.map((d, i) => {
           const len = (d.value / total) * C
           const seg = (
-            <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={d.color} strokeWidth={thickness}
+            <circle key={i} className="adm-donut-seg" cx={cx} cy={cy} r={r} fill="none" stroke={d.color} strokeWidth={thickness}
               strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-offset}
-              transform={`rotate(-90 ${cx} ${cy})`} />
+              transform={`rotate(-90 ${cx} ${cy})`}>
+              <title>{d.label}: {fmt(d.value)} ({Math.round((d.value / total) * 100)}%)</title>
+            </circle>
           )
           offset += len
           return seg
@@ -96,7 +127,7 @@ export function DonutChart({ data }) {
           <li key={i}>
             <span className="adm-legend-dot" style={{ background: d.color }} />
             <span className="adm-legend-label">{d.label}</span>
-            <span className="adm-legend-val">{Math.round((d.value / total) * 100)}%</span>
+            <span className="adm-legend-val">{fmt(d.value)} · {Math.round((d.value / total) * 100)}%</span>
           </li>
         ))}
       </ul>
@@ -111,7 +142,8 @@ export function StackedBar({ data, labelFor }) {
     <div className="adm-stack">
       <div className="adm-stack-bar" role="img">
         {data.map((d, i) => (
-          <span key={i} className="adm-stack-seg" style={{ width: `${(d.value / total) * 100}%`, background: d.color }} />
+          <span key={i} className="adm-stack-seg" style={{ width: `${(d.value / total) * 100}%`, background: d.color }}
+            title={`${labelFor ? labelFor(d.key) : d.key}: ${d.value}%`} />
         ))}
       </div>
       <ul className="adm-stack-legend">

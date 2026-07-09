@@ -1,49 +1,36 @@
-import { useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
-import { getCreatedOpinions } from './opinionStore.js'
+import { getMyActivity } from './lib/myActivityRepo.js'
 import Avatar from './components/Avatar.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
-import { useFakeLoading } from './lib/useFakeLoading.js'
 import RankIcon from './components/RankIcon.jsx'
 import Icon from './components/Icon.jsx'
+import AnimatedNumber from './components/AnimatedNumber.jsx'
+import { relativeTime } from './lib/relativeTime.js'
 import { getActivityBadge } from './lib/activityBadge.js'
 import { getActivityScore } from './lib/activityScore.js'
 import './ClubHomePage.css'
 import './MyActivityPage.css'
 
-const JOINED = '2025.03.14'
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
-// Mock opinions authored by the user (reuse base opinion ids so detail opens).
-const MOCK_MY_OPINIONS = [
-  { id: 1, category: '경기장', title: '홈 경기장 좌석 시야 개선이 필요합니다', date: '2026.06.20', likes: 96, comments: 12 },
-  { id: 4, category: 'MD', title: '신규 유니폼 디자인 만족도가 높아요', date: '2026.06.11', likes: 134, comments: 9 },
-  { id: 6, category: '구단 운영', title: '팬 소통 간담회를 정례화해 주세요', date: '2026.05.28', likes: 88, comments: 17 },
-]
-
-const MOCK_SURVEYS = [
-  { title: '2026 시즌 홈 경기장 시설 만족도 조사', date: '2026.06.18' },
-  { title: '유니폼 디자인 선호도 조사', date: '2026.05.30' },
-  { title: '응원가 리뉴얼 의견 수렴', date: '2026.05.12' },
-]
-
-const MOCK_TIMELINE = [
-  { type: '공감', text: "'티켓 예매 페이지 안정성 개선 요청'에 공감했습니다.", time: '2시간 전' },
-  { type: '댓글', text: "'원정 응원 분위기가 정말 최고였습니다'에 댓글을 남겼습니다.", time: '어제' },
-  { type: '설문', text: "'2026 시즌 홈 경기장 시설 만족도 조사'에 참여했습니다.", time: '3일 전' },
-  { type: '의견', text: "'팬 소통 간담회를 정례화해 주세요'를 작성했습니다.", time: '6일 전' },
-]
-
-const TYPE_META = {
-  의견: { label: '의견 작성', color: '#2563EB' },
-  댓글: { label: '댓글 작성', color: '#7C3AED' },
-  설문: { label: '설문 참여', color: '#0E9F6E' },
-  공감: { label: '공감 누르기', color: '#E05252' },
+// 타임라인 타입별 색상 + 라벨/문구 로케일 키
+const TL_META = {
+  opinion: { color: '#2563EB', labelKey: 'act.tlLabelOpinion', textKey: 'act.tlOpinion' },
+  comment: { color: '#7C3AED', labelKey: 'act.tlLabelComment', textKey: 'act.tlComment' },
+  like: { color: '#E05252', labelKey: 'act.tlLabelLike', textKey: 'act.tlLike' },
+  survey: { color: '#0E9F6E', labelKey: 'act.tlLabelSurvey', textKey: 'act.tlSurvey' },
+}
+const hoursSince = iso => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 3600000))
+const fmtJoined = iso => {
+  if (!iso) return null
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? null : `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 }
 
 export default function MyActivityPage() {
@@ -52,16 +39,17 @@ export default function MyActivityPage() {
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, t } = useLang()
-  const loading = useFakeLoading()
 
-  const myOpinions = useMemo(() => {
-    if (!team) return []
-    const created = getCreatedOpinions(team.id).map(o => ({
-      id: o.id, category: o.category, title: o.title,
-      date: '방금 전', likes: o.likes, comments: o.comments,
-    }))
-    return [...created, ...MOCK_MY_OPINIONS]
-  }, [team])
+  const [data, setData] = useState({ opinions: [], surveys: [], timeline: [], stats: { opinions: 0, comments: 0, surveys: 0, empathy: 0 } })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!team) { setLoading(false); return }
+    let active = true
+    setLoading(true)
+    getMyActivity(team.id).then(d => { if (active) { setData(d); setLoading(false) } })
+    return () => { active = false }
+  }, [teamId, team])
 
   if (!team) {
     return (
@@ -72,17 +60,12 @@ export default function MyActivityPage() {
     )
   }
 
-  const opinionCount = myOpinions.length
-  const commentCount = 23
-  const surveyCount = MOCK_SURVEYS.length
-  const empathyCount = myOpinions.reduce((s, o) => s + (o.likes || 0), 0)
-
-  // activity score → badge tier (Rookie → Active → Super → Legend)
-  // 실제 활동 점수는 다음날 00시 반영(activityScore.reflected). 오늘 활동은 pending.
+  const { opinions, surveys, timeline, stats } = data
   const activity = getActivityScore()
-  const score = opinionCount * 6 + commentCount + surveyCount * 5 + activity.reflected
+  const score = stats.opinions * 6 + stats.comments + stats.surveys * 5 + activity.reflected
   const { badge, next, progress } = getActivityBadge(score)
   const badgeName = b => (lang === 'en' ? b.en : b.ko)
+  const joined = fmtJoined(getCurrentUser()?.joinedAt)
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
 
@@ -139,24 +122,24 @@ export default function MyActivityPage() {
                 <h2 className="ma-nickname">{NICKNAME}</h2>
                 <div className="ma-profile-team">
                   <TeamEmblem color={team.color} size={22} className="ma-team-emblem" />
-                  <span>{team.name}</span>
+                  <span>{teamName(team, lang)}</span>
                 </div>
-                <p className="ma-joined">{t('act.joined')} · {JOINED}</p>
+                {joined && <p className="ma-joined">{t('act.joined')} · {joined}</p>}
               </div>
             </div>
 
             {/* Stats */}
             <div className="ma-stats">
-              <StatCard label={t('act.statOpinions')} value={opinionCount} icon="message" />
-              <StatCard label={t('act.statComments')} value={commentCount} icon="comment" />
-              <StatCard label={t('act.statSurveys')} value={surveyCount} icon="poll" />
-              <StatCard label={t('act.statEmpathy')} value={empathyCount.toLocaleString()} icon="heart" />
+              <StatCard label={t('act.statOpinions')} value={stats.opinions} icon="message" />
+              <StatCard label={t('act.statComments')} value={stats.comments} icon="comment" />
+              <StatCard label={t('act.statSurveys')} value={stats.surveys} icon="poll" />
+              <StatCard label={t('act.statEmpathy')} value={stats.empathy} icon="heart" />
             </div>
 
             {/* My opinions */}
             <section className="ma-panel">
               <h2 className="ma-panel-title">{t('act.myOpinions')}</h2>
-              {myOpinions.length === 0 ? (
+              {opinions.length === 0 ? (
                 <EmptyState
                   compact
                   iconName="edit"
@@ -167,7 +150,7 @@ export default function MyActivityPage() {
                 />
               ) : (
               <ul className="ma-op-list">
-                {myOpinions.map(o => (
+                {opinions.map(o => (
                   <li key={o.id}>
                     <button className="ma-op" onClick={() => navigate(`/club/${team.id}/opinions/${o.id}`)}>
                       <div className="ma-op-top">
@@ -176,8 +159,8 @@ export default function MyActivityPage() {
                       </div>
                       <span className="ma-op-title">{o.title}</span>
                       <div className="ma-op-foot">
-                        <span className="ic-txt"><Icon name="heart" size={13} /> 공감 {o.likes}</span>
-                        <span className="ic-txt"><Icon name="comment" size={13} /> 댓글 {o.comments}</span>
+                        <span className="ic-txt"><Icon name="heart" size={13} /> {t('op.agree')} {o.likes}</span>
+                        <span className="ic-txt"><Icon name="comment" size={13} /> {t('op.comment')} {o.comments}</span>
                       </div>
                     </button>
                   </li>
@@ -189,12 +172,15 @@ export default function MyActivityPage() {
             {/* Participated surveys */}
             <section className="ma-panel">
               <h2 className="ma-panel-title">{t('act.mySurveys')}</h2>
+              {surveys.length === 0 ? (
+                <EmptyState compact iconName="poll" title={t('act.emptySurveys')} message="" />
+              ) : (
               <ul className="ma-survey-list">
-                {MOCK_SURVEYS.map((s, i) => (
-                  <li key={i} className="ma-survey">
+                {surveys.map((s, i) => (
+                  <li key={s.id || i} className="ma-survey">
                     <div className="ma-survey-info">
                       <p className="ma-survey-title">{s.title}</p>
-                      <p className="ma-survey-date">참여일 · {s.date}</p>
+                      {s.date && <p className="ma-survey-date">{t('act.joined')} · {s.date}</p>}
                     </div>
                     <span className="ma-done-badge">
                       <svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -203,6 +189,7 @@ export default function MyActivityPage() {
                   </li>
                 ))}
               </ul>
+              )}
             </section>
           </div>
 
@@ -229,21 +216,25 @@ export default function MyActivityPage() {
             {/* Recent activity */}
             <section className="ma-panel">
               <h2 className="ma-panel-title">{t('act.recent')}</h2>
+              {timeline.length === 0 ? (
+                <p className="ma-tl-empty">{t('act.emptyTimeline')}</p>
+              ) : (
               <ul className="ma-timeline">
-                {MOCK_TIMELINE.map((t, i) => {
-                  const meta = TYPE_META[t.type]
+                {timeline.map((ev, i) => {
+                  const meta = TL_META[ev.type] || TL_META.opinion
                   return (
                     <li key={i} className="ma-tl-item">
                       <span className="ma-tl-dot" style={{ background: meta.color }} />
                       <div className="ma-tl-body">
-                        <span className="ma-tl-label" style={{ color: meta.color }}>{meta.label}</span>
-                        <p className="ma-tl-text">{t.text}</p>
-                        <span className="ma-tl-time">{t.time}</span>
+                        <span className="ma-tl-label" style={{ color: meta.color }}>{t(meta.labelKey)}</span>
+                        <p className="ma-tl-text">{t(meta.textKey, { title: ev.title || '' })}</p>
+                        <span className="ma-tl-time">{relativeTime(hoursSince(ev.createdAt), lang)}</span>
                       </div>
                     </li>
                   )
                 })}
               </ul>
+              )}
             </section>
 
             {/* Team info */}
@@ -252,7 +243,7 @@ export default function MyActivityPage() {
               <div className="ma-team-row">
                 <TeamEmblem color={team.color} size={44} />
                 <div>
-                  <p className="ma-team-name">{team.name}</p>
+                  <p className="ma-team-name">{teamName(team, lang)}</p>
                   <p className="ma-team-sub">K리그1 · 2026 시즌</p>
                 </div>
               </div>
@@ -271,12 +262,12 @@ function StatCard({ label, value, icon }) {
     message: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>,
     comment: <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>,
     poll: <path d="M7 16V9M12 16V5M17 16v-4M4 20h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>,
-    heart: <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>,
+    heart: <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>,
   }
   return (
     <div className="ma-stat">
       <span className="ma-stat-icon"><svg viewBox="0 0 24 24" fill="none">{icons[icon]}</svg></span>
-      <span className="ma-stat-value">{value}</span>
+      <span className="ma-stat-value"><AnimatedNumber value={value} /></span>
       <span className="ma-stat-label">{label}</span>
     </div>
   )

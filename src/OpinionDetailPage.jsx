@@ -9,6 +9,7 @@ import { getOpinionDetail, listComments, addComment, deleteComment, updateCommen
 import { submitReport } from './lib/reportsRepo.js'
 import ReportModal from './components/ReportModal.jsx'
 import Icon from './components/Icon.jsx'
+import AnimatedNumber from './components/AnimatedNumber.jsx'
 import { relativeTime } from './lib/relativeTime.js'
 import './ClubHomePage.css'
 import './OpinionDetailPage.css'
@@ -246,19 +247,21 @@ export default function OpinionDetailPage() {
                     {relativeTime(base.hours, lang)} · <span className="od-cat">{base.category}</span>
                   </span>
                 </div>
-                <Stars rating={base.rating} />
-                {base.mine && (
-                  <div className="od-owner-actions">
-                    <button type="button" className="od-owner-btn"
-                      onClick={() => navigate(`/club/${team.id}/opinions/${opinionId}/edit`)}>
-                      {t('detail.edit')}
-                    </button>
-                    <button type="button" className="od-owner-btn danger"
-                      onClick={() => setOpDeleteOpen(true)}>
-                      {t('detail.delete')}
-                    </button>
-                  </div>
-                )}
+                <div className="od-action-group">
+                  <Stars rating={base.rating} />
+                  {base.mine && (
+                    <>
+                      <button type="button" className="od-content-btn"
+                        onClick={() => navigate(`/club/${team.id}/opinions/${opinionId}/edit`)}>
+                        {t('detail.edit')}
+                      </button>
+                      <button type="button" className="od-content-btn danger"
+                        onClick={() => setOpDeleteOpen(true)}>
+                        {t('detail.delete')}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="od-content">
@@ -278,11 +281,11 @@ export default function OpinionDetailPage() {
               <div className="od-actions">
                 <button className={`od-act od-empathy${liked ? ' on' : ''}`} onClick={toggleLike}
                   disabled={base.mine} title={base.mine ? t('detail.selfLike') : undefined}>
-                  <Icon name="heart" size={17} /> {t('detail.agree')} <strong>{likeCount}</strong>
+                  <Icon name="heart" size={17} /> {t('detail.agree')} <strong><AnimatedNumber value={likeCount} /></strong>
                 </button>
                 {base.mine && <span className="od-selflike-note">{t('detail.selfLike')}</span>}
                 <button className="od-act" onClick={() => document.querySelector('.od-comment-input')?.focus()}>
-                  <Icon name="comment" size={17} /> {t('detail.comment')} <strong>{comments.length}</strong>
+                  <Icon name="comment" size={17} /> {t('detail.comment')} <strong><AnimatedNumber value={comments.length} /></strong>
                 </button>
                 <button className="od-act" onClick={handleShare}>
                   <Icon name="share" size={17} /> {t('detail.share')}
@@ -295,7 +298,7 @@ export default function OpinionDetailPage() {
 
             {/* Comments */}
             <section className="od-comments">
-              <h2 className="od-comments-title">{t('detail.commentTitle')} <span>{comments.length}</span></h2>
+              <h2 className="od-comments-title">{t('detail.commentTitle')} <span><AnimatedNumber value={comments.length} /></span></h2>
 
               <ul className="od-comment-list">
                 {comments.map((c, i) => (
@@ -305,25 +308,13 @@ export default function OpinionDetailPage() {
                       <div className="od-comment-head">
                         <span className="od-comment-name">{c.author}</span>
                         <span className="od-comment-time">{relativeTime(c.hours, lang)}</span>
-                        {c.mine && editingId !== c.id && (
-                          <>
-                            <button type="button" className="od-comment-del"
-                              onClick={() => startEditComment(c)}>
-                              {t('detail.commentEdit')}
-                            </button>
-                            <button type="button" className="od-comment-del"
-                              onClick={() => setDeleteId(c.id)}>
-                              {t('detail.commentDelete')}
-                            </button>
-                          </>
-                        )}
                       </div>
                       {editingId === c.id ? (
                         <div className="od-comment-edit">
                           <textarea className="od-comment-input" rows={2}
                             value={editText} onChange={e => setEditText(e.target.value)} />
                           <div className="od-comment-edit-actions">
-                            <button type="button" className="od-comment-del" onClick={() => { setEditingId(null); setEditText('') }}>{t('common.cancel')}</button>
+                            <button type="button" className="od-content-btn" onClick={() => { setEditingId(null); setEditText('') }}>{t('common.cancel')}</button>
                             <button type="button" className="od-comment-save" disabled={!editText.trim()} onClick={saveEditComment}>{t('detail.commentEditSave')}</button>
                           </div>
                         </div>
@@ -331,6 +322,12 @@ export default function OpinionDetailPage() {
                         <p className="od-comment-text">{c.text}</p>
                       )}
                     </div>
+                    {c.mine && editingId !== c.id && (
+                      <div className="od-comment-actions">
+                        <button type="button" className="od-content-btn" onClick={() => startEditComment(c)}>{t('detail.commentEdit')}</button>
+                        <button type="button" className="od-content-btn danger" onClick={() => setDeleteId(c.id)}>{t('detail.commentDelete')}</button>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

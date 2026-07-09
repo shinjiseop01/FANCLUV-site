@@ -70,7 +70,7 @@
 .od-author-name { font-size: 15px; font-weight: 700; color: var(--ink); }
 .od-author-sub { font-size: 13px; color: var(--muted); }
 .od-cat { color: var(--team-deep); font-weight: 600; }
-.od-stars { display: inline-flex; gap: 1px; margin-left: auto; }
+.od-stars { display: inline-flex; gap: 1px; }
 .od-stars svg { width: 16px; height: 16px; fill: #D9DCE1; }
 .od-stars svg.on { fill: #F5B400; }
 
@@ -161,11 +161,20 @@
 .od-comment-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
 .od-comment-name { font-size: 13.5px; font-weight: 700; color: var(--ink); }
 .od-comment-time { font-size: 12px; color: var(--muted); }
-.od-comment-del {
-  margin-left: auto; background: none; border: none; cursor: pointer; font-family: inherit;
-  font-size: 12px; color: var(--muted); padding: 2px 4px; border-radius: 6px; transition: color 0.15s;
+/* 통일된 콘텐츠(의견/댓글) 수정·삭제 버튼 — 절제된 배치, 라이트/다크 공통 */
+.od-content-btn {
+  background: none; border: 1px solid transparent; cursor: pointer; font-family: inherit;
+  font-size: 12.5px; font-weight: 600; color: var(--muted);
+  padding: 4px 10px; border-radius: 8px; transition: all 0.15s; white-space: nowrap;
 }
-.od-comment-del:hover { color: #DC2626; }
+.od-content-btn:hover { background: color-mix(in srgb, var(--team) 10%, transparent); color: var(--team-deep); }
+.od-content-btn.danger:hover { background: color-mix(in srgb, #DC2626 12%, transparent); color: #DC2626; }
+
+/* 상세 상단 액션 그룹: 별점 → 수정 → 삭제, 오른쪽 정렬·일정 간격 */
+.od-action-group { margin-left: auto; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: flex-end; }
+/* 댓글 액션: 오른쪽 끝, 수정 → 삭제 */
+.od-comment-actions { margin-left: auto; display: flex; gap: 8px; align-self: flex-start; flex-shrink: 0; }
+
 .od-comment-save {
   background: var(--team, #2563EB); color: #fff; border: none; cursor: pointer; font-family: inherit;
   font-size: 12.5px; font-weight: 700; padding: 6px 12px; border-radius: 8px;
@@ -173,15 +182,6 @@
 .od-comment-save:disabled { opacity: 0.5; cursor: not-allowed; }
 .od-comment-edit { display: flex; flex-direction: column; gap: 6px; }
 .od-comment-edit-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
-
-/* 소유자(본인) 의견 수정/삭제 — 절제된 배치(눈에 덜 띄게) */
-.od-owner-actions { margin-left: auto; display: flex; gap: 4px; }
-.od-owner-btn {
-  background: none; border: none; cursor: pointer; font-family: inherit;
-  font-size: 12.5px; color: var(--muted); padding: 4px 8px; border-radius: 7px; transition: all 0.15s;
-}
-.od-owner-btn:hover { background: color-mix(in srgb, var(--team) 10%, transparent); color: var(--team-deep); }
-.od-owner-btn.danger:hover { background: color-mix(in srgb, #DC2626 10%, transparent); color: #DC2626; }
 
 /* 자기 의견 공감 차단 */
 .od-empathy:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -325,6 +325,9 @@
   .od-content p { font-size: 15px; line-height: 1.85; }
   .od-actions .od-report { margin-left: 0; }
   .od-comment-form { flex-direction: column; align-items: stretch; }
+  /* 좁은 화면: 작성자 정보 위, 액션 그룹은 아래 줄로 이동하되 오른쪽 정렬 유지 */
+  .od-author { flex-wrap: wrap; }
+  .od-action-group { flex-basis: 100%; margin-left: 0; margin-top: 8px; gap: 14px; }
   .od-comment-submit { width: 100%; }
 }
 

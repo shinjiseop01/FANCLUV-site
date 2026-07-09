@@ -447,3 +447,13 @@ select:focus-visible {
   border: 1px solid color-mix(in srgb, #F59E0B 40%, transparent);
   white-space: nowrap; vertical-align: middle;
 }
+
+/* AnimatedNumber — 값 변경 시 위로 살짝 올라오며 부드럽게 반영 */
+.animated-number { display: inline-block; animation: an-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes an-rise {
+  from { transform: translateY(0.35em); opacity: 0.35; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animated-number { animation: none; }
+}
