@@ -51,8 +51,13 @@ Deno.serve(async (req) => {
   const newCode = String(Math.floor(100000 + Math.random() * 900000))
   const expires = new Date(Date.now() + CODE_TTL_MIN * 60000).toISOString()
   const { error: upErr } = await admin.from('email_codes')
-    .upsert({ email: addr, code: newCode, expires_at: expires, created_at: new Date().toISOString() })
-  if (upErr) return json({ ok: false, error: 'store_failed' })
+    .upsert({ email: addr, code: newCode, expires_at: expires, created_at: new Date().toISOString() },
+      { onConflict: 'email' })
+  if (upErr) {
+    // 실제 DB 에러는 함수 로그에만 남긴다(클라이언트에는 내부 정보 미노출).
+    console.error('email_codes upsert failed:', JSON.stringify(upErr))
+    return json({ ok: false, error: 'store_failed' })
+  }
 
   // 이메일 provider 미설정 → devCode 폴백(화면에 표시).
   if (!RESEND_API_KEY) return json({ ok: true, devCode: newCode })
