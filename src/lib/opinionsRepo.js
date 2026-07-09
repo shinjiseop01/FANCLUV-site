@@ -117,21 +117,57 @@ function mockBaseList(teamId) {
 // ════════════════════════════════════════════════════════════════════════
 //  Supabase 매퍼
 // ════════════════════════════════════════════════════════════════════════
-function mapOpinionRow(row) {
+// 목록/상세 모두 base 테이블(public.opinions)에서 직접 읽는다.
+// opinions_view(security_invoker + profiles 조인)에 의존하지 않는다 —
+// 라이브에서 뷰 조회가 행을 반환하지 못하는 문제를 회피하기 위함.
+// author_id 는 auth.users 를 참조하므로 PostgREST 로 profiles 를 직접 임베드할 수
+// 없다 → 작성자/공감수/댓글수는 base 테이블에서 별도 조회해 조립한다.
+const OPINION_COLS = 'id, author_id, team_id, category, rating, title, body, has_photo, created_at'
+
+function mapBaseRow(o, extra) {
   return {
-    id: row.id,
-    author: row.author_nickname || '팬',
-    avatarUrl: row.author_avatar || null,
-    category: row.category || '기타',
-    rating: row.rating || 0,
-    createdAt: row.created_at,
-    hours: hoursSince(row.created_at),
-    title: row.title,
-    body: row.body,
-    likes: Number(row.likes_count) || 0,
-    comments: Number(row.comments_count) || 0,
-    hasPhoto: !!row.has_photo,
+    id: o.id,
+    author: extra.nickname || '팬',
+    avatarUrl: extra.avatarUrl || null,
+    category: o.category || '기타',
+    rating: o.rating || 0,
+    createdAt: o.created_at,
+    hours: hoursSince(o.created_at),
+    title: o.title,
+    body: o.body,
+    likes: extra.likes || 0,
+    comments: extra.comments || 0,
+    hasPhoto: !!o.has_photo,
   }
+}
+
+// base opinions 행 배열에 작성자 닉네임·공감수·댓글수를 붙여 표시 객체로 변환.
+async function enrichOpinions(rows) {
+  const list = rows || []
+  if (list.length === 0) return []
+  const ids = list.map(o => o.id)
+  const authorIds = [...new Set(list.map(o => o.author_id).filter(Boolean))]
+  const [likesRes, commentsRes, profilesRes] = await Promise.all([
+    supabase.from('likes').select('opinion_id').in('opinion_id', ids),
+    supabase.from('comments').select('opinion_id').eq('status', 'visible').in('opinion_id', ids),
+    authorIds.length
+      ? supabase.from('profiles').select('id, nickname, avatar_url').in('id', authorIds)
+      : Promise.resolve({ data: [], error: null }),
+  ])
+  if (likesRes.error) logger.error('공감 수 조회 실패(likes)', { error: likesRes.error })
+  if (commentsRes.error) logger.error('댓글 수 조회 실패(comments)', { error: commentsRes.error })
+  const likeCount = {}
+  for (const r of likesRes.data || []) likeCount[r.opinion_id] = (likeCount[r.opinion_id] || 0) + 1
+  const commentCount = {}
+  for (const r of commentsRes.data || []) commentCount[r.opinion_id] = (commentCount[r.opinion_id] || 0) + 1
+  const profById = {}
+  for (const p of profilesRes.data || []) profById[p.id] = p
+  return list.map(o => mapBaseRow(o, {
+    nickname: profById[o.author_id]?.nickname,
+    avatarUrl: profById[o.author_id]?.avatar_url,
+    likes: likeCount[o.id],
+    comments: commentCount[o.id],
+  }))
 }
 function mapCommentRow(row) {
   return {
@@ -151,14 +187,15 @@ function mapCommentRow(row) {
 // 구단별 의견 목록 (구단 필터 = team_id)
 export async function listOpinions(teamId) {
   if (isSupabaseConfigured) {
+    // base 테이블에서 현재 팀(team_id) 의견을 직접 조회 → 항상 실데이터, Mock 미혼용.
     const { data, error } = await supabase
-      .from('opinions_view').select('*')
+      .from('opinions').select(OPINION_COLS)
       .eq('team_id', teamId)
       .order('created_at', { ascending: false })
-    // 에러를 조용히 삼키면(빈 목록) 라이브에서 원인이 안 보인다 → RLS/권한/뷰 문제를
+    // 에러를 조용히 삼키면(빈 목록) 라이브에서 원인이 안 보인다 → RLS/권한 문제를
     // 진단할 수 있도록 로깅한다. 화면은 안전하게 빈 목록으로 폴백한다.
-    if (error) { logger.error('의견 목록 조회 실패(opinions_view)', { error, context: { teamId } }); return [] }
-    return (data || []).map(mapOpinionRow)
+    if (error) { logger.error('의견 목록 조회 실패(opinions)', { error, context: { teamId } }); return [] }
+    return enrichOpinions(data)
   }
   // Mock: 작성한 의견(로컬)이 먼저, 그다음 seeded 풀
   return [...getCreatedOpinions(teamId), ...mockBaseList(teamId)]
@@ -168,15 +205,16 @@ export async function listOpinions(teamId) {
 export async function getOpinionDetail(teamId, id) {
   if (isSupabaseConfigured) {
     const { data, error } = await supabase
-      .from('opinions_view').select('*').eq('id', id).maybeSingle()
-    if (error) logger.error('의견 상세 조회 실패(opinions_view)', { error, context: { id } })
+      .from('opinions').select(OPINION_COLS).eq('id', id).maybeSingle()
+    if (error) logger.error('의견 상세 조회 실패(opinions)', { error, context: { id } })
     if (error || !data) return null
-    const opinion = { ...mapOpinionRow(data), full: splitParas(data.body) }
+    const [mapped] = await enrichOpinions([data])
+    const opinion = { ...mapped, full: splitParas(data.body) }
     const { data: rel } = await supabase
-      .from('opinions_view').select('*')
+      .from('opinions').select(OPINION_COLS)
       .eq('team_id', teamId).neq('id', id)
       .order('created_at', { ascending: false }).limit(4)
-    return { opinion, related: (rel || []).map(mapOpinionRow) }
+    return { opinion, related: await enrichOpinions(rel || []) }
   }
   // Mock
   const created = getCreatedOpinions(teamId).find(o => String(o.id) === String(id))

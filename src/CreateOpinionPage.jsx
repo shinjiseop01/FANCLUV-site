@@ -53,8 +53,8 @@ export default function CreateOpinionPage() {
     if (!res.ok) { setError(res.error || t('create.errBody')); return }
 
     setSubmitted(true)
-    // 방금 작성한 의견을 목록 화면에 넘겨 즉시 상단에 노출한다(저장 반영 지연/캐시와 무관).
-    setTimeout(() => navigate(`/club/${team.id}/opinions`, { state: { newOpinion: res.opinion } }), 1300)
+    // optimistic 삽입 없이 목록으로 이동 → 목록이 Supabase 실데이터를 재조회해 노출.
+    setTimeout(() => navigate(`/club/${team.id}/opinions`), 1300)
   }
 
   return (
