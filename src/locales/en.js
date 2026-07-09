@@ -1085,6 +1085,7 @@ export default {
   'admin.op.colContent': 'Content',
   'admin.op.colLikes': 'Likes',
   'admin.op.colComments': 'Comments',
+  'admin.op.colReports': 'Reports',
   'admin.op.hiddenTag': 'Hidden',
   'admin.op.visibleTag': 'Visible',
   'admin.op.viewComments': '{n} comments',

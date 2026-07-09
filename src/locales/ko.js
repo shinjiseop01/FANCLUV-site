@@ -1085,6 +1085,7 @@ export default {
   'admin.op.colContent': '내용',
   'admin.op.colLikes': '좋아요',
   'admin.op.colComments': '댓글',
+  'admin.op.colReports': '신고',
   'admin.op.hiddenTag': '숨김',
   'admin.op.visibleTag': '노출',
   'admin.op.viewComments': '댓글 {n}개',

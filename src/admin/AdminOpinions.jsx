@@ -1,18 +1,23 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { getTeam, teamName } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
 import AdminNoteBox from './AdminNoteBox.jsx'
-import { MOCK_OPINIONS, MOCK_COMMENTS } from './adminData.js'
 import { exportCsv } from '../lib/admin/csv.js'
+import {
+  adminListOpinions, adminListComments,
+  setOpinionHidden, deleteOpinion, setCommentHidden, deleteCommentAdmin,
+} from '../lib/admin/adminOpinionsRepo.js'
 
 const FILTERS = ['all', 'visible', 'hidden']
 
 export default function AdminOpinions() {
   const { t, lang } = useLang()
-  const [opinions, setOpinions] = useState(MOCK_OPINIONS)
-  const [comments, setComments] = useState(MOCK_COMMENTS)
+  const [opinions, setOpinions] = useState([])
+  const [comments, setComments] = useState([])       // 현재 선택한 의견의 댓글
+  const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState(null) // 댓글을 펼쳐 볼 게시글 id
   const [noteFor, setNoteFor] = useState(null)       // 메모를 펼친 댓글 id
   const [query, setQuery] = useState('')
@@ -20,31 +25,53 @@ export default function AdminOpinions() {
 
   const statusLabel = s => s === 'hidden' ? t('admin.op.hiddenTag') : t('admin.op.visibleTag')
 
-  function toggleHide(id) {
-    setOpinions(list => list.map(o =>
-      o.id === id ? { ...o, status: o.status === 'visible' ? 'hidden' : 'visible' } : o,
-    ))
-  }
-  function remove(id) {
-    setOpinions(list => list.filter(o => o.id !== id))
-    if (selectedId === id) setSelectedId(null)
-  }
-  function selectComments(id) { setSelectedId(prev => (prev === id ? null : id)); setNoteFor(null) }
-  function toggleHideComment(cid) {
-    setComments(list => list.map(c =>
-      c.id === cid ? { ...c, status: c.status === 'visible' ? 'hidden' : 'visible' } : c,
-    ))
-  }
-  function removeComment(cid) { setComments(list => list.filter(c => c.id !== cid)) }
+  // 의견 목록 로드/재조회 — 항상 Repository(실데이터 우선) 기준.
+  const refetch = useCallback(async () => {
+    setLoading(true)
+    const list = await adminListOpinions()
+    setOpinions(list)
+    setLoading(false)
+  }, [])
+  useEffect(() => { refetch() }, [refetch])
 
-  // 검색: 닉네임(작성자) / 구단 / 날짜 / 상태  + 상태 필터
+  // 선택 의견의 댓글 로드.
+  const loadComments = useCallback(async (id) => {
+    setComments(await adminListComments(id))
+  }, [])
+
+  async function toggleHide(o) {
+    const res = await setOpinionHidden(o.id, o.status !== 'hidden')
+    if (res.ok) refetch()
+  }
+  async function remove(id) {
+    const res = await deleteOpinion(id)
+    if (res.ok) { if (selectedId === id) setSelectedId(null); refetch() }
+  }
+  function selectComments(id) {
+    setNoteFor(null)
+    setSelectedId(prev => {
+      const next = prev === id ? null : id
+      if (next) loadComments(next); else setComments([])
+      return next
+    })
+  }
+  async function toggleHideComment(c) {
+    const res = await setCommentHidden(c.id, c.status !== 'hidden')
+    if (res.ok && selectedId) loadComments(selectedId)
+  }
+  async function removeComment(cid) {
+    const res = await deleteCommentAdmin(cid)
+    if (res.ok && selectedId) loadComments(selectedId)
+  }
+
+  // 검색: 닉네임(작성자) / 구단 / 날짜 / 제목·내용 / 상태  + 상태 필터
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
     return opinions.filter(o => {
       if (filter !== 'all' && (o.status || 'visible') !== filter) return false
       if (!q) return true
       const team = teamName(getTeam(o.team), lang) || ''
-      return [o.author, team, o.date, o.content, statusLabel(o.status)]
+      return [o.author, team, o.date, o.title, o.content, statusLabel(o.status)]
         .some(v => String(v || '').toLowerCase().includes(q))
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -59,19 +86,19 @@ export default function AdminOpinions() {
       { key: 'content', label: t('admin.op.colContent') },
       { key: 'likes', label: t('admin.op.colLikes') },
       { key: 'comments', label: t('admin.op.colComments') },
+      { key: 'reports', label: t('admin.op.colReports') },
       { key: 'status', label: t('admin.mem.colStatus') },
     ]
     const rows = visible.map(o => ({
       id: o.id, author: o.author, team: teamName(getTeam(o.team), lang) || '', date: o.date,
-      content: o.content, likes: o.likes,
-      comments: comments.filter(c => c.opinionId === o.id).length,
+      content: o.title ? `${o.title} — ${o.content}` : o.content,
+      likes: o.likes, comments: o.comments, reports: o.reports,
       status: statusLabel(o.status),
     }))
     exportCsv('fancluv_opinions', cols, rows)
   }
 
   const selectedOpinion = opinions.find(o => o.id === selectedId) || null
-  const selectedComments = comments.filter(c => c.opinionId === selectedId)
 
   return (
     <div className="adm-page">
@@ -99,7 +126,9 @@ export default function AdminOpinions() {
         </div>
       </div>
 
-      {visible.length === 0 ? (
+      {loading ? (
+        <SkeletonList count={5} lines={2} />
+      ) : visible.length === 0 ? (
         <EmptyState iconName="comment" title={t('empty.opinionsTitle')} message={t('empty.opinionsMsg')} />
       ) : (
         <div className="adm-table-wrap">
@@ -112,6 +141,7 @@ export default function AdminOpinions() {
                 <th>{t('admin.op.colContent')}</th>
                 <th>{t('admin.op.colLikes')}</th>
                 <th>{t('admin.op.colComments')}</th>
+                <th>{t('admin.op.colReports')}</th>
                 <th className="adm-col-actions">{t('admin.actions')}</th>
               </tr>
             </thead>
@@ -119,25 +149,25 @@ export default function AdminOpinions() {
               {visible.map(o => {
                 const team = getTeam(o.team)
                 const isOpen = selectedId === o.id
-                const count = comments.filter(c => c.opinionId === o.id).length
                 return (
                   <tr key={o.id} className={o.status === 'hidden' ? 'is-hidden' : ''}>
                     <td className="adm-cell-strong">{o.author}</td>
                     <td className="adm-cell-muted">{team ? teamName(team, lang) : '-'}</td>
                     <td className="adm-cell-muted">{o.date}</td>
                     <td className="adm-cell-content">
-                      {o.content}
+                      {o.title ? <><strong>{o.title}</strong><br />{o.content}</> : o.content}
                       {o.status === 'hidden' && <span className="adm-badge hidden">{t('admin.op.hiddenTag')}</span>}
                     </td>
-                    <td>{o.likes.toLocaleString()}</td>
+                    <td>{Number(o.likes || 0).toLocaleString()}</td>
                     <td>
                       <button className={`adm-link-btn${isOpen ? ' on' : ''}`} onClick={() => selectComments(o.id)}>
-                        {t('admin.op.viewComments', { n: count })}
+                        {t('admin.op.viewComments', { n: o.comments })}
                       </button>
                     </td>
+                    <td>{Number(o.reports || 0).toLocaleString()}</td>
                     <td className="adm-col-actions">
                       <div className="adm-actions">
-                        <button className="adm-btn-sm" onClick={() => toggleHide(o.id)}>
+                        <button className="adm-btn-sm" onClick={() => toggleHide(o)}>
                           {o.status === 'visible' ? t('admin.hide') : t('admin.show')}
                         </button>
                         <button className="adm-btn-sm danger" onClick={() => remove(o.id)}>{t('admin.delete')}</button>
@@ -156,17 +186,17 @@ export default function AdminOpinions() {
         <section className="adm-comments">
           <div className="adm-comments-head">
             <h2 className="adm-h2">{t('admin.cm.title', { author: selectedOpinion.author })}</h2>
-            <button className="adm-btn-ghost" onClick={() => setSelectedId(null)}>{t('admin.cm.close')}</button>
+            <button className="adm-btn-ghost" onClick={() => { setSelectedId(null); setComments([]) }}>{t('admin.cm.close')}</button>
           </div>
 
           {/* 게시글(팬 의견) 메모 */}
           <AdminNoteBox entityType="opinion" entityId={selectedOpinion.id} />
 
-          {selectedComments.length === 0 ? (
+          {comments.length === 0 ? (
             <EmptyState compact iconName="comment" title={t('admin.cm.emptyTitle')} message={t('admin.cm.emptyMsg')} />
           ) : (
             <ul className="adm-comment-list">
-              {selectedComments.map(c => (
+              {comments.map(c => (
                 <li key={c.id} className={`adm-comment${c.status === 'hidden' ? ' is-hidden' : ''}`}>
                   <div className="adm-comment-main">
                     <div className="adm-comment-body">
@@ -179,7 +209,7 @@ export default function AdminOpinions() {
                     </div>
                     <div className="adm-actions">
                       <button className={`adm-btn-sm${noteFor === c.id ? ' on' : ''}`} onClick={() => setNoteFor(id => (id === c.id ? null : c.id))}>{t('admin.note.btn')}</button>
-                      <button className="adm-btn-sm" onClick={() => toggleHideComment(c.id)}>
+                      <button className="adm-btn-sm" onClick={() => toggleHideComment(c)}>
                         {c.status === 'visible' ? t('admin.hide') : t('admin.show')}
                       </button>
                       <button className="adm-btn-sm danger" onClick={() => removeComment(c.id)}>{t('admin.delete')}</button>
