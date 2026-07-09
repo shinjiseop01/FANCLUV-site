@@ -7,6 +7,7 @@ import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getClubLinks, CLUB_LINK_CHANNELS } from './clubLinks.js'
 import Icon from './components/Icon.jsx'
 import { getTeamNews } from './lib/news/teamNewsProvider.js'
+import { getNewsSource } from './lib/news/newsSources.js'
 import { isEdgeNewsEnabled } from './lib/news/providers/edgeNewsProvider.js'
 import DemoBadge from './components/DemoBadge.jsx'
 import EmptyState from './components/EmptyState.jsx'
@@ -85,6 +86,9 @@ export default function TeamNewsPage() {
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
   const clubLinks = getClubLinks(team.id)
+  // 공식 뉴스 페이지 URL — 실 크롤링이 CORS 로 막혀도 항상 새 탭 링크로 이동 가능.
+  const officialNewsUrl = getNewsSource(team.id)?.newsUrl || clubLinks.home
+  const openOfficialNews = () => window.open(officialNewsUrl, '_blank', 'noopener,noreferrer')
   const detail = newsId ? news.find(n => String(n.id) === String(newsId)) : null
   const goWrite = () => navigate(`/club/${team.id}/write`)
   const goSurvey = () => navigate(`/club/${team.id}/survey`)
@@ -166,12 +170,14 @@ export default function TeamNewsPage() {
                 {loading ? (
                   <SkeletonList count={3} lines={2} />
                 ) : error && news.length === 0 ? (
-                  <EmptyState iconName="news" title={t('news.errorTitle')} message={t('news.errorMsg')} />
+                  <EmptyState iconName="news" title={t('news.errorTitle')} message={t('news.errorMsg')}
+                    ctaLabel={t('news.officialCta')} onCta={openOfficialNews} />
                 ) : list.length === 0 ? (
                   keyword ? (
                     <EmptyState iconName="search" title={t('empty.searchTitle')} message={t('empty.searchMsg')} />
                   ) : (
-                    <EmptyState iconName="news" title={t('empty.newsTitle')} message={t('empty.newsMsg')} />
+                    <EmptyState iconName="news" title={t('empty.newsTitle')} message={t('empty.newsMsg')}
+                      ctaLabel={t('news.officialCta')} onCta={openOfficialNews} />
                   )
                 ) : (
                 <>
@@ -263,6 +269,11 @@ export default function TeamNewsPage() {
                 <section className="tn-panel">
                   <h2 className="tn-panel-title">{t('news.shortcuts')}</h2>
                   <div className="tn-shortcuts">
+                    <a href={officialNewsUrl} target="_blank" rel="noopener noreferrer" className="tn-shortcut">
+                      <span className="tn-shortcut-icon" aria-hidden="true"><Icon name="news" size={18} /></span>
+                      <span>{t('news.officialShortcut')}</span>
+                      <span className="tn-shortcut-arrow" aria-hidden="true"><Icon name="external" size={14} /></span>
+                    </a>
                     {CLUB_LINK_CHANNELS.map(ch => (
                       <a key={ch.key} href={clubLinks[ch.key]} target="_blank" rel="noopener noreferrer" className="tn-shortcut">
                         <span className="tn-shortcut-icon" aria-hidden="true"><Icon name={ch.icon} size={18} /></span>

@@ -100,11 +100,21 @@ Deno.serve(async (req) => {
       }),
     })
     const aiJson = await aiRes.json()
+    // 실제 OpenAI 에러(잘못된 키/모델/쿼터 등)를 함수 로그 + 응답 detail 로 노출한다.
+    if (!aiRes.ok) {
+      const msg = aiJson?.error?.message || `HTTP ${aiRes.status}`
+      console.error('OpenAI API error:', aiRes.status, msg)
+      return json({ ok: false, code: 'openai_failed', detail: msg, status: aiRes.status })
+    }
     const content = aiJson?.choices?.[0]?.message?.content
-    if (!content) return json({ ok: false, code: 'openai_failed' })
+    if (!content) {
+      console.error('OpenAI empty content:', JSON.stringify(aiJson).slice(0, 300))
+      return json({ ok: false, code: 'openai_failed', detail: 'empty response' })
+    }
     parsed = JSON.parse(content)
-  } catch (_e) {
-    return json({ ok: false, code: 'openai_failed' })
+  } catch (e) {
+    console.error('OpenAI call exception:', String(e))
+    return json({ ok: false, code: 'openai_failed', detail: String(e).slice(0, 200) })
   }
 
   // 5) 결과 저장

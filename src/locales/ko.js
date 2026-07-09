@@ -402,7 +402,9 @@ export default {
   'news.title': '팀 뉴스',
   'news.subtitle': '응원하는 구단의 최신 소식을 확인하고 여러분의 의견을 남겨보세요.',
   'news.errorTitle': '뉴스를 불러오지 못했습니다',
-  'news.errorMsg': '잠시 후 다시 시도해 주세요. 연결이 복구되면 자동으로 표시됩니다.',
+  'news.errorMsg': '잠시 후 다시 시도해 주세요. 아래에서 공식 뉴스 페이지를 바로 확인할 수 있습니다.',
+  'news.officialCta': '공식 뉴스 페이지 보기',
+  'news.officialShortcut': '공식 뉴스',
   'news.ctaWrite': '이 뉴스에 의견 남기기',
   'news.ctaWriteShort': '의견 남기기',
   'news.ctaSurvey': '관련 설문 참여하기',
@@ -1030,6 +1032,7 @@ export default {
   'admin.ai.done': 'AI 분석이 완료되어 저장되었습니다.',
   'admin.ai.insufficient': '의견이 부족합니다 ({count}/{min}). 30개 이상 모이면 분석할 수 있습니다.',
   'admin.ai.failed': 'AI 분석에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+  'admin.ai.failedDetail': 'AI 분석 실패: {detail}',
   // AI 리포트 (PDF)
   'aiReport.generate': 'AI 리포트 생성',
   'aiReport.generating': '리포트 생성 중…',
@@ -1356,7 +1359,8 @@ export default {
   'admin.notice.sent': '공지가 발송되었습니다.',
   'admin.notice.fail': '공지 발송에 실패했습니다.',
   // 설정
-  'admin.set.sub': '관리자 계정 및 권한 정보를 확인합니다.',
+  'admin.set.sub': '표시 설정과 관리자 계정·권한 정보를 확인합니다.',
+  'admin.set.display': '표시 설정',
   'admin.set.account': '관리자 계정',
   'admin.set.name': '이름',
   'admin.set.email': '이메일',

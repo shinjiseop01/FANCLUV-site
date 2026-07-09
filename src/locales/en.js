@@ -402,7 +402,9 @@ export default {
   'news.title': 'Team News',
   'news.subtitle': 'Check your club’s latest news and share your opinions.',
   'news.errorTitle': 'Couldn’t load news',
-  'news.errorMsg': 'Please try again shortly. It will appear automatically once restored.',
+  'news.errorMsg': 'Please try again shortly. You can also open the official news page below.',
+  'news.officialCta': 'View official news page',
+  'news.officialShortcut': 'Official news',
   'news.ctaWrite': 'Comment on this news',
   'news.ctaWriteShort': 'Write Opinion',
   'news.ctaSurvey': 'Join related survey',
@@ -1030,6 +1032,7 @@ export default {
   'admin.ai.done': 'AI analysis complete and saved.',
   'admin.ai.insufficient': 'Not enough opinions ({count}/{min}). Need at least 30 to analyze.',
   'admin.ai.failed': 'AI analysis failed. Please try again shortly.',
+  'admin.ai.failedDetail': 'AI analysis failed: {detail}',
   // AI report (PDF)
   'aiReport.generate': 'Generate AI report',
   'aiReport.generating': 'Generating report…',
@@ -1356,7 +1359,8 @@ export default {
   'admin.notice.sent': 'Announcement sent.',
   'admin.notice.fail': 'Failed to send announcement.',
   // Settings
-  'admin.set.sub': 'View admin account and permission details.',
+  'admin.set.sub': 'Display settings and admin account & permission details.',
+  'admin.set.display': 'Display',
   'admin.set.account': 'Admin account',
   'admin.set.name': 'Name',
   'admin.set.email': 'Email',

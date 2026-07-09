@@ -750,3 +750,11 @@
   .lg-norm-grid { grid-template-columns: 1fr; }
   .lg-head-actions { flex-wrap: wrap; }
 }
+
+/* 관리자 설정 — 표시(언어/테마) 행 + 로그아웃 */
+.adm-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--border-soft); }
+.adm-setting-row:last-of-type { border-bottom: none; }
+.adm-setting-label { font-size: 14px; font-weight: 600; color: var(--ink); }
+.adm-logout-btn { margin-top: 14px; }
+.adm-btn-ghost.danger { color: #DC2626; border-color: color-mix(in srgb, #DC2626 30%, var(--border)); }
+.adm-btn-ghost.danger:hover { background: color-mix(in srgb, #DC2626 10%, transparent); }

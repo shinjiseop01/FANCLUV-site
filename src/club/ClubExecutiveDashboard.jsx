@@ -79,15 +79,16 @@ export default function ClubExecutiveDashboard() {
       <header className="exec-header">
         <div className="exec-brand">FANCLUV <span>Executive</span></div>
         <div className="exec-head-right">
-          {team && <span className="exec-club"><TeamEmblem color={team.color} size={22} /> {teamName(team, lang)}</span>}
+          {team && <span className="exec-club"><TeamEmblem color={team.color} size={18} className="exec-club-emblem" /> {teamName(team, lang)}</span>}
           {admin && (
             <select className="exec-club-select" value={clubId} onChange={e => setClubId(e.target.value)} aria-label={t('exec.selectClub')}>
               {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{teamName(tm, lang)}</option>)}
             </select>
           )}
           <button className="exec-icon-btn" onClick={() => setLang(lang === 'ko' ? 'en' : 'ko')} aria-label="language">{lang === 'ko' ? 'EN' : '한'}</button>
-          <button className="exec-icon-btn" onClick={() => setTheme(resolved === 'dark' ? 'light' : 'dark')} aria-label="theme">
-            <Icon name={resolved === 'dark' ? 'smile' : 'meh'} size={16} />
+          <button className="exec-icon-btn" onClick={() => setTheme(resolved === 'dark' ? 'light' : 'dark')}
+            aria-label="theme" title={resolved === 'dark' ? t('set.themeLight') : t('set.themeDark')}>
+            <Icon name={resolved === 'dark' ? 'moon' : 'sun'} size={17} />
           </button>
           <button className="exec-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
         </div>

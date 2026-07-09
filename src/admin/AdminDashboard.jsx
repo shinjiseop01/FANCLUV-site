@@ -110,6 +110,9 @@ export default function AdminDashboard() {
       return
     }
     if (res.code === 'insufficient') { setAiMsg(t('admin.ai.insufficient', { count: res.count ?? 0, min: res.min || 30 })); return }
+    // OpenAI 실패는 실제 원인(잘못된 키/모델/쿼터 등)을 그대로 노출(silent fail 금지).
+    if (res.code === 'openai_failed') { setAiMsg(t('admin.ai.failedDetail', { detail: res.detail || (res.status ? `HTTP ${res.status}` : t('admin.ai.failed')) })); return }
+    if (res.code === 'save_failed') { setAiMsg(t('admin.ai.failedDetail', { detail: res.error || 'save_failed' })); return }
     const map = {
       openai_not_configured: 'admin.ai.errNoKey',
       forbidden: 'admin.ai.errForbidden',
