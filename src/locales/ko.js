@@ -619,7 +619,7 @@ export default {
   'admin.deniedMsg': '이 페이지는 FANCLUV 운영자만 사용할 수 있습니다.',
   'admin.deniedHome': '홈으로 돌아가기',
   // 메뉴
-  'admin.menu.dashboard': 'Dashboard',
+  'admin.menu.dashboard': '대시보드',
   'admin.menu.members': '회원 관리',
   'admin.menu.opinions': '팬 의견 관리',
   'admin.menu.surveys': '설문 관리',
@@ -914,7 +914,7 @@ export default {
   'admin.action.st.in_progress': '진행 중',
   'admin.action.st.done': '완료',
   'admin.action.st.closed': '종료',
-  'admin.menu.tracker': 'Action Tracker',
+  'admin.menu.tracker': '액션 트래커',
   // Club Action Tracker
   'admin.tracker.title': 'Club Action Tracker',
   'admin.tracker.sub': '구단 조치 → KPI 변화 → AI 효과 분석 검증',

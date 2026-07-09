@@ -29,7 +29,12 @@ export const isMockMode = !isSupabaseConfigured
 //   프로덕션에 절대 생성/노출되지 않도록 안전하게 차단한다. Mock 데이터는 개발(DEV)에서만 허용.
 export const isProdMisconfigured = Boolean(import.meta.env.PROD && !isSupabaseConfigured)
 
-if (isProdMisconfigured) {
+// 경고는 "환경 설정 미완료"라는 정적 사실이라 앱 수명 중 1회만 남기면 충분하다.
+// 코드 스플리팅으로 이 모듈이 여러 청크에서 평가되거나 HMR 로 재평가돼도 중복
+// 출력되지 않도록 globalThis 플래그로 정확히 1회만 로깅한다(보안 게이트/차단
+// 동작은 isProdMisconfigured 상수로 유지 — 로깅만 멱등 처리).
+if (isProdMisconfigured && !globalThis.__fancluvEnvWarned) {
+  globalThis.__fancluvEnvWarned = true
   logger.error(
     '운영 빌드에서 Supabase 환경변수가 설정되지 않았습니다. ' +
       'VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY 를 설정하세요. ' +

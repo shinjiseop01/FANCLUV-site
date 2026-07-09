@@ -35,7 +35,7 @@
   gap: 24px;
   align-items: start;
 }
-.mc-col-main, .mc-col-side { display: flex; flex-direction: column; gap: 20px; }
+.mc-col-main, .mc-col-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 
 /* ── Next match hero ── */
 .mc-next {
@@ -232,7 +232,7 @@
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
-  .mc-grid { grid-template-columns: 1fr; }
+  .mc-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 680px) {
   .mc-main { padding: 24px 16px 64px; }
