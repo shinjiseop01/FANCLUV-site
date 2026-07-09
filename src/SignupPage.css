@@ -137,6 +137,20 @@
   border: 1px dashed rgba(201, 168, 76, 0.35);
   border-radius: 8px; padding: 9px 12px; margin: 10px 0;
 }
+/* 인증번호 발송 상태(로딩/성공/실패) — 버튼 바로 아래 항상 표시 */
+.su-code-msg {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12.5px; border-radius: 8px; padding: 9px 12px; margin: 10px 0;
+}
+.su-code-msg.loading { color: var(--text-sub); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); }
+.su-code-msg.ok { color: #8FE3B0; background: rgba(14, 159, 110, 0.12); border: 1px solid rgba(14, 159, 110, 0.35); }
+.su-code-msg.error { color: #F5A3A3; background: rgba(220, 38, 38, 0.12); border: 1px solid rgba(220, 38, 38, 0.4); }
+.su-spinner {
+  width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.25); border-top-color: currentColor;
+  animation: su-spin 0.7s linear infinite;
+}
+@keyframes su-spin { to { transform: rotate(360deg); } }
 .su-verified { margin-top: 10px; font-size: 13px; font-weight: 700; color: #4ADE80; }
 
 /* Chips (gender / age group) */

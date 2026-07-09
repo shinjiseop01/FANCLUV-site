@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signup, issueEmailCode, confirmEmailCode, needsOnboarding, requiresIdentityVerification, isIdentityVerificationEnabled } from './lib/auth.js'
 import { isSupabaseConfigured } from './lib/supabase.js'
+import { logger } from './lib/logger.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import { useNicknameCheck } from './lib/useNicknameCheck.js'
 import NicknameStatus from './components/NicknameStatus.jsx'
@@ -30,6 +31,8 @@ export default function SignupPage() {
   const [sentCode, setSentCode] = useState('')
   const [codeInput, setCodeInput] = useState('')
   const [emailVerified, setEmailVerified] = useState(false)
+  const [sending, setSending] = useState(false)       // 인증번호 발송 중
+  const [codeMsg, setCodeMsg] = useState(null)         // { kind:'loading'|'ok'|'error', text }
   // Supabase 모드에서 가입 후 "확인 메일 발송됨" 안내
   const [confirmSent, setConfirmSent] = useState(false)
 
@@ -44,14 +47,33 @@ export default function SignupPage() {
   }
 
   async function handleSendCode() {
-    setError('')
-    if (!EMAIL_RE.test(email.trim())) { setError(t('signup.errEmailFormat')); return }
-    const res = await issueEmailCode(email.trim())
-    if (!res.ok) { setError(res.error); return }
-    setSentCode(res.code || '')   // code 있으면(Mock/dev) 화면 힌트, 없으면 이메일 발송
-    setCodeSent(true)
-    setEmailVerified(false)
-    setCodeInput('')
+    setError(''); setCodeMsg(null)
+    const q = email.trim()
+    // 형식 오류도 조용히 return 하지 않고 버튼 아래 즉시 안내(item 3).
+    if (!EMAIL_RE.test(q)) { setCodeMsg({ kind: 'error', text: t('signup.errEmailFormat') }); return }
+    setSending(true)
+    setCodeMsg({ kind: 'loading', text: t('signup.sendingCode') })
+    logger.info('[signup] send-email-code 요청', { context: { email: q } })
+    try {
+      const res = await issueEmailCode(q)
+      if (!res.ok) {
+        // 실제 Supabase/Resend 에러 메시지를 그대로 노출(silent fail 금지).
+        logger.error('[signup] 인증번호 발송 실패', { context: { error: res.error } })
+        setCodeMsg({ kind: 'error', text: res.error || t('signup.errSendCode') })
+        return
+      }
+      setSentCode(res.code || '')   // code 있으면(dev/이메일 미설정) 화면 힌트, 없으면 실제 발송
+      setCodeSent(true)
+      setEmailVerified(false)
+      setCodeInput('')
+      setCodeMsg({ kind: 'ok', text: res.code ? t('signup.codeHint', { code: res.code }) : t('signup.codeSentMail') })
+    } catch (e) {
+      // 예외가 uncaught 로 새어 무반응 되는 것을 방지 — 항상 UI+콘솔에 표시.
+      logger.error('[signup] 인증번호 발송 예외', { error: e })
+      setCodeMsg({ kind: 'error', text: t('signup.errSendCode') })
+    } finally {
+      setSending(false)
+    }
   }
 
   async function handleConfirmCode() {
@@ -141,14 +163,21 @@ export default function SignupPage() {
                 autoComplete="email"
                 disabled={emailVerified}
               />
-              <button type="button" className="su-side-btn" onClick={handleSendCode} disabled={emailVerified}>
-                {codeSent ? t('signup.resendCode') : t('signup.sendCode')}
+              <button type="button" className="su-side-btn" onClick={handleSendCode} disabled={emailVerified || sending}>
+                {sending ? t('signup.sendingCode') : codeSent ? t('signup.resendCode') : t('signup.sendCode')}
               </button>
             </div>
 
+            {/* 발송 상태(로딩/성공/실패)를 버튼 바로 아래 항상 표시 — 무반응 방지 */}
+            {codeMsg && (
+              <p className={`su-code-msg ${codeMsg.kind}`} role={codeMsg.kind === 'error' ? 'alert' : 'status'}>
+                {codeMsg.kind === 'loading' && <span className="su-spinner" aria-hidden="true" />}
+                {codeMsg.text}
+              </p>
+            )}
+
             {codeSent && !emailVerified && (
               <>
-                <p className="su-code-hint">{sentCode ? t('signup.codeHint', { code: sentCode }) : t('signup.codeSentMail')}</p>
                 <div className="su-inline">
                   <input
                     type="text"

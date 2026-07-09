@@ -195,6 +195,8 @@ export default {
   'signup.resendCode': '재전송',
   'signup.codeHint': '인증번호 [{code}] · MVP 테스트용 (실제 메일은 발송되지 않습니다)',
   'signup.codeSentMail': '입력하신 이메일로 인증번호를 보냈습니다. 메일함을 확인해 주세요.',
+  'signup.sendingCode': '인증번호 발송 중…',
+  'signup.errSendCode': '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.',
   'signup.codePh': '인증번호 6자리',
   'signup.confirmCode': '인증 확인',
   'signup.emailVerified': '이메일 인증 완료',

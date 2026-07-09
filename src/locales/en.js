@@ -195,6 +195,8 @@ export default {
   'signup.resendCode': 'Resend',
   'signup.codeHint': 'Code [{code}] · MVP test only (no real email is sent)',
   'signup.codeSentMail': 'A verification code was sent to your email. Please check your inbox.',
+  'signup.sendingCode': 'Sending code…',
+  'signup.errSendCode': 'Failed to send the verification code. Please try again shortly.',
   'signup.codePh': '6-digit code',
   'signup.confirmCode': 'Verify',
   'signup.emailVerified': 'Email verified',

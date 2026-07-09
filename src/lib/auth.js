@@ -11,6 +11,7 @@
 // 아래 동기 캐시(cachedUser)에 반영하고, 그 값을 동기로 반환한다.
 import { supabase, isSupabaseConfigured, isProdMisconfigured } from './supabase.js'
 import { invokeFunction } from './edgeFunctions.js'
+import { logger } from './logger.js'
 import { getProvider, SUPABASE_PROVIDER_CONFIG } from './oauth.js'
 import { sendWelcomeEmail } from './welcomeEmail.js'
 import { validateNicknameFormat } from './nicknameValidation.js'
@@ -610,7 +611,14 @@ export async function issueEmailCode(email) {
     const { data: exists } = await supabase.from('profiles').select('id').ilike('email', q).limit(1)
     if (exists && exists.length) return { ok: false, error: '이미 가입된 이메일입니다.' }
     const { data, error } = await invokeFunction('send-email-code', { body: { action: 'send', email: q } })
-    if (error || !data?.ok) return { ok: false, error: '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.' }
+    if (error || !data?.ok) {
+      // 실제 원인(Edge Function/Resend 에러, 401 등)을 UI·콘솔에 그대로 노출 — silent fail 금지.
+      const status = error?.context?.status ?? error?.status ?? null
+      const detail = data?.error || error?.message || '알 수 없는 오류'
+      logger.error('send-email-code 발송 실패', { error, context: { status, detail, email: q } })
+      const suffix = status ? ` (HTTP ${status})` : ''
+      return { ok: false, error: `인증번호 발송 실패: ${detail}${suffix}` }
+    }
     return { ok: true, code: data.devCode || null, sent: true } // devCode: 이메일 미설정 시 폴백
   }
   const dup = readUsers().some(u => u.email.toLowerCase() === q.toLowerCase())
