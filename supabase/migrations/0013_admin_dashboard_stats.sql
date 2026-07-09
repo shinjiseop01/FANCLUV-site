@@ -86,29 +86,29 @@ begin
 
   -- ── 3) 최근 활동 (여러 테이블 통합 → 시간순 desc, 상위 12) ──
   recent_union as (
-    select jsonb_build_object('type','signup','title',p.nickname,'team',p.selected_team,'actor',null,'at',p.created_at) r, p.created_at r_at
-      from public.profiles p order by p.created_at desc limit 8
+    (select jsonb_build_object('type','signup','title',p.nickname,'team',p.selected_team,'actor',null,'at',p.created_at) r, p.created_at r_at
+       from public.profiles p order by p.created_at desc limit 8)
     union all
-    select jsonb_build_object('type','opinion','title',left(o.content,40),'team',o.team_id,'actor',pr.nickname,'at',o.created_at), o.created_at
-      from public.opinions o left join public.profiles pr on pr.id = o.author_id order by o.created_at desc limit 8
+    (select jsonb_build_object('type','opinion','title',left(o.content,40),'team',o.team_id,'actor',pr.nickname,'at',o.created_at), o.created_at
+       from public.opinions o left join public.profiles pr on pr.id = o.author_id order by o.created_at desc limit 8)
     union all
-    select jsonb_build_object('type','comment','title',left(c.content,40),'team',null,'actor',pr.nickname,'at',c.created_at), c.created_at
-      from public.comments c left join public.profiles pr on pr.id = c.author_id order by c.created_at desc limit 8
+    (select jsonb_build_object('type','comment','title',left(c.content,40),'team',null,'actor',pr.nickname,'at',c.created_at), c.created_at
+       from public.comments c left join public.profiles pr on pr.id = c.author_id order by c.created_at desc limit 8)
     union all
-    select jsonb_build_object('type','survey','title',s.title,'team',s.team_id,'actor',null,'at',s.created_at), s.created_at
-      from public.surveys s order by s.created_at desc limit 8
+    (select jsonb_build_object('type','survey','title',s.title,'team',s.team_id,'actor',null,'at',s.created_at), s.created_at
+       from public.surveys s order by s.created_at desc limit 8)
     union all
-    select jsonb_build_object('type','response','title',s.title,'team',rp.team_id,'actor',pr.nickname,'at',rp.created_at), rp.created_at
-      from public.survey_responses rp
-      left join public.surveys s on s.id = rp.survey_id
-      left join public.profiles pr on pr.id = rp.user_id
-      order by rp.created_at desc limit 8
+    (select jsonb_build_object('type','response','title',s.title,'team',rp.team_id,'actor',pr.nickname,'at',rp.created_at), rp.created_at
+       from public.survey_responses rp
+       left join public.surveys s on s.id = rp.survey_id
+       left join public.profiles pr on pr.id = rp.user_id
+       order by rp.created_at desc limit 8)
     union all
-    select jsonb_build_object('type','report','title',left(coalesce(rep.target_excerpt, rep.reason),40),'team',null,'actor',rep.reason,'at',rep.created_at), rep.created_at
-      from public.reports rep order by rep.created_at desc limit 8
+    (select jsonb_build_object('type','report','title',left(coalesce(rep.target_excerpt, rep.reason),40),'team',null,'actor',rep.reason,'at',rep.created_at), rep.created_at
+       from public.reports rep order by rep.created_at desc limit 8)
     union all
-    select jsonb_build_object('type','ai','title',ai.club_id,'team',(case when ai.club_id = 'all' then null else ai.club_id end),'actor',null,'at',ai.created_at), ai.created_at
-      from public.ai_insights ai order by ai.created_at desc limit 8
+    (select jsonb_build_object('type','ai','title',ai.club_id,'team',(case when ai.club_id = 'all' then null else ai.club_id end),'actor',null,'at',ai.created_at), ai.created_at
+       from public.ai_insights ai order by ai.created_at desc limit 8)
   ),
   recent as (
     select coalesce(jsonb_agg(r order by r_at desc), '[]'::jsonb) v
