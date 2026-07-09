@@ -10,6 +10,7 @@ import { getCurrentUser, requiresIdentityVerification } from './auth.js'
 import { getCreatedOpinions, addOpinion as addCreatedOpinion, updateOpinion as updateCreatedOpinion, removeOpinion as removeCreatedOpinion } from '../opinionStore.js'
 import { pushMockNotification } from './notificationsRepo.js'
 import { recordActivity } from './activityScore.js'
+import { recordEvent } from './activityEvents.js'
 
 // ── 공통 헬퍼 ──
 function hoursSince(iso) {
@@ -256,6 +257,7 @@ export async function createOpinion(teamId, { category, rating, title, body, has
       .select('*').single()
     if (error) { logger.error('의견 저장 실패(opinions insert)', { error, context: { teamId } }); return { ok: false, error: error.message } }
     recordActivity('opinion')
+    recordEvent('opinion_create', { entityType: 'opinion', entityId: data.id, teamId, title })
     // 방금 저장한 행을 목록 화면이 즉시 prepend 할 수 있도록 표시용 객체로 반환한다
     // (집계 뷰의 like/comment 수는 아직 0, 작성자 정보는 현재 사용자로 구성).
     const opinion = {
@@ -273,6 +275,7 @@ export async function createOpinion(teamId, { category, rating, title, body, has
   }
   addCreatedOpinion(teamId, opinion)
   recordActivity('opinion')
+  recordEvent('opinion_create', { entityType: 'opinion', entityId: id, teamId, title })
   return { ok: true, id, opinion }
 }
 
@@ -288,9 +291,11 @@ export async function updateOpinion(teamId, id, { category, rating, title, body 
       .select('id') // RLS 로 본인 아니면 0행 → 권한 없음
     if (error) { logger.error('의견 수정 실패(opinions update)', { error, context: { id } }); return { ok: false, error: error.message } }
     if (!data || data.length === 0) return { ok: false, code: 'forbidden' }
+    recordEvent('opinion_update', { entityType: 'opinion', entityId: id, teamId, title })
     return { ok: true }
   }
   updateCreatedOpinion(teamId, id, { category, rating, title, body })
+  recordEvent('opinion_update', { entityType: 'opinion', entityId: id, teamId, title })
   return { ok: true }
 }
 
@@ -303,9 +308,11 @@ export async function deleteOpinion(teamId, id) {
       .from('opinions').delete().eq('id', id).select('id')
     if (error) { logger.error('의견 삭제 실패(opinions delete)', { error, context: { id } }); return { ok: false, error: error.message } }
     if (!data || data.length === 0) return { ok: false, code: 'forbidden' }
+    recordEvent('opinion_delete', { entityType: 'opinion', entityId: id, teamId })
     return { ok: true }
   }
   removeCreatedOpinion(teamId, id)
+  recordEvent('opinion_delete', { entityType: 'opinion', entityId: id, teamId })
   return { ok: true }
 }
 
@@ -358,9 +365,11 @@ export async function deleteComment(opinionId, commentId) {
     if (error) { logger.error('댓글 삭제 실패(comments)', { error, context: { commentId } }); return { ok: false, error: error.message } }
     // RLS 로 대상이 없거나 권한이 없으면 삭제 0행 → 존재하지 않음/권한 없음 처리.
     if (!data || data.length === 0) return { ok: false, code: 'not_found' }
+    recordEvent('comment_delete', { entityType: 'comment', entityId: commentId })
     return { ok: true }
   }
   removeStoredComment(opinionId, commentId)
+  recordEvent('comment_delete', { entityType: 'comment', entityId: commentId })
   return { ok: true }
 }
 
@@ -375,9 +384,11 @@ export async function updateComment(opinionId, commentId, content) {
       .from('comments').update({ content: text }).eq('id', commentId).select('id')
     if (error) { logger.error('댓글 수정 실패(comments update)', { error, context: { commentId } }); return { ok: false, error: error.message } }
     if (!data || data.length === 0) return { ok: false, code: 'forbidden' }
+    recordEvent('comment_update', { entityType: 'comment', entityId: commentId, title: text })
     return { ok: true }
   }
   updateStoredComment(opinionId, commentId, text)
+  recordEvent('comment_update', { entityType: 'comment', entityId: commentId, title: text })
   return { ok: true }
 }
 
@@ -396,12 +407,14 @@ export async function addComment(opinionId, content, teamId = null) {
       .select('*').single()
     if (error) return { ok: false, error: error.message }
     recordActivity('comment')
+    recordEvent('comment_create', { entityType: 'comment', entityId: data.id, teamId, title: text })
     return { ok: true, comment: { id: data.id, author: me.nickname, avatarUrl: me.avatarUrl, hours: 0, text } }
   }
   // Mock: localStorage 에 저장(새로고침 후 유지) + 알림 데모
   const comment = { id: `c${Date.now()}`, author: me?.nickname || '팬', hours: 0, text, createdAt: new Date().toISOString() }
   addStoredComment(opinionId, comment)
   recordActivity('comment')
+  recordEvent('comment_create', { entityType: 'comment', entityId: comment.id, teamId, title: text })
   pushMockNotification({
     type: 'comment', title: '새 댓글', body: '내 의견에 새 댓글이 달렸습니다.',
     url: teamId ? `/club/${teamId}/opinions/${opinionId}` : null,
@@ -433,15 +446,18 @@ export async function toggleLike(opinionId, nextLiked, teamId = null) {
       // unique 위반(이미 공감)은 무시
       if (error && !String(error.message).includes('duplicate')) return { ok: false }
       recordActivity('like')
+      recordEvent('like_add', { entityType: 'opinion', entityId: opinionId, teamId })
     } else {
       const { error } = await supabase.from('likes').delete().eq('opinion_id', opinionId).eq('user_id', me.id)
       if (error) return { ok: false }
+      recordEvent('like_remove', { entityType: 'opinion', entityId: opinionId, teamId })
     }
     return { ok: true }
   }
   // Mock: localStorage 에 공감 상태 저장(새로고침 후 유지)
   setLikedMock(opinionId, nextLiked)
   if (nextLiked) recordActivity('like')
+  recordEvent(nextLiked ? 'like_add' : 'like_remove', { entityType: 'opinion', entityId: opinionId, teamId })
   if (nextLiked) pushMockNotification({
     type: 'like', title: '새 공감', body: '내 의견에 공감이 추가되었습니다.',
     url: teamId ? `/club/${teamId}/opinions/${opinionId}` : null,

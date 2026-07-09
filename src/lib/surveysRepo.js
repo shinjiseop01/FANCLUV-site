@@ -124,10 +124,12 @@ export async function submitResponse(surveyId, teamId, answers) {
       return { ok: false, error: error.message }
     }
     recordActivity('survey')
+    recordEvent('survey_join', { entityType: 'survey', entityId: surveyId, teamId })
     return { ok: true }
   }
   markParticipated(surveyId)
   recordActivity('survey')
+  recordEvent('survey_join', { entityType: 'survey', entityId: surveyId, teamId })
   return { ok: true }
 }
 

@@ -13,18 +13,24 @@ import Icon from './components/Icon.jsx'
 import AnimatedNumber from './components/AnimatedNumber.jsx'
 import { relativeTime } from './lib/relativeTime.js'
 import { getActivityBadge } from './lib/activityBadge.js'
-import { getActivityScore } from './lib/activityScore.js'
+import { subscribeChanges } from './lib/realtime.js'
 import './ClubHomePage.css'
 import './MyActivityPage.css'
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
-// 타임라인 타입별 색상 + 라벨/문구 로케일 키
-const TL_META = {
-  opinion: { color: '#2563EB', labelKey: 'act.tlLabelOpinion', textKey: 'act.tlOpinion' },
-  comment: { color: '#7C3AED', labelKey: 'act.tlLabelComment', textKey: 'act.tlComment' },
-  like: { color: '#E05252', labelKey: 'act.tlLabelLike', textKey: 'act.tlLike' },
-  survey: { color: '#0E9F6E', labelKey: 'act.tlLabelSurvey', textKey: 'act.tlSurvey' },
+// 활동 이벤트 유형별 색상 + 라벨(모든 유형: 작성/수정/삭제/댓글/공감/취소/설문/신고)
+const EV_META = {
+  opinion_create: { color: '#2563EB', labelKey: 'act.ev.opinionCreate' },
+  opinion_update: { color: '#2563EB', labelKey: 'act.ev.opinionUpdate' },
+  opinion_delete: { color: '#64748B', labelKey: 'act.ev.opinionDelete' },
+  comment_create: { color: '#7C3AED', labelKey: 'act.ev.commentCreate' },
+  comment_update: { color: '#7C3AED', labelKey: 'act.ev.commentUpdate' },
+  comment_delete: { color: '#64748B', labelKey: 'act.ev.commentDelete' },
+  like_add: { color: '#E05252', labelKey: 'act.ev.likeAdd' },
+  like_remove: { color: '#64748B', labelKey: 'act.ev.likeRemove' },
+  survey_join: { color: '#0E9F6E', labelKey: 'act.ev.surveyJoin' },
+  report_submit: { color: '#D97706', labelKey: 'act.ev.reportSubmit' },
 }
 const hoursSince = iso => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 3600000))
 const fmtJoined = iso => {
@@ -47,8 +53,11 @@ export default function MyActivityPage() {
     if (!team) { setLoading(false); return }
     let active = true
     setLoading(true)
-    getMyActivity(team.id).then(d => { if (active) { setData(d); setLoading(false) } })
-    return () => { active = false }
+    const load = () => getMyActivity(team.id).then(d => { if (active) setData(d) })
+    load().finally(() => { if (active) setLoading(false) })
+    // Realtime: 내 활동에 영향 주는 테이블 변경 시 새로고침 없이 즉시 갱신.
+    const unsub = subscribeChanges(['activity_events', 'opinions', 'comments', 'likes', 'survey_responses'], load)
+    return () => { active = false; unsub() }
   }, [teamId, team])
 
   if (!team) {
@@ -61,8 +70,8 @@ export default function MyActivityPage() {
   }
 
   const { opinions, surveys, timeline, stats } = data
-  const activity = getActivityScore()
-  const score = stats.opinions * 6 + stats.comments + stats.surveys * 5 + activity.reflected
+  // 활동점수 = 실 DB 통계 기반(의견10·댓글3·설문5·받은공감1) — 로컬 로그 미사용.
+  const score = stats.opinions * 10 + stats.comments * 3 + stats.surveys * 5 + stats.empathy
   const { badge, next, progress } = getActivityBadge(score)
   const badgeName = b => (lang === 'en' ? b.en : b.ko)
   const joined = fmtJoined(getCurrentUser()?.joinedAt)
@@ -221,13 +230,13 @@ export default function MyActivityPage() {
               ) : (
               <ul className="ma-timeline">
                 {timeline.map((ev, i) => {
-                  const meta = TL_META[ev.type] || TL_META.opinion
+                  const meta = EV_META[ev.type] || EV_META.opinion_create
                   return (
                     <li key={i} className="ma-tl-item">
                       <span className="ma-tl-dot" style={{ background: meta.color }} />
                       <div className="ma-tl-body">
                         <span className="ma-tl-label" style={{ color: meta.color }}>{t(meta.labelKey)}</span>
-                        <p className="ma-tl-text">{t(meta.textKey, { title: ev.title || '' })}</p>
+                        {ev.title && <p className="ma-tl-text">&lsquo;{ev.title}&rsquo;</p>}
                         <span className="ma-tl-time">{relativeTime(hoursSince(ev.createdAt), lang)}</span>
                       </div>
                     </li>

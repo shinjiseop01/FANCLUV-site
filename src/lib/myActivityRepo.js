@@ -7,6 +7,7 @@ import { supabase, isSupabaseConfigured } from './supabase.js'
 import { logger } from './logger.js'
 import { getCurrentUser } from './auth.js'
 import { getCreatedOpinions } from '../opinionStore.js'
+import { listMyEvents } from './activityEvents.js'
 
 function fmtDate(iso) {
   if (!iso) return ''
@@ -26,11 +27,18 @@ function count(rows, key) {
 // { opinions:[], surveys:[], timeline:[], stats:{opinions,comments,surveys,empathy} }
 export async function getMyActivity(teamId) {
   const me = getCurrentUser()
+  let base
   if (isSupabaseConfigured && me) {
-    try { return await liveActivity(me, teamId) }
-    catch (error) { logger.error('내 활동 조회 실패', { error }); return empty() }
+    try { base = await liveActivity(me, teamId) }
+    catch (error) { logger.error('내 활동 조회 실패', { error }); base = empty() }
+  } else {
+    base = mockActivity(teamId)
   }
-  return mockActivity(teamId)
+  // 최근 활동: 작성/수정/삭제/댓글/공감/취소/설문/신고 등 모든 유형을 이벤트 로그에서
+  // 최신순으로. (행 기반으로는 삭제/취소/수정을 표현할 수 없어 activity_events 사용)
+  const events = await listMyEvents(12)
+  base.timeline = events.map(e => ({ type: e.type, title: e.title, createdAt: e.created_at }))
+  return base
 }
 
 function empty() { return { opinions: [], surveys: [], timeline: [], stats: { opinions: 0, comments: 0, surveys: 0, empathy: 0 } } }

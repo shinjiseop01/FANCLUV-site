@@ -5,6 +5,7 @@
 // 모든 함수는 async 이며 두 모드에서 동일한 UI 형태의 객체를 반환한다.
 import { supabase, isSupabaseConfigured } from './supabase.js'
 import { getCurrentUser } from './auth.js'
+import { recordEvent } from './activityEvents.js'
 import { MOCK_REPORTS } from '../admin/adminData.js'
 
 // 신고 사유 코드 (라벨은 locale report.reason.<code> 로 표시). '기타'는 detail 직접 입력.
@@ -63,6 +64,7 @@ export async function submitReport({ targetType, targetId = null, targetExcerpt 
         return { ok: false, code: 'duplicate' }
       return { ok: false, error: error.message }
     }
+    recordEvent('report_submit', { entityType: 'report', entityId: targetId, title: targetExcerpt })
     return { ok: true }
   }
   // Mock: localStorage 에 저장 → 관리자 화면에서 즉시 확인 가능
@@ -77,6 +79,7 @@ export async function submitReport({ targetType, targetId = null, targetExcerpt 
     status: 'pending',
   })
   writeMock(list)
+  recordEvent('report_submit', { entityType: 'report', entityId: targetId, title: targetExcerpt })
   return { ok: true }
 }
 

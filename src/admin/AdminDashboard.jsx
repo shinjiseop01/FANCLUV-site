@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { getCurrentUser } from '../lib/auth.js'
 import { getAdminDashboard, refreshAdminDashboard } from '../lib/admin/adminStats.js'
+import { subscribeChanges } from '../lib/realtime.js'
 import { LineChart, BarChart } from './AdminCharts.jsx'
 import { TEAMS, getTeam, teamName as tName } from '../teams.jsx'
 import { runAnalysis } from '../lib/ai/analyzeFanInsights.js'
@@ -64,7 +65,13 @@ export default function AdminDashboard() {
   useEffect(() => {
     let active = true
     getAdminDashboard().then(d => { if (active) setData(d) })
-    return () => { active = false }
+    // Realtime: 팬 활동(의견/댓글/공감/신고/설문참여/가입) 발생 시 KPI·차트·최근활동을
+    // 새로고침 없이 즉시 갱신(캐시 무효화 후 재조회, debounce 로 중복 조회 방지).
+    const unsub = subscribeChanges(
+      ['opinions', 'comments', 'likes', 'reports', 'survey_responses', 'profiles', 'ai_insights'],
+      () => refreshAdminDashboard().then(d => { if (active) setData(d) }),
+    )
+    return () => { active = false; unsub() }
   }, [])
 
   async function onRefresh() {
