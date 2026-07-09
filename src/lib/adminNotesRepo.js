@@ -18,8 +18,8 @@ function writeMock(list) {
   try { localStorage.setItem(KEY, JSON.stringify(list)) } catch { /* ignore */ }
 }
 
-function mapRow(r) {
-  return { id: r.id, entityType: r.entity_type, entityId: String(r.entity_id), body: r.body, author: r.profiles?.nickname || null, createdAt: r.created_at }
+function mapRow(r, authorName) {
+  return { id: r.id, entityType: r.entity_type, entityId: String(r.entity_id), body: r.body, author: authorName || null, createdAt: r.created_at }
 }
 
 // ── 대상별 메모 목록 (최신순) ──
@@ -27,12 +27,20 @@ export async function listNotes(entityType, entityId) {
   if (!isAdmin()) return []
   const eid = String(entityId)
   if (isSupabaseConfigured) {
+    // author_id 는 auth.users 참조라 profiles 임베드 불가 → 별도 조회로 작성자 닉네임 조립.
     const { data, error } = await supabase
-      .from('admin_notes').select('*, profiles:author_id(nickname)')
+      .from('admin_notes').select('id, entity_type, entity_id, body, author_id, created_at')
       .eq('entity_type', entityType).eq('entity_id', eid)
       .order('created_at', { ascending: false })
     if (error) return []
-    return (data || []).map(mapRow)
+    const rows = data || []
+    const authorIds = [...new Set(rows.map(n => n.author_id).filter(Boolean))]
+    const { data: profs } = authorIds.length
+      ? await supabase.from('public_profiles').select('id, nickname').in('id', authorIds)
+      : { data: [] }
+    const nameById = {}
+    for (const p of profs || []) nameById[p.id] = p.nickname
+    return rows.map(n => mapRow(n, nameById[n.author_id]))
   }
   return readMock()
     .filter(n => n.entityType === entityType && n.entityId === eid)
@@ -49,9 +57,10 @@ export async function addNote(entityType, entityId, body) {
     const me = getCurrentUser()
     const { data, error } = await supabase.from('admin_notes').insert({
       entity_type: entityType, entity_id: eid, body: text, author_id: me?.id || null,
-    }).select('*, profiles:author_id(nickname)').single()
+    }).select('id, entity_type, entity_id, body, author_id, created_at').single()
     if (error) return { ok: false, error: error.message }
-    return { ok: true, note: mapRow(data) }
+    // 방금 작성한 메모의 작성자는 현재 관리자(me) → 별도 조회 없이 닉네임 사용.
+    return { ok: true, note: mapRow(data, me?.nickname) }
   }
   const me = getCurrentUser()
   const note = { id: 'an' + Date.now(), entityType, entityId: eid, body: text, author: me?.nickname || 'Admin', createdAt: new Date().toISOString() }

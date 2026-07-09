@@ -151,7 +151,7 @@ async function enrichOpinions(rows) {
     supabase.from('likes').select('opinion_id').in('opinion_id', ids),
     supabase.from('comments').select('opinion_id').eq('status', 'visible').in('opinion_id', ids),
     authorIds.length
-      ? supabase.from('profiles').select('id, nickname, avatar_url').in('id', authorIds)
+      ? supabase.from('public_profiles').select('id, nickname, avatar_url').in('id', authorIds)
       : Promise.resolve({ data: [], error: null }),
   ])
   if (likesRes.error) logger.error('공감 수 조회 실패(likes)', { error: likesRes.error })
@@ -169,17 +169,6 @@ async function enrichOpinions(rows) {
     comments: commentCount[o.id],
   }))
 }
-function mapCommentRow(row) {
-  return {
-    id: row.id,
-    author: row.profiles?.nickname || '팬',
-    avatarUrl: row.profiles?.avatar_url || null,
-    createdAt: row.created_at,
-    hours: hoursSince(row.created_at),
-    text: row.content,
-  }
-}
-
 // ════════════════════════════════════════════════════════════════════════
 //  공개 API
 // ════════════════════════════════════════════════════════════════════════
@@ -273,12 +262,29 @@ export async function createOpinion(teamId, { category, rating, title, body, has
 // 댓글 목록
 export async function listComments(opinionId) {
   if (isSupabaseConfigured) {
+    // base 테이블만 조회. author_id 는 auth.users 참조라 profiles 임베드가 불가능
+    // (PostgREST 관계 없음) → 조회 에러의 원인이었다. 닉네임은 public_profiles 로 별도 조회.
     const { data, error } = await supabase
-      .from('comments').select('*, profiles(nickname, avatar_url)')
+      .from('comments').select('id, author_id, content, created_at')
       .eq('opinion_id', opinionId).eq('status', 'visible')
       .order('created_at', { ascending: true })
-    if (error) return []
-    return (data || []).map(mapCommentRow)
+    if (error) { logger.error('댓글 목록 조회 실패(comments)', { error, context: { opinionId } }); return [] }
+    const rows = data || []
+    if (rows.length === 0) return []
+    const authorIds = [...new Set(rows.map(c => c.author_id).filter(Boolean))]
+    const { data: profs } = authorIds.length
+      ? await supabase.from('public_profiles').select('id, nickname, avatar_url').in('id', authorIds)
+      : { data: [] }
+    const profById = {}
+    for (const p of profs || []) profById[p.id] = p
+    return rows.map(c => ({
+      id: c.id,
+      author: profById[c.author_id]?.nickname || '팬',
+      avatarUrl: profById[c.author_id]?.avatar_url || null,
+      createdAt: c.created_at,
+      hours: hoursSince(c.created_at),
+      text: c.content,
+    }))
   }
   // Mock: 시드 댓글 + localStorage 에 저장된 내 댓글(새로고침 후 유지)
   const seeded = INITIAL_COMMENTS.map((c, i) => ({ id: `ic${i}`, author: c.author, avatarUrl: null, hours: c.hours, text: c.text }))

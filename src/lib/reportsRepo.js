@@ -31,13 +31,13 @@ function fmtDate(iso) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function mapRow(r) {
+function mapRow(r, reporterName) {
   return {
     id: r.id,
     targetType: r.target_type,
     targetId: r.target_id,
     target: r.target_excerpt || '',
-    reporter: r.profiles?.nickname || '익명',
+    reporter: reporterName || '익명',
     reason: r.reason,
     detail: r.detail || '',
     date: fmtDate(r.created_at),
@@ -78,11 +78,20 @@ export async function submitReport({ targetType, targetId = null, targetExcerpt 
 // ── 관리자: 신고 목록 ──
 export async function adminListReports() {
   if (isSupabaseConfigured) {
+    // reporter_id 는 auth.users 참조라 profiles 임베드가 불가능(조회 에러 원인).
+    // reports 는 관리자만 SELECT(RLS). 신고자 닉네임은 public_profiles 로 별도 조회.
     const { data, error } = await supabase
-      .from('reports').select('*, profiles:reporter_id(nickname)')
+      .from('reports').select('*')
       .order('created_at', { ascending: false })
     if (error) return []
-    return (data || []).map(mapRow)
+    const rows = data || []
+    const reporterIds = [...new Set(rows.map(r => r.reporter_id).filter(Boolean))]
+    const { data: profs } = reporterIds.length
+      ? await supabase.from('public_profiles').select('id, nickname').in('id', reporterIds)
+      : { data: [] }
+    const nameById = {}
+    for (const p of profs || []) nameById[p.id] = p.nickname
+    return rows.map(r => mapRow(r, nameById[r.reporter_id]))
   }
   return getMockList().map(r => ({ ...r }))
 }
