@@ -274,6 +274,12 @@ export default {
   'detail.shared': '링크가 복사되었습니다.',
   'detail.reported': '신고가 접수되었습니다. 검토 후 조치하겠습니다.',
   'detail.reportFail': '신고 접수에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+  'detail.reportDuplicate': '이미 신고한 콘텐츠입니다.',
+  'detail.commentDelete': '삭제',
+  'detail.commentDeleteConfirm': '이 댓글을 삭제할까요?',
+  'detail.commentDeleteDesc': '삭제한 댓글은 복구할 수 없습니다.',
+  'detail.commentDeleted': '댓글을 삭제했습니다.',
+  'detail.commentDeleteFail': '댓글 삭제에 실패했습니다.',
   'detail.notFound': '존재하지 않는 의견입니다.',
   'detail.backToOpinions': '팬 의견으로 돌아가기',
 

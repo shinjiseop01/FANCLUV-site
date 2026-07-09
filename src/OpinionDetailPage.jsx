@@ -5,7 +5,7 @@ import NotificationBell from './components/NotificationBell.jsx'
 import IdentityNotice from './components/IdentityNotice.jsx'
 import { logout, getCurrentUser, requiresIdentityVerification } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
-import { getOpinionDetail, listComments, addComment, getLikeState, toggleLike as toggleLikeApi } from './lib/opinionsRepo.js'
+import { getOpinionDetail, listComments, addComment, deleteComment, getLikeState, toggleLike as toggleLikeApi } from './lib/opinionsRepo.js'
 import { submitReport } from './lib/reportsRepo.js'
 import ReportModal from './components/ReportModal.jsx'
 import Icon from './components/Icon.jsx'
@@ -43,6 +43,7 @@ export default function OpinionDetailPage() {
   const [toast, setToast] = useState('')
   const [reportOpen, setReportOpen] = useState(false)
   const [reporting, setReporting] = useState(false)
+  const [deleteId, setDeleteId] = useState(null) // 삭제 확인 중인 댓글 id
 
   // 의견 상세 + 댓글 + 공감 상태 로드 (Supabase 우선, 아니면 Mock — opinionsRepo)
   useEffect(() => {
@@ -106,7 +107,9 @@ export default function OpinionDetailPage() {
     })
     setReporting(false)
     setReportOpen(false)
-    flash(res.ok ? t('detail.reported') : (res.error || t('detail.reportFail')))
+    flash(res.ok ? t('detail.reported')
+      : res.code === 'duplicate' ? t('detail.reportDuplicate')
+      : (res.error || t('detail.reportFail')))
   }
 
   async function submitComment() {
@@ -114,8 +117,25 @@ export default function OpinionDetailPage() {
     if (!text) return
     const res = await addComment(opinionId, text, team.id)
     if (res.ok) {
-      setComments(prev => [...prev, res.comment])
+      // 낙관적 추가 대신 Supabase 재조회로 실데이터 동기화.
+      setComments(await listComments(opinionId))
       setDraft('')
+    } else if (res.error) {
+      flash(res.error)
+    }
+  }
+
+  // 댓글 삭제(확인 모달 → 실행). Supabase RLS 로 본인/관리자만 실제 삭제.
+  async function confirmDeleteComment() {
+    const id = deleteId
+    setDeleteId(null)
+    if (!id) return
+    const res = await deleteComment(opinionId, id)
+    if (res.ok) {
+      setComments(await listComments(opinionId))
+      flash(t('detail.commentDeleted'))
+    } else {
+      flash(t('detail.commentDeleteFail'))
     }
   }
 
@@ -240,6 +260,12 @@ export default function OpinionDetailPage() {
                       <div className="od-comment-head">
                         <span className="od-comment-name">{c.author}</span>
                         <span className="od-comment-time">{relativeTime(c.hours, lang)}</span>
+                        {c.mine && (
+                          <button type="button" className="od-comment-del"
+                            onClick={() => setDeleteId(c.id)}>
+                            {t('detail.commentDelete')}
+                          </button>
+                        )}
                       </div>
                       <p className="od-comment-text">{c.text}</p>
                     </div>
@@ -301,6 +327,20 @@ export default function OpinionDetailPage() {
         onClose={() => setReportOpen(false)}
         onSubmit={handleReport}
       />
+
+      {/* 댓글 삭제 확인 모달 (ReportModal 과 동일 스타일 재사용) */}
+      {deleteId && (
+        <div className="rpt-overlay" role="dialog" aria-modal="true" onClick={() => setDeleteId(null)}>
+          <div className="rpt-modal" onClick={e => e.stopPropagation()}>
+            <h2 className="rpt-title">{t('detail.commentDeleteConfirm')}</h2>
+            <p className="rpt-desc">{t('detail.commentDeleteDesc')}</p>
+            <div className="rpt-actions">
+              <button type="button" className="rpt-cancel" onClick={() => setDeleteId(null)}>{t('common.cancel')}</button>
+              <button type="button" className="rpt-submit" onClick={confirmDeleteComment}>{t('detail.commentDelete')}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

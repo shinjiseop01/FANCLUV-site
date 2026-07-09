@@ -57,7 +57,12 @@ export async function submitReport({ targetType, targetId = null, targetExcerpt 
       target_excerpt: targetExcerpt, reporter_id: me.id,
       reason, detail: reason === 'other' ? detail.trim() : null,
     })
-    if (error) return { ok: false, error: error.message }
+    if (error) {
+      // 같은 사용자가 같은 대상을 다시 신고(unique 제약 위반, 0030) → 중복 안내.
+      if (error.code === '23505' || /duplicate/i.test(error.message || ''))
+        return { ok: false, code: 'duplicate' }
+      return { ok: false, error: error.message }
+    }
     return { ok: true }
   }
   // Mock: localStorage 에 저장 → 관리자 화면에서 즉시 확인 가능

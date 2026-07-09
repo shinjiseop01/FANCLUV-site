@@ -39,6 +39,12 @@ function addStoredComment(id, comment) {
   all[String(id)] = [...(all[String(id)] || []), comment]
   writeJSON(COMMENTS_KEY, all)
 }
+function removeStoredComment(opinionId, commentId) {
+  const all = readJSON(COMMENTS_KEY, {})
+  const arr = all[String(opinionId)] || []
+  all[String(opinionId)] = arr.filter(c => String(c.id) !== String(commentId))
+  writeJSON(COMMENTS_KEY, all)
+}
 function splitParas(body) {
   const parts = String(body || '').split(/\n{2,}|\n/).map(s => s.trim()).filter(Boolean)
   return parts.length ? parts : [String(body || '')]
@@ -261,6 +267,7 @@ export async function createOpinion(teamId, { category, rating, title, body, has
 
 // 댓글 목록
 export async function listComments(opinionId) {
+  const me = getCurrentUser()
   if (isSupabaseConfigured) {
     // base 테이블만 조회. author_id 는 auth.users 참조라 profiles 임베드가 불가능
     // (PostgREST 관계 없음) → 조회 에러의 원인이었다. 닉네임은 public_profiles 로 별도 조회.
@@ -284,15 +291,33 @@ export async function listComments(opinionId) {
       createdAt: c.created_at,
       hours: hoursSince(c.created_at),
       text: c.content,
+      mine: !!me && c.author_id === me.id, // 본인 댓글만 삭제 버튼 노출
     }))
   }
-  // Mock: 시드 댓글 + localStorage 에 저장된 내 댓글(새로고침 후 유지)
-  const seeded = INITIAL_COMMENTS.map((c, i) => ({ id: `ic${i}`, author: c.author, avatarUrl: null, hours: c.hours, text: c.text }))
+  // Mock: 시드 댓글(내 것 아님) + localStorage 에 저장된 내 댓글(삭제 가능)
+  const seeded = INITIAL_COMMENTS.map((c, i) => ({ id: `ic${i}`, author: c.author, avatarUrl: null, hours: c.hours, text: c.text, mine: false }))
   const stored = getStoredComments(opinionId).map(c => ({
     id: c.id, author: c.author, avatarUrl: null,
-    hours: hoursSince(c.createdAt), text: c.text,
+    hours: hoursSince(c.createdAt), text: c.text, mine: true,
   }))
   return [...seeded, ...stored]
+}
+
+// 댓글 삭제. Supabase: RLS 로 본인(auth.uid()=author_id) 또는 관리자(is_admin, 0030)만
+// 실제 삭제됨 — 권한 없으면 error/0행. Mock: localStorage 에서 제거.
+export async function deleteComment(opinionId, commentId) {
+  if (isSupabaseConfigured) {
+    const me = getCurrentUser()
+    if (!me) return { ok: false, error: '로그인이 필요합니다.' }
+    const { data, error } = await supabase
+      .from('comments').delete().eq('id', commentId).select('id')
+    if (error) { logger.error('댓글 삭제 실패(comments)', { error, context: { commentId } }); return { ok: false, error: error.message } }
+    // RLS 로 대상이 없거나 권한이 없으면 삭제 0행 → 존재하지 않음/권한 없음 처리.
+    if (!data || data.length === 0) return { ok: false, code: 'not_found' }
+    return { ok: true }
+  }
+  removeStoredComment(opinionId, commentId)
+  return { ok: true }
 }
 
 // 댓글 작성 (teamId 는 Mock 알림 URL 생성용 — 실제 Supabase 는 트리거가 URL 포함)

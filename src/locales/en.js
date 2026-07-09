@@ -274,6 +274,12 @@ export default {
   'detail.shared': 'Link copied to clipboard.',
   'detail.reported': 'Your report has been received. We will review it.',
   'detail.reportFail': 'Failed to submit the report. Please try again later.',
+  'detail.reportDuplicate': 'You have already reported this content.',
+  'detail.commentDelete': 'Delete',
+  'detail.commentDeleteConfirm': 'Delete this comment?',
+  'detail.commentDeleteDesc': 'Deleted comments cannot be restored.',
+  'detail.commentDeleted': 'Comment deleted.',
+  'detail.commentDeleteFail': 'Failed to delete the comment.',
   'detail.notFound': 'This opinion does not exist.',
   'detail.backToOpinions': 'Back to Fan Opinions',
 
