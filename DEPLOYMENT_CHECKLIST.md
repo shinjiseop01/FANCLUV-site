@@ -30,7 +30,7 @@
 | Provider | 라이브 활성화 | 남은 작업 |
 |---|---|---|
 | Google | ✅ Enabled | 없음(동작). Client ID/Secret 는 Supabase Providers 에만 보관 |
-| Kakao | ✅ Enabled | 없음. **비즈 앱 아님 → 코드가 `profile_nickname profile_image` 만 요청(account_email 제외)**. 비즈 앱 전환 후 이메일 scope 추가 가능 |
+| Kakao | ⚠️ 커스텀 콜백 전환 | GoTrue 네이티브는 account_email 강제(KOE205) → **커스텀 `kakao-callback`** 사용. `supabase secrets set KAKAO_CLIENT_ID/SECRET/REDIRECT_URI/SITE_URL` + Vercel `VITE_KAKAO_CLIENT_ID` + Kakao Redirect URI 를 `functions/v1/kakao-callback` 로 + `functions deploy kakao-callback --no-verify-jwt` |
 | Naver | ⛔ 시크릿 미설정 | `supabase secrets set NAVER_CLIENT_ID/SECRET/REDIRECT_URI/SITE_URL` + Vercel `VITE_NAVER_CLIENT_ID` + `vercel --prod` |
 
 - 콜백: 앱 복귀 경로 `/auth/callback`(로딩·세션교환·프로필·라우팅·에러 처리).

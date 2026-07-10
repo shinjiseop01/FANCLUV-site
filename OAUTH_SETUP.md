@@ -75,9 +75,14 @@ Authentication → Providers → **Google** → Enable →
 
 ---
 
-## 3. Kakao OAuth 설정
+## 3. Kakao OAuth 설정 (커스텀 Edge Function 방식)
 
-Kakao 는 **Supabase 기본 지원 Provider** 입니다(별도 Edge Function 불필요).
+> ⚠️ **왜 Supabase 기본 Kakao 를 안 쓰는가**: Supabase(GoTrue) 기본 Kakao provider 는
+> scope 에 **`account_email` 을 강제 포함**하며 클라이언트 scope 로 제거되지 않습니다(병합만 됨).
+> 비즈 앱이 아니면 `KOE205 – 설정하지 않은 동의 항목: account_email` 이 **반드시** 발생합니다.
+> 그래서 FANCLUV 는 NAVER 처럼 **커스텀 콜백(`functions/v1/kakao-callback`)** 으로 scope 를
+> `profile_nickname` 만 요청해 KOE205 를 원천 차단하고, **이메일 없이도 로그인**합니다.
+> (Supabase → Providers 의 Kakao 는 **끄셔도 됩니다.**)
 
 ### 3-1. Kakao Developers에서 발급
 1. https://developers.kakao.com → 내 애플리케이션 → **애플리케이션 추가하기**
@@ -85,44 +90,51 @@ Kakao 는 **Supabase 기본 지원 Provider** 입니다(별도 Edge Function 불
    - `https://fancluv-site.vercel.app`
    - `http://localhost:5173`
 3. **제품 설정 → 카카오 로그인 → 활성화 ON**
-4. **카카오 로그인 → Redirect URI 등록** (Supabase 주소):
-   - `https://cuuzbddxnzhhlrqmmebz.supabase.co/auth/v1/callback`
-5. **제품 설정 → 카카오 로그인 → 동의항목**: **닉네임(profile_nickname)** 을
-   "필수 동의"로 설정 (프로필 사진은 선택). ⚠️ **카카오계정(이메일, account_email)**
-   은 **비즈 앱 전환 후에만** 사용 가능합니다.
-   - **현재 베타(개인/일반 앱)**: 코드가 `profile_nickname profile_image` 만 요청하므로
-     **이메일 동의항목을 켤 필요가 없습니다.** (이메일 동의항목을 요청하면
-     `KOE205 – 설정하지 않은 동의 항목: account_email` 오류가 납니다.)
-   - **비즈 앱 전환 후**: 이메일 동의항목을 활성화하고, 코드의 Kakao scope 에
-     `account_email` 을 추가하면 이메일도 수집됩니다(아래 §3-4).
-6. **앱 키**: **REST API 키** 를 Client ID 로 사용.
-7. **보안 → Client Secret**: 생성 후 **활성화 상태로 ON** → 그 값을 Client Secret 으로 사용.
+4. **카카오 로그인 → Redirect URI 등록** — ⚠️ **Edge Function 주소**(auth/v1/callback 아님):
+   - `https://cuuzbddxnzhhlrqmmebz.supabase.co/functions/v1/kakao-callback`
+5. **동의항목**: **닉네임(profile_nickname)** 만 "필수 동의"로 설정하면 충분합니다.
+   프로필 사진은 선택. **이메일(account_email)은 켜지 마세요**(비즈 앱 아니면 KOE205 원인).
+6. **앱 키 → REST API 키** = Client ID.
+7. (선택) **보안 → Client Secret** 활성화 시 그 값을 Client Secret 으로 사용.
 
-### 3-2. Supabase에 입력
-Authentication → Providers → **Kakao** → Enable →
-- **Client ID (REST API Key)** ← Kakao REST API 키
-- **Client Secret** ← Kakao Client Secret (보안 메뉴에서 활성화한 값)
-- Save
+### 3-2. Supabase Edge Function 시크릿에 입력 (Providers 아님!)
+```bash
+npx supabase secrets set \
+  KAKAO_CLIENT_ID=<REST_API_KEY> \
+  KAKAO_CLIENT_SECRET=<보안_Client_Secret(선택)> \
+  KAKAO_REDIRECT_URI=https://cuuzbddxnzhhlrqmmebz.supabase.co/functions/v1/kakao-callback \
+  SITE_URL=https://fancluv-site.vercel.app
+```
+> `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` 는 자동 주입.
+> Client Secret 을 활성화하지 않았다면 `KAKAO_CLIENT_SECRET` 은 생략 가능.
 
-### 3-3. 복사해야 하는 값 요약
-| Kakao에서 복사 | Supabase 붙여넣는 곳 |
+### 3-3. 프론트에 Kakao REST API 키 노출 (authorize 이동용, 공개값)
+Vercel → Settings → Environment Variables (로컬은 `.env`):
+```
+VITE_KAKAO_CLIENT_ID = <REST_API_KEY>
+```
+저장 후 `vercel --prod` 재배포하면 카카오 버튼이 동작합니다.
+
+### 3-4. 복사해야 하는 값 요약
+| Kakao에서 복사 | 넣는 곳 |
 |---|---|
-| REST API 키 | Kakao Provider → Client ID |
-| Client Secret(보안) | Kakao Provider → Client Secret |
+| REST API 키 | ① `supabase secrets set KAKAO_CLIENT_ID=...`  ② Vercel `VITE_KAKAO_CLIENT_ID` |
+| Client Secret(선택) | `supabase secrets set KAKAO_CLIENT_SECRET=...` (프론트에는 절대 안 넣음) |
 
-### 3-4. 이메일 scope (비즈 앱 전환 전/후)
-- **현재 베타**: `src/lib/oauth.js` 의 Kakao scope = `profile_nickname profile_image`
-  (account_email 제외). 이메일 미제공이라 `profiles.email` 은 NULL 이며, 닉네임은
-  카카오 닉네임(없으면 `카카오사용자`)으로 저장됩니다(트리거 `handle_new_user`).
-  로그인은 정상 성공하고, 이메일은 추후 설정 화면에서 추가 입력하도록 남겨둡니다
-  (`ProfileEditPage` 의 `TODO(email-later)`).
-- **비즈 앱 전환 후**: Kakao Developers 에서 앱을 비즈 앱으로 전환하고 이메일 동의항목을
-  활성화한 뒤, `SUPABASE_PROVIDER_CONFIG.kakao.scopes` 를
-  `'profile_nickname profile_image account_email'` 로 바꾸면 이메일도 수집됩니다.
+### 3-5. 이메일 / KOE205 정리
+- 커스텀 콜백은 `profile_nickname` 만 요청 → **account_email 미요청** → **KOE205 발생 안 함**.
+- 이메일 미제공이라 `profiles.email = NULL`, 닉네임은 카카오 닉네임(없으면 `카카오사용자`).
+  로그인/세션은 내부 placeholder 이메일로 성립하지만 화면상 이메일은 비어 있고, 사용자는
+  **설정 → 이메일 등록** 카드에서 나중에 이메일을 추가할 수 있습니다(강제 아님).
+- **비즈 앱 전환 후 이메일 수집을 원하면**: Kakao 앱을 비즈 앱으로 전환하고 account_email
+  동의항목을 활성화한 뒤, `functions/kakao-callback` 의 authorize scope 에 `account_email`
+  을 추가하거나(또는 Supabase 네이티브 Kakao 로 되돌리기) → 이메일도 수집됩니다.
 
-> **KOE205 정리**: "설정하지 않은 동의 항목: account_email" 은 비즈 앱이 아닌데
-> account_email scope 를 요청할 때 납니다. 베타에서는 account_email 을 **요청하지 않으므로**
-> 발생하지 않습니다.
+### 3-6. Edge Function 배포
+```bash
+npx supabase functions deploy kakao-callback --no-verify-jwt
+```
+(외부 Kakao 서버가 JWT 없이 호출하는 공개 콜백이므로 `--no-verify-jwt` 필수)
 
 ---
 
@@ -176,7 +188,8 @@ VITE_NAVER_CLIENT_ID = 발급받은_Client_ID
 
 | 용도 | 등록 위치 | 값 |
 |---|---|---|
-| Google/Kakao redirect URI | Google Console / Kakao Redirect URI | `https://cuuzbddxnzhhlrqmmebz.supabase.co/auth/v1/callback` |
+| Google redirect URI | Google Console | `https://cuuzbddxnzhhlrqmmebz.supabase.co/auth/v1/callback` |
+| Kakao Redirect URI | Kakao Redirect URI | `https://cuuzbddxnzhhlrqmmebz.supabase.co/functions/v1/kakao-callback` |
 | NAVER Callback URL | Naver Developers Callback URL | `https://cuuzbddxnzhhlrqmmebz.supabase.co/functions/v1/naver-callback` |
 | JS Origin / 서비스 URL(prod) | Google/Kakao/Naver 콘솔 | `https://fancluv-site.vercel.app` |
 | JS Origin(dev) | Google/Kakao 콘솔 | `http://localhost:5173` |

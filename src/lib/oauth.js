@@ -135,13 +135,16 @@ export function getProvider(id) {
 // `native: true`  → Supabase 가 기본 지원 → supabase.auth.signInWithOAuth({ provider })
 // `native: false` → Supabase 미지원(예: NAVER) → 커스텀 OAuth(Edge Function) 필요.
 // 설정 방법: OAUTH_SETUP.md
-// `scopes` 를 지정하면 Supabase 가 provider 에 보내는 기본 scope 를 덮어쓴다.
-//   · Kakao: 기본값에 account_email 이 포함되어, 비즈 앱이 아니면 KOE205
-//     (설정하지 않은 동의 항목: account_email) 오류가 난다. → 비즈 앱 전환 전에는
-//     account_email 을 빼고 profile_nickname / profile_image 만 요청한다.
-//     (비즈 앱 전환 후 'account_email' 을 다시 추가하면 이메일도 수집된다 — OAUTH_SETUP.md)
+// native:true  → Supabase 기본 provider(signInWithOAuth).
+// native:false → Supabase 미지원/부적합 → 커스텀 OAuth authorize + Edge Function 콜백.
+//
+// ⚠️ Kakao 가 custom 인 이유: Supabase(GoTrue) 기본 Kakao scope 는 account_email 을
+//    강제 포함하고 클라이언트 scopes 로 제거되지 않는다(병합만 됨). 비즈 앱이 아니면
+//    KOE205 가 발생하므로, scope 를 profile_nickname 만으로 제어하는 커스텀 콜백
+//    (functions/v1/kakao-callback)을 사용한다. 비즈 앱 전환 시 네이티브로 되돌리고
+//    account_email 을 추가할 수 있다(OAUTH_SETUP.md).
 export const SUPABASE_PROVIDER_CONFIG = {
   google: { supabaseProvider: 'google', native: true },
-  kakao:  { supabaseProvider: 'kakao', native: true, scopes: 'profile_nickname profile_image' },
-  naver:  { supabaseProvider: null, native: false },
+  kakao:  { supabaseProvider: null, native: false, custom: 'kakao' },
+  naver:  { supabaseProvider: null, native: false, custom: 'naver' },
 }

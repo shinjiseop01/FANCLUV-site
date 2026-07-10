@@ -18,6 +18,7 @@ import './LoginPage.css'
 // naver-callback / Supabase 가 전달하는 실패 코드 → 안내 문구 키.
 const ERROR_KEYS = {
   naver_denied: 'authcb.errDenied',
+  kakao_denied: 'authcb.errDenied',
   no_email: 'authcb.errNoEmail',
   token_exchange_failed: 'authcb.errProvider',
   profile_failed: 'authcb.errProvider',

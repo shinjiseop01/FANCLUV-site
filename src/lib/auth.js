@@ -38,6 +38,24 @@ const NO_VERIFY_ROLES = [...ADMIN_ROLES, ...CLUB_ROLES]
 // 이메일 형식 검증(간이). 회원가입/이메일 등록에서 공용으로 사용.
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
+// 커스텀 OAuth(Supabase 네이티브 미사용) provider 설정.
+//   · kakao: GoTrue 기본 scope 의 account_email 강제 포함(KOE205) 회피 목적. scope 를
+//            profile_nickname 만 요청 → 비즈 앱 아니어도 이메일 없이 로그인 가능.
+//   · naver: Supabase 기본 미지원.
+// redirect_uri 는 각 콘솔에 등록된 Edge Function 콜백(functions/v1/<fn>)을 사용한다.
+const CUSTOM_OAUTH = {
+  kakao: {
+    label: '카카오', fn: 'kakao-callback',
+    clientEnv: 'VITE_KAKAO_CLIENT_ID', callbackEnv: 'VITE_KAKAO_CALLBACK_URL',
+    authorize: 'https://kauth.kakao.com/oauth/authorize', scope: 'profile_nickname',
+  },
+  naver: {
+    label: 'NAVER', fn: 'naver-callback',
+    clientEnv: 'VITE_NAVER_CLIENT_ID', callbackEnv: 'VITE_NAVER_CALLBACK_URL',
+    authorize: 'https://nid.naver.com/oauth2.0/authorize', scope: null,
+  },
+}
+
 // DB profiles.role → 앱 role 매핑. 관리자 계열이 fan 으로 강등되지 않도록 명시적으로 매핑한다.
 //   superadmin→Super Admin / staff→Staff(관리자) / admin→Admin /
 //   club_admin→Club Account / club→Club Account / 그 외/미상→Fan
@@ -439,27 +457,28 @@ export async function socialLogin(providerId) {
       return { ok: true, redirecting: true } // 브라우저가 provider 로 리다이렉트됨
     }
 
-    // NAVER — Supabase 미지원 → 커스텀 OAuth authorize 로 리다이렉트.
-    // (콜백에서 code→token→Supabase 세션 교환은 Edge Function 이 처리 — SOCIAL_LOGIN_SETUP.md)
-    if (providerId === 'naver') {
-      const clientId = import.meta.env.VITE_NAVER_CLIENT_ID
-      if (!clientId || clientId.includes('your-naver')) {
-        return { ok: false, error: 'NAVER 로그인 설정이 필요합니다. OAUTH_SETUP.md 를 참고해 주세요.' }
+    // Kakao · NAVER — Supabase 미지원/부적합 → 커스텀 OAuth authorize 로 리다이렉트.
+    // 콜백(code→token→프로필→세션)은 Edge Function(kakao-callback/naver-callback)이 처리.
+    if (cfg.custom) {
+      const c = CUSTOM_OAUTH[cfg.custom]
+      const clientId = import.meta.env[c.clientEnv]
+      if (!clientId || String(clientId).includes('your-')) {
+        return { ok: false, error: `${c.label} 로그인 설정이 필요합니다. OAUTH_SETUP.md 를 참고해 주세요.` }
       }
-      // redirect_uri 는 반드시 NAVER 콘솔에 등록된 Supabase Edge Function 콜백이어야 한다.
-      // (앱 주소가 아니라 https://<ref>.supabase.co/functions/v1/naver-callback)
+      // redirect_uri 는 반드시 콘솔에 등록된 Supabase Edge Function 콜백이어야 한다(앱 주소 아님).
       const supaUrl = import.meta.env.VITE_SUPABASE_URL || ''
-      const redirectUri = import.meta.env.VITE_NAVER_CALLBACK_URL
-        || (supaUrl ? `${supaUrl}/functions/v1/naver-callback` : `${window.location.origin}/auth/callback`)
-      // state 에 nonce + 앱 복귀 주소(origin)를 담아 Edge Function 이 로그인 후 앱으로 되돌린다.
+      const redirectUri = import.meta.env[c.callbackEnv]
+        || (supaUrl ? `${supaUrl}/functions/v1/${c.fn}` : `${window.location.origin}/auth/callback`)
+      // state 에 nonce + 앱 복귀 주소(origin)를 담아 콜백이 로그인 후 앱으로 되돌린다.
       const nonce = Math.random().toString(36).slice(2)
       const state = btoa(JSON.stringify({ n: nonce, r: window.location.origin }))
-      try { sessionStorage.setItem('naver_oauth_state', nonce) } catch { /* noop */ }
-      const authorizeUrl =
-        'https://nid.naver.com/oauth2.0/authorize?response_type=code' +
+      try { sessionStorage.setItem(`${cfg.custom}_oauth_state`, nonce) } catch { /* noop */ }
+      let authorizeUrl =
+        `${c.authorize}?response_type=code` +
         `&client_id=${encodeURIComponent(clientId)}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}` +
         `&state=${encodeURIComponent(state)}`
+      if (c.scope) authorizeUrl += `&scope=${encodeURIComponent(c.scope)}`
       window.location.href = authorizeUrl
       return { ok: true, redirecting: true }
     }
