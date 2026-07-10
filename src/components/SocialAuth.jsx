@@ -34,7 +34,7 @@ export default function SocialAuth({ onSuccess, onError, onStart }) {
   const [busy, setBusy] = useState(null) // provider id currently authenticating
 
   async function handleClick(providerId) {
-    if (busy) return
+    if (busy) return // 중복 클릭 방지(진행 중이면 무시)
     onError?.('')
     onStart?.()
     setBusy(providerId)
@@ -42,8 +42,13 @@ export default function SocialAuth({ onSuccess, onError, onStart }) {
     // OAuth 리다이렉트(예: Supabase Google)는 브라우저가 이동하므로 여기서 처리하지 않는다.
     if (res.redirecting) return
     setBusy(null)
-    if (res.ok) onSuccess?.(res)
-    else onError?.(res.error)
+    if (res.ok) { onSuccess?.(res); return }
+    // 실패: 콘솔에는 provider + 코드/메시지만 기록(토큰·시크릿·인가코드 미기록).
+    // eslint-disable-next-line no-console
+    console.error(`[oauth] ${providerId} login failed:`, res.code || res.error || 'unknown')
+    // 사용자에게는 provider별 친화적 문구(구체 사유가 있으면 함께).
+    const base = t(`auth.err.${providerId}`)
+    onError?.(res.error ? `${base} (${res.error})` : base)
   }
 
   return (

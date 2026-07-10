@@ -47,6 +47,9 @@ export default {
   // 소셜 로그인 (Google / Kakao / NAVER)
   'auth.or': '또는',
   'auth.continueWith': '{provider}로 계속하기',
+  'auth.err.google': 'Google 로그인을 시작할 수 없습니다.',
+  'auth.err.kakao': '카카오 로그인 설정을 확인해 주세요.',
+  'auth.err.naver': '네이버 로그인 처리 중 문제가 발생했습니다.',
   // 계정 복구 (아이디/비밀번호 찾기)
   'find.backToLogin': '로그인으로 돌아가기',
   'findId.title': '아이디 찾기',
@@ -109,6 +112,22 @@ export default {
   'profile.nicknameUpdated': '닉네임이 변경되었습니다.',
   'profile.nicknameLocked': '닉네임은 90일마다 변경할 수 있습니다.',
   'profile.saveNickname': '닉네임 변경',
+  // 이메일 등록(이메일 미제공 소셜 계정)
+  'profile.email.title': '이메일',
+  'profile.email.desc': '이메일이 등록되어 있지 않아요. 비밀번호 재설정·중요 알림을 받으려면 이메일을 등록해 주세요. (선택)',
+  'profile.email.placeholder': '이메일 주소',
+  'profile.email.sendCode': '인증번호 받기',
+  'profile.email.codePlaceholder': '인증번호 6자리',
+  'profile.email.confirm': '등록',
+  'profile.email.errFormat': '올바른 이메일 형식이 아닙니다.',
+  'profile.email.sending': '인증번호를 보내는 중…',
+  'profile.email.sendFail': '인증번호 발송에 실패했습니다.',
+  'profile.email.sent': '인증번호를 보냈어요. 메일함을 확인해 주세요.',
+  'profile.email.sentDev': '인증번호(테스트): {code}',
+  'profile.email.verifying': '확인 중…',
+  'profile.email.verifyFail': '인증번호가 올바르지 않습니다.',
+  'profile.email.duplicate': '이미 다른 계정에서 사용 중인 이메일입니다.',
+  'profile.email.linked': '이메일이 등록되었습니다.',
   // 비밀번호 변경
   'pw.title': '비밀번호 변경',
   'pw.current': '현재 비밀번호',

@@ -47,6 +47,9 @@ export default {
   // Social login (Google / Kakao / NAVER)
   'auth.or': 'OR',
   'auth.continueWith': 'Continue with {provider}',
+  'auth.err.google': 'Could not start Google sign-in.',
+  'auth.err.kakao': 'Please check the Kakao login configuration.',
+  'auth.err.naver': 'Something went wrong during Naver sign-in.',
   // Account recovery (find ID / password)
   'find.backToLogin': 'Back to login',
   'findId.title': 'Find your ID',
@@ -109,6 +112,22 @@ export default {
   'profile.nicknameUpdated': 'Nickname updated.',
   'profile.nicknameLocked': 'You can change your nickname once every 90 days.',
   'profile.saveNickname': 'Save nickname',
+  // Email registration (social accounts without email)
+  'profile.email.title': 'Email',
+  'profile.email.desc': 'No email is linked. Add one to receive password resets and important notices. (optional)',
+  'profile.email.placeholder': 'Email address',
+  'profile.email.sendCode': 'Send code',
+  'profile.email.codePlaceholder': '6-digit code',
+  'profile.email.confirm': 'Register',
+  'profile.email.errFormat': 'Please enter a valid email address.',
+  'profile.email.sending': 'Sending code…',
+  'profile.email.sendFail': 'Failed to send the code.',
+  'profile.email.sent': 'Code sent. Please check your inbox.',
+  'profile.email.sentDev': 'Code (test): {code}',
+  'profile.email.verifying': 'Verifying…',
+  'profile.email.verifyFail': 'The code is incorrect.',
+  'profile.email.duplicate': 'This email is already used by another account.',
+  'profile.email.linked': 'Email registered.',
   // Change password
   'pw.title': 'Change Password',
   'pw.current': 'Current password',

@@ -35,6 +35,8 @@ export const ADMIN_ROLES = [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.STAFF]
 export const CLUB_ROLES = [ROLES.CLUB, ROLES.CLUB_ADMIN]
 // 이메일 인증 없이 로그인 가능한 역할(관리자/구단 계정은 운영자가 발급).
 const NO_VERIFY_ROLES = [...ADMIN_ROLES, ...CLUB_ROLES]
+// 이메일 형식 검증(간이). 회원가입/이메일 등록에서 공용으로 사용.
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 // DB profiles.role → 앱 role 매핑. 관리자 계열이 fan 으로 강등되지 않도록 명시적으로 매핑한다.
 //   superadmin→Super Admin / staff→Staff(관리자) / admin→Admin /
@@ -640,6 +642,38 @@ export async function confirmEmailCode(email, code) {
     body: { action: 'verify', email: (email || '').trim(), code: (code || '').trim() },
   })
   if (error || !data?.ok) return { ok: false, error: '인증번호가 올바르지 않거나 만료되었습니다.' }
+  return { ok: true }
+}
+
+// ── 이메일 미제공 소셜 계정: 나중에 이메일 등록/연결 ──
+// 인증번호(issueEmailCode/confirmEmailCode)로 이메일 소유를 검증한 뒤, RPC
+// claim_profile_email 로 중복 확인 + profiles.email 갱신을 원자적으로 처리한다.
+// 반환: { ok } | { ok:false, code:'duplicate'|'invalid'|..., error }
+export async function attachEmail(email, code) {
+  const q = (email || '').trim().toLowerCase()
+  if (!EMAIL_RE.test(q)) return { ok: false, code: 'invalid', error: '올바른 이메일 형식이 아닙니다.' }
+
+  if (!isSupabaseConfigured) {
+    // Mock: 로컬 세션 사용자에 이메일만 반영.
+    const r = mockPatchSessionUser({ email: q, isEmailVerified: true })
+    return r.ok ? { ok: true } : r
+  }
+
+  // 1) 인증번호 검증(이메일 소유 확인)
+  const vr = await confirmEmailCode(q, code)
+  if (!vr.ok) return { ok: false, code: 'code', error: vr.error || '인증번호가 올바르지 않습니다.' }
+
+  // 2) 중복 확인 + profiles.email 갱신(SECURITY DEFINER RPC)
+  const { data, error } = await supabase.rpc('claim_profile_email', { p_email: q })
+  if (error) return { ok: false, error: error.message }
+  if (!data?.ok) {
+    if (data?.code === 'duplicate') return { ok: false, code: 'duplicate', error: '이미 다른 계정에서 사용 중인 이메일입니다.' }
+    return { ok: false, code: data?.code || 'failed', error: '이메일 등록에 실패했습니다. 다시 시도해 주세요.' }
+  }
+
+  // 3) 캐시 갱신 + auth.users 이메일 동기(확인 메일 흐름은 선택 — 실패해도 무시)
+  if (cachedUser) cachedUser = { ...cachedUser, email: q, isEmailVerified: true }
+  try { await supabase.auth.updateUser({ email: q }) } catch { /* Secure email change 설정 시 확인 메일 발송 — 표시 이메일은 이미 반영됨 */ }
   return { ok: true }
 }
 

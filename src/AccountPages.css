@@ -123,3 +123,12 @@
 @media (max-width: 560px) {
   .ac-stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ── 이메일 등록(ProfileEditPage) ── */
+.pe-email-row { display: flex; gap: 8px; align-items: stretch; margin-top: 4px; }
+.pe-email-row .ac-input { flex: 1; min-width: 0; margin: 0; }
+.pe-email-btn { flex-shrink: 0; width: auto; padding: 0 16px; margin: 0; white-space: nowrap; }
+.pe-email-msg { margin-top: 8px; }
+.pe-email-msg.ok { color: #10A46E; }
+.pe-email-msg.error { color: #E5484D; }
+.pe-email-msg.loading { color: var(--muted); }

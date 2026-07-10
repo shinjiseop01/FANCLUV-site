@@ -216,3 +216,37 @@ VITE_NAVER_CLIENT_ID = 발급받은_Client_ID
   이메일·닉네임 fallback 포함, `on conflict do nothing` 로 중복 방지)
 - `selected_team` 없으면 **팀 선택**, 있으면 **구단 홈**으로 이동
 - 실패 시 안내 문구 + "로그인으로 돌아가기"
+
+---
+
+## 9. 계정 중복 / 연결 정책 (권장안)
+
+- **현재 정책**: 서로 다른 provider(이메일/Google/Kakao/Naver)가 **같은 이메일**을 반환하면,
+  NAVER 커스텀 콜백은 기존 프로필이 있으면 새 프로필을 만들지 않고 `account_exists_<provider>`
+  안내로 위임합니다. Google/Kakao(네이티브)는 Supabase 의 "동일 이메일 자동 연결" 설정을 따릅니다.
+- **profiles 는 `auth.users.id` 기준 1개** — 트리거가 `on conflict (id) do nothing` 로 중복 생성 방지.
+- **권장**: Supabase → Authentication → 설정의 **"Allow linking accounts with the same email"** 은
+  보안 검토 후 신중히 결정하세요.
+  - **ON**: 같은 이메일이면 자동으로 하나의 사용자로 연결(편의 ↑). 단, 한 provider의 이메일이
+    검증되지 않으면 계정 탈취 위험이 있으니 **이메일 검증이 보장되는 provider만** 사용할 때 권장.
+  - **OFF(현재/보수적)**: 이메일이 같아도 별도 처리 → 앱이 "이미 가입된 이메일" 안내. 안전하지만
+    사용자가 로그인 방식을 헷갈릴 수 있음.
+  - FANCLUV 베타 권장: **OFF 유지**로 시작하고, 이메일 검증 신뢰도가 확보되면 ON 검토.
+
+## 10. 보안 점검 체크리스트
+
+- ✅ Client Secret / service_role / `NAVER_CLIENT_SECRET` 은 **프론트 번들·깃에 절대 미포함** →
+  서버(Supabase Providers 설정 / Edge Function 시크릿)에만.
+- ✅ `VITE_` 환경변수에는 **공개 Client ID(Naver)** 와 anon key 만.
+- ✅ 콘솔 로그에 token / secret / authorization code 미출력(실패 시 `provider + code` 만 기록).
+- ✅ OAuth 콜백 후 URL 토큰 해시 정리(supabase-js) + `/auth/callback` 은 `navigate(replace)`.
+- ✅ NAVER state(nonce+origin) 검증 유지. Supabase "Skip nonce checks" 는 **OFF 유지**.
+
+## 11. 장애 시 로그 확인 위치
+
+- **프론트**: 브라우저 콘솔(`[oauth] <provider> login failed: <code>`), Network 탭의
+  `/auth/v1/authorize`·`/auth/v1/callback`·`/functions/v1/naver-callback` 응답.
+- **Supabase Auth 로그**: Dashboard → **Logs → Auth**.
+- **Edge Function 로그**: Dashboard → **Edge Functions → naver-callback / send-email-code → Logs**.
+- **provider 콘솔**: Google Cloud(OAuth 동의/자격증명), Kakao Developers(카카오 로그인 로그),
+  Naver Developers(로그인 통계/오류).
