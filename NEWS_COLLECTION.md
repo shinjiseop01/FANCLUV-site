@@ -49,23 +49,36 @@ interface NewsAdapter {
 3. **RSS/오픈 API 제공 여부** — 있으면 HTML 파싱보다 **우선 사용**(권장).
 4. 과도 요청 방지(요청 간 지연, User-Agent 명시 `FANCLUV-NewsBot/1.0`).
 
-| 팀 | 소스 URL | robots/ToS | 상태 |
-|---|---|---|---|
-| 서울 | fcseoul.com/media/newsList | ⚠ 미확인 | fallback |
-| 울산(소식/프리뷰) | uhdfc.com/board (news_g/presskits) | ⚠ 미확인 | fallback |
-| 전북 | hyundai-motorsfc.com/media/news | ⚠ 미확인 | fallback |
-| 포항(공지/보도) | steelers.co.kr/board/notice | ⚠ 미확인 | fallback |
-| 대전 | dhcfc.kr/bd/bd_l.php?buid=g_news | ⚠ 미확인 | fallback |
-| 광주 | gwangjufc.com/gwboard | ⚠ 미확인 | fallback |
-| 강원 | gangwon-fc.com/news | ⚠ 미확인 | fallback |
-| 김천상무 | gimcheonfc.com/bd/bd_l.php?buid=news02 | ⚠ 미확인 | fallback |
-| 제주 | jejuskfc.com/board/news/list | ⚠ 미확인 | fallback |
-| 안양 | fc-anyang.com/news | ⚠ 미확인 | fallback |
-| 인천 | incheonutd.com/fanzone/feeds_news.php | ⚠ 미확인(‘feeds’ → RSS 가능성 확인) | fallback |
-| 부천 | bfc1995.com/media/clubNews | ⚠ 미확인 | fallback |
+### 실측 조사 결과 (2026-07-11, 서버측 robots.txt + 페이지 1회 확인)
 
-> ✅ **허용 확인된 소스만** 어댑터를 활성화하고, 나머지는 공식 링크 fallback 을 유지합니다.
-> 인천의 `feeds_news.php` 는 RSS/피드일 수 있으니 우선 확인 대상.
+방법: 각 도메인 `robots.txt`(User-Agent `FANCLUV-NewsBot/1.0`) + 뉴스 목록 페이지 1회 GET
+로 RSS/Atom 링크·content-type·서버렌더 여부만 확인(무단 반복 수집·인증 우회 없음).
+
+| 팀 | 도메인 | robots.txt | RSS/API | 렌더 방식 | 판정 |
+|---|---|---|---|---|---|
+| 서울 | fcseoul.com | 없음(404) | ❌ 없음 | 세션기반(jsessionid), 기사 마크업 불명 | **permission_required** |
+| 울산 | uhdfc.com | 없음(404) | ❌ 없음 | 서버렌더(마크업 불명) | **permission_required** |
+| 전북 | hyundai-motorsfc.com | 없음(HTML) | ❌ 없음 | **JS앱**(id="app", 2.5KB 빈 셸) | **unsupported** |
+| 포항 | steelers.co.kr | 없음(404) | ❌ 없음 | 서버렌더(CodeIgniter) | **permission_required** |
+| 대전 | dhcfc.kr | 없음(404) | ❌ 없음 | 서버렌더(마크업 불명) | **permission_required** |
+| 광주 | gwangjufc.com | ✅ 있음(Disallow `/b_office/` 만) | ❌ 없음 | **서버렌더**(기사 단서 다수) | **technically_available**(ToS 확인 필요) |
+| 강원 | gangwon-fc.com | ✅ 있음(**Disallow `/`**) | ❌ 없음 | — | **blocked**(robots 전면 차단) |
+| 김천 | gimcheonfc.com | 없음(404) | ❌ 없음 | 서버렌더(기사 단서) | **permission_required** |
+| 제주 | jejuskfc.com | 없음(404) | ❌ 없음 | 서버렌더(기사 단서) | **permission_required** |
+| 안양 | fc-anyang.com | 없음(302) | ❌ 없음 | 서버렌더(.asp) | **permission_required** |
+| 인천 | incheonutd.com | 없음(404) | ❌ 없음(‘feeds’지만 HTML) | **JS앱**(빈 셸) | **unsupported** |
+| 부천 | bfc1995.com | 없음(HTML) | ❌ 없음 | **JS앱**(id="app", 1.8KB) | **unsupported** |
+
+**결론(근거 기반)**:
+- **공식 RSS/Atom/API 를 제공하는 구단은 0개** → 자동 syndication 근거로 `approved` 판정할 소스 없음.
+- **강원 = blocked**(robots `Disallow: /`), **전북·인천·부천 = unsupported**(JS 렌더 빈 셸, 단순 HTTP 파싱 불가 — 헤드리스 브라우저는 사용하지 않음).
+- 광주는 robots 상 뉴스 경로 허용 + 서버렌더로 **기술적으론 가능**하나, **뉴스 재게시는 저작권/ToS 사안**이라 명시적 허가 없이 `approved` 로 올리지 않음(`technically_available`).
+- 나머지(서울·울산·포항·대전·김천·제주·안양)는 robots 차단은 없으나 **RSS/API 부재 + ToS 미확인** → `permission_required`.
+
+> ⚠️ **따라서 이번 작업에서 활성화(어댑터 구현)한 뉴스 소스는 0개입니다.** 전 소스 **공식 링크
+> fallback 유지**. 실연동하려면 아래 중 하나가 선행되어야 합니다(외부/법무):
+> 1) 구단이 **공식 RSS/API** 를 제공하거나, 2) 구단으로부터 **콘텐츠 사용(제목·요약·썸네일·링크)
+> 명시적 허가**를 받거나, 3) **정식 라이선스 뉴스 아그리게이터** 계약.
 
 ---
 
