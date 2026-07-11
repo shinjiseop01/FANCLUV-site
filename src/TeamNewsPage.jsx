@@ -10,6 +10,7 @@ import { getTeamNews } from './lib/news/teamNewsProvider.js'
 import { getNewsSource } from './lib/news/newsSources.js'
 import { isEdgeNewsEnabled } from './lib/news/providers/edgeNewsProvider.js'
 import DemoBadge from './components/DemoBadge.jsx'
+import NewsSummaryCard from './components/news/NewsSummaryCard.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import LazyImage from './components/LazyImage.jsx'
@@ -34,6 +35,7 @@ export default function TeamNewsPage() {
   const [error, setError] = useState(false)
   const [category, setCategory] = useState('전체')
   const [sort, setSort] = useState('latest') // 'latest' | 'important'
+  const [openId, setOpenId] = useState(null) // AI 요약이 펼쳐진 뉴스 id (카드 내 확장, 페이지 이동 없음)
 
   // 키워드 칩 클릭 → URL query 로 관련 뉴스만 필터 (다시 누르면 해제)
   const setKeyword = kw => {
@@ -192,14 +194,7 @@ export default function TeamNewsPage() {
                       </div>
                       <h2 className="tn-hero-title">{hero.title}</h2>
                       <p className="tn-hero-summary">{hero.summary}</p>
-                      <div className="tn-reactions">
-                        <span className="ic-txt"><Icon name="comment" size={13} /> 팬 의견 {hero.opinions}개</span>
-                        <span className="ic-txt"><Icon name="chart" size={13} /> 설문 참여 {hero.survey}명</span>
-                      </div>
-                      <div className="tn-cta" onClick={e => e.stopPropagation()}>
-                        <button className="tn-cta-btn primary" onClick={goWrite}>{t('news.ctaWrite')}</button>
-                        <button className="tn-cta-btn secondary" onClick={goSurvey}>{t('news.ctaSurvey')}</button>
-                      </div>
+                      <AiSummarySection item={hero} teamId={team.id} open={openId === hero.id} onToggle={setOpenId} t={t} />
                     </div>
                   </article>
                 )}
@@ -216,14 +211,7 @@ export default function TeamNewsPage() {
                         </div>
                         <h3 className="tn-card-title">{n.title}</h3>
                         <p className="tn-card-summary">{n.summary}</p>
-                        <div className="tn-reactions">
-                          <span className="ic-txt"><Icon name="comment" size={13} /> 팬 의견 {n.opinions}개</span>
-                          <span className="ic-txt"><Icon name="chart" size={13} /> 설문 참여 {n.survey}명</span>
-                        </div>
-                        <div className="tn-cta" onClick={e => e.stopPropagation()}>
-                          <button className="tn-cta-btn primary" onClick={goWrite}>{t('news.ctaWriteShort')}</button>
-                          <button className="tn-cta-btn secondary" onClick={goSurvey}>{t('news.ctaSurveyShort')}</button>
-                        </div>
+                        <AiSummarySection item={n} teamId={team.id} open={openId === n.id} onToggle={setOpenId} t={t} />
                       </div>
                     </article>
                   ))}
@@ -295,6 +283,27 @@ export default function TeamNewsPage() {
           </>
         )}
       </main>
+    </div>
+  )
+}
+
+// 뉴스 카드 하단 — 단일 "AI 뉴스 요약" 버튼 + 카드 내부에서 펼쳐지는 요약(페이지 이동 없음).
+function AiSummarySection({ item, teamId, open, onToggle, t }) {
+  return (
+    <div className="tn-ai-region" onClick={e => e.stopPropagation()}>
+      <button
+        type="button"
+        className={`tn-ai-btn${open ? ' open' : ''}`}
+        aria-expanded={open}
+        onClick={() => onToggle(prev => (prev === item.id ? null : item.id))}
+      >
+        <span className="tn-ai-spark">✨</span> {t('news.aiSummary')}
+      </button>
+      <div className={`tn-ai-expand${open ? ' open' : ''}`}>
+        <div className="tn-ai-expand-inner">
+          <NewsSummaryCard item={item} teamId={teamId} open={open} onClose={() => onToggle(null)} />
+        </div>
+      </div>
     </div>
   )
 }
