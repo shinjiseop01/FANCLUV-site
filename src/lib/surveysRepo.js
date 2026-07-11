@@ -225,19 +225,15 @@ export async function submitResponse(surveyId, teamId, answers) {
   if (isSupabaseConfigured) {
     const me = getCurrentUser()
     if (!me) return { ok: false, error: '로그인이 필요합니다.' }
-    const { data: resp, error } = await supabase.from('survey_responses')
-      .insert({ survey_id: surveyId, user_id: me.id, team_id: teamId }).select('id').single()
+    // 원자적 제출 — response+answers 를 단일 트랜잭션 RPC 로(부분저장/orphan 방지, 0047).
+    const { data, error } = await supabase.rpc('submit_survey_response', {
+      p_survey_id: surveyId, p_team_id: teamId || null, p_answers: answers || {},
+    })
     if (error) {
       if (String(error.message).toLowerCase().includes('duplicate')) return { ok: false, code: 'duplicate' }
       return { ok: false, error: error.message }
     }
-    const rows = Object.entries(answers)
-      .filter(([, v]) => v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0))
-      .map(([question_id, value]) => ({ response_id: resp.id, question_id, value }))
-    if (rows.length) {
-      const { error: aErr } = await supabase.from('survey_answers').insert(rows)
-      if (aErr) return { ok: false, error: aErr.message }
-    }
+    if (!data?.ok) return { ok: false, code: data?.code || 'error' }
     recordActivity('survey')
     recordEvent('survey_join', { entityType: 'survey', entityId: surveyId, teamId })
     return { ok: true }
