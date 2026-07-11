@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { getTeam, teamName } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import Pagination from '../components/Pagination.jsx'
+import { usePagination } from '../lib/usePagination.js'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
 import AdminNoteBox from './AdminNoteBox.jsx'
@@ -76,6 +78,7 @@ export default function AdminOpinions() {
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opinions, query, filter, t])
+  const { paged, page, total, setPage } = usePagination(visible, 20, [query, filter])
 
   function downloadCsv() {
     const cols = [
@@ -146,7 +149,7 @@ export default function AdminOpinions() {
               </tr>
             </thead>
             <tbody>
-              {visible.map(o => {
+              {paged.map(o => {
                 const team = getTeam(o.team)
                 const isOpen = selectedId === o.id
                 return (
@@ -178,6 +181,7 @@ export default function AdminOpinions() {
               })}
             </tbody>
           </table>
+          <Pagination page={page} total={total} onChange={setPage} />
         </div>
       )}
 

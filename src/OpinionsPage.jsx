@@ -9,6 +9,7 @@ import { getHomeContent, refreshHome } from './lib/homeRepo.js'
 import { listSurveys } from './lib/surveysRepo.js'
 import { subscribeChanges } from './lib/realtime.js'
 import EmptyState from './components/EmptyState.jsx'
+import Pagination from './components/Pagination.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import Avatar from './components/Avatar.jsx'
 import Icon from './components/Icon.jsx'
@@ -16,7 +17,7 @@ import { relativeTime } from './lib/relativeTime.js'
 import './ClubHomePage.css'
 import './OpinionsPage.css'
 
-const PAGE_SIZE = 5
+const PAGE_SIZE = 10
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 const CATEGORIES = ['전체', '경기장', '응원문화', '티켓', 'MD', '선수', '구단 운영', '이벤트', '기타']
@@ -111,8 +112,9 @@ export default function OpinionsPage() {
   }
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
-  const paged = visible.slice(0, page * PAGE_SIZE)
-  const hasMore = paged.length < visible.length
+  const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
+  const curPage = Math.min(page, totalPages)
+  const paged = visible.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE)
   const filtersActive = category !== '전체' || query.trim() !== ''
 
   return (
@@ -251,11 +253,7 @@ export default function OpinionsPage() {
                     )
                   })}
                 </div>
-                {hasMore && (
-                  <button className="op-loadmore" onClick={() => setPage(p => p + 1)}>
-                    {t('common.loadMore')}
-                  </button>
-                )}
+                <Pagination page={curPage} total={totalPages} onChange={p => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
               </>
             )}
           </div>

@@ -9,6 +9,8 @@ import DemoBadge from '../components/DemoBadge.jsx'
 import { isMockMode } from '../lib/supabase.js'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import Pagination from '../components/Pagination.jsx'
+import { usePagination } from '../lib/usePagination.js'
 import { LineChart } from '../admin/AdminCharts.jsx'
 import { getClubDashboard, getKpiTrend, getClubReports, getBenchmark } from '../lib/club/clubDashboardRepo.js'
 import { generateReportPdfFromDoc } from '../lib/ai/report/index.js'
@@ -37,6 +39,7 @@ export default function ClubExecutiveDashboard() {
   const [trend, setTrend] = useState([])
   const [period, setPeriod] = useState('3m')
   const [reports, setReports] = useState([])
+  const { paged: pagedReports, page: repPage, total: repTotal, setPage: setRepPage } = usePagination(reports, 10)
   const [benchmark, setBenchmark] = useState(null)
   const [dlBusy, setDlBusy] = useState(null)
 
@@ -196,7 +199,7 @@ export default function ClubExecutiveDashboard() {
                 <h2 className="exec-panel-title"><Icon name="news" size={16} /> {t('exec.reports')}</h2>
                 {reports.length > 0 ? (
                   <ul className="exec-reports">
-                    {reports.map(r => (
+                    {pagedReports.map(r => (
                       <li key={r.id} className="exec-report">
                         <div>
                           <span className="exec-report-title">{r.title}</span>
@@ -209,6 +212,7 @@ export default function ClubExecutiveDashboard() {
                     ))}
                   </ul>
                 ) : <EmptyState iconName="news" title={t('exec.noReports')} message={t('exec.noReportsMsg')} compact />}
+                {reports.length > 0 && <Pagination page={repPage} total={repTotal} onChange={setRepPage} />}
               </section>
 
               {/* Benchmark (요구사항 9) */}

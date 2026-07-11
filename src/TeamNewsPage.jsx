@@ -15,6 +15,7 @@ import { isEdgeNewsEnabled } from './lib/news/providers/edgeNewsProvider.js'
 import DemoBadge from './components/DemoBadge.jsx'
 import NewsSummaryCard from './components/news/NewsSummaryCard.jsx'
 import EmptyState from './components/EmptyState.jsx'
+import Pagination from './components/Pagination.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import LazyImage from './components/LazyImage.jsx'
 import './ClubHomePage.css'
@@ -39,6 +40,10 @@ export default function TeamNewsPage() {
   const [openId, setOpenId] = useState(null) // AI 요약이 펼쳐진 뉴스 id (카드 내 확장, 페이지 이동 없음)
   const [keywords, setKeywords] = useState([]) // 실 의견 기반 키워드
   const [ongoing, setOngoing] = useState(null) // 진행 중(종료 임박) 실제 설문
+  const [newsPage, setNewsPage] = useState(1) // 뉴스 목록 페이지(10개/페이지)
+
+  // 필터/검색/정렬 변경 시 뉴스 페이지 초기화.
+  useEffect(() => { setNewsPage(1) }, [category, keyword, sort])
 
   // 키워드 칩 클릭 → URL query 로 관련 뉴스만 필터 (다시 누르면 해제)
   const setKeyword = kw => {
@@ -113,8 +118,13 @@ export default function TeamNewsPage() {
   const goWrite = () => navigate(`/club/${team.id}/write`)
   const goSurvey = () => navigate(`/club/${team.id}/survey`)
 
-  const hero = list[0]
-  const rest = list.slice(1)
+  // 목록 페이지네이션(10개/페이지). 1페이지는 hero(대형)+나머지 카드, 이후는 카드만.
+  const NEWS_PER = 10
+  const newsTotalPages = Math.max(1, Math.ceil(list.length / NEWS_PER))
+  const newsCur = Math.min(newsPage, newsTotalPages)
+  const pageItems = list.slice((newsCur - 1) * NEWS_PER, newsCur * NEWS_PER)
+  const hero = newsCur === 1 ? pageItems[0] : null
+  const rest = newsCur === 1 ? pageItems.slice(1) : pageItems
 
   return (
     <div className="ch-root" style={themeStyle}>
@@ -234,6 +244,7 @@ export default function TeamNewsPage() {
                     </article>
                   ))}
                 </div>
+                <Pagination page={newsCur} total={newsTotalPages} onChange={p => { setNewsPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
                 </>
                 )}
               </div>

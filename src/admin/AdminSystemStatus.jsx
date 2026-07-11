@@ -3,6 +3,8 @@ import { useLang } from '../contexts/LanguageContext.jsx'
 import Icon from '../components/Icon.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import Pagination from '../components/Pagination.jsx'
+import { usePagination } from '../lib/usePagination.js'
 import {
   SERVICES, listServices, listLogs, testService, testAll, FAILURE_THRESHOLD,
 } from '../lib/admin/integrationHealthRepo.js'
@@ -34,6 +36,7 @@ export default function AdminSystemStatus() {
   const { t } = useLang()
   const [rows, setRows] = useState([])
   const [logs, setLogs] = useState([])
+  const { paged, page, total, setPage } = usePagination(logs, 20)
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState(null)   // key or 'all'
   const [results, setResults] = useState({})      // key -> { ok, ms, error }
@@ -133,7 +136,7 @@ export default function AdminSystemStatus() {
                     </tr>
                   </thead>
                   <tbody>
-                    {logs.map(l => {
+                    {paged.map(l => {
                       const st = STATUS[l.status] || STATUS.unknown
                       return (
                         <tr key={l.id}>
@@ -146,6 +149,7 @@ export default function AdminSystemStatus() {
                     })}
                   </tbody>
                 </table>
+                <Pagination page={page} total={total} onChange={setPage} />
               </div>
             )}
           </section>

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { TEAMS, getTeam, teamName as tName } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import Pagination from '../components/Pagination.jsx'
+import { usePagination } from '../lib/usePagination.js'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
 import AdminNoteBox from './AdminNoteBox.jsx'
@@ -20,6 +22,7 @@ export default function AdminCustomers() {
   const { t, lang } = useLang()
   const navigate = useNavigate()
   const [customers, setCustomers] = useState([])
+  const { paged, page, total, setPage } = usePagination(customers, 20)
   const [lastReportMap, setLastReportMap] = useState({})
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
@@ -174,7 +177,7 @@ export default function AdminCustomers() {
               </tr>
             </thead>
             <tbody>
-              {customers.map(c => (
+              {paged.map(c => (
                 <tr key={c.id} className={edit?.id === c.id ? 'is-selected' : ''}>
                   <td className="adm-cell-strong">{c.clubName || teamName(c.teamId)}</td>
                   <td className="adm-cell-muted">{c.contactName || '-'}</td>
@@ -193,6 +196,7 @@ export default function AdminCustomers() {
               ))}
             </tbody>
           </table>
+          <Pagination page={page} total={total} onChange={setPage} />
         </div>
       )}
 

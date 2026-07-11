@@ -3,6 +3,8 @@ import { useLang } from '../contexts/LanguageContext.jsx'
 import { getTeam, teamName } from '../teams.jsx'
 import Avatar from '../components/Avatar.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import Pagination from '../components/Pagination.jsx'
+import { usePagination } from '../lib/usePagination.js'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
 import AdminNoteBox from './AdminNoteBox.jsx'
@@ -71,6 +73,7 @@ export default function AdminMembers() {
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [members, query, filter, t])
+  const { paged, page, total, setPage } = usePagination(visible, 20, [query, filter])
 
   function toggleActive(id) {
     const cur = members.find(m => m.id === id)
@@ -162,7 +165,7 @@ export default function AdminMembers() {
               </tr>
             </thead>
             <tbody>
-              {visible.map(m => {
+              {paged.map(m => {
                 const team = getTeam(m.team)
                 const v = vMeta(m.verificationStatus)
                 return (
@@ -201,6 +204,7 @@ export default function AdminMembers() {
               })}
             </tbody>
           </table>
+          <Pagination page={page} total={total} onChange={setPage} />
         </div>
       )}
 

@@ -7,6 +7,7 @@ import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getMyActivity } from './lib/myActivityRepo.js'
 import Avatar from './components/Avatar.jsx'
 import EmptyState from './components/EmptyState.jsx'
+import Pagination from './components/Pagination.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import RankIcon from './components/RankIcon.jsx'
 import Icon from './components/Icon.jsx'
@@ -187,7 +188,7 @@ export default function MyActivityPage() {
                   </li>
                 ))}
               </ul>
-              <Pager page={opCur} total={opPages} onChange={setOpPage} />
+              <Pagination page={opCur} total={opPages} onChange={setOpPage} />
               </>
               )}
             </section>
@@ -213,7 +214,7 @@ export default function MyActivityPage() {
                   </li>
                 ))}
               </ul>
-              <Pager page={svCur} total={svPages} onChange={setSvPage} />
+              <Pagination page={svCur} total={svPages} onChange={setSvPage} />
               </>
               )}
             </section>
@@ -299,17 +300,3 @@ function StatCard({ label, value, icon }) {
   )
 }
 
-// 페이지 번호 pager (5개/페이지). total<=1 이면 렌더 안 함.
-function Pager({ page, total, onChange }) {
-  if (total <= 1) return null
-  const pages = Array.from({ length: total }, (_, i) => i + 1)
-  return (
-    <nav className="ma-pager" aria-label="페이지">
-      <button className="ma-pager-arrow" disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label="이전">‹</button>
-      {pages.map(p => (
-        <button key={p} className={`ma-pager-num${p === page ? ' on' : ''}`} aria-current={p === page ? 'page' : undefined} onClick={() => onChange(p)}>{p}</button>
-      ))}
-      <button className="ma-pager-arrow" disabled={page >= total} onClick={() => onChange(page + 1)} aria-label="다음">›</button>
-    </nav>
-  )
-}

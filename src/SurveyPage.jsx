@@ -6,11 +6,13 @@ import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { listSurveys } from './lib/surveysRepo.js'
 import EmptyState from './components/EmptyState.jsx'
+import Pagination from './components/Pagination.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import './ClubHomePage.css'
 import './SurveyPage.css'
 
 const STATUS_FILTERS = ['all', 'open', 'closed']
+const SURVEY_PER = 10
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
@@ -24,6 +26,8 @@ export default function SurveyPage() {
   const [surveys, setSurveys] = useState([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
+  const [page, setPage] = useState(1)
+  useEffect(() => { setPage(1) }, [statusFilter])
 
   // 구단 설문 로드 (Supabase 우선, 아니면 Mock — surveysRepo)
   useEffect(() => {
@@ -62,6 +66,9 @@ export default function SurveyPage() {
     .filter(s => (statusFilter === 'all' ? true
       : statusFilter === 'open' ? s.status === 'published'
       : s.status === 'closed'))
+  const svTotalPages = Math.max(1, Math.ceil(visibleSurveys.length / SURVEY_PER))
+  const svCur = Math.min(page, svTotalPages)
+  const pagedSurveys = visibleSurveys.slice((svCur - 1) * SURVEY_PER, svCur * SURVEY_PER)
 
   return (
     <div className="ch-root" style={themeStyle}>
@@ -122,8 +129,8 @@ export default function SurveyPage() {
             message={t('empty.surveysMsg')}
           />
         ) : (
-          <div className="sv-grid">
-            {visibleSurveys.map(s => {
+          <><div className="sv-grid">
+            {pagedSurveys.map(s => {
               const open = s.status === 'published'
               const done = s.participated
               const clickable = open && !done
@@ -161,6 +168,8 @@ export default function SurveyPage() {
               )
             })}
           </div>
+          <Pagination page={svCur} total={svTotalPages} onChange={p => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
+          </>
         )}
       </main>
     </div>

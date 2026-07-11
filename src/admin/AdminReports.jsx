@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import Pagination from '../components/Pagination.jsx'
+import { usePagination } from '../lib/usePagination.js'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
 import AdminNoteBox from './AdminNoteBox.jsx'
@@ -51,6 +53,7 @@ export default function AdminReports() {
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reports, filter, query, t])
+  const { paged, page, total, setPage } = usePagination(visible, 20, [filter, query])
 
   const selected = reports.find(r => r.id === selectedId) || null
 
@@ -138,7 +141,7 @@ export default function AdminReports() {
               </tr>
             </thead>
             <tbody>
-              {visible.map(r => (
+              {paged.map(r => (
                 <tr key={r.id} className={r.status !== 'pending' ? 'is-hidden' : ''}>
                   <td className="adm-cell-content">
                     <span className="adm-badge type">{t(`admin.rp.type.${r.targetType}`)}</span>
@@ -159,6 +162,7 @@ export default function AdminReports() {
               ))}
             </tbody>
           </table>
+          <Pagination page={page} total={total} onChange={setPage} />
         </div>
       )}
 

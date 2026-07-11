@@ -3,6 +3,8 @@ import { useLang } from '../contexts/LanguageContext.jsx'
 import { TEAMS, getTeam, teamName as tName } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
+import Pagination from '../components/Pagination.jsx'
+import { usePagination } from '../lib/usePagination.js'
 import Icon from '../components/Icon.jsx'
 import {
   adminListReports, createReport, updateReport,
@@ -36,6 +38,7 @@ const EMPTY_CREATE = { teamId: TEAMS[0].id, periodType: 'monthly', title: '' }
 export default function AdminReportDocs() {
   const { t, lang } = useLang()
   const [reports, setReports] = useState([])
+  const { paged, page, total, setPage } = usePagination(reports, 20)
   const [deliveries, setDeliveries] = useState([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(null)   // 생성 폼 상태 or null
@@ -210,7 +213,7 @@ export default function AdminReportDocs() {
               </tr>
             </thead>
             <tbody>
-              {reports.map(r => (
+              {paged.map(r => (
                 <tr key={r.id} className={edit?.id === r.id ? 'is-selected' : ''}>
                   <td className="adm-cell-strong">{r.title}</td>
                   <td className="adm-cell-muted">{teamName(r.teamId)}</td>
@@ -228,6 +231,7 @@ export default function AdminReportDocs() {
               ))}
             </tbody>
           </table>
+          <Pagination page={page} total={total} onChange={setPage} />
         </div>
       )}
 

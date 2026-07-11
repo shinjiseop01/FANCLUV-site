@@ -8,6 +8,7 @@ import EmptyState from './components/EmptyState.jsx'
 import RankIcon from './components/RankIcon.jsx'
 import Avatar from './components/Avatar.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
+import Pagination from './components/Pagination.jsx'
 import { getRanking, getMyRank } from './lib/rankingRepo.js'
 import { ACTIVITY_POINTS } from './lib/activityScore.js'
 import { subscribeChanges } from './lib/realtime.js'
@@ -58,7 +59,8 @@ export default function FanRankingPage() {
 
   const [scope, setScope] = useState('league') // 'league'(전체) | 'club'(팀별)
   const [criteria, setCriteria] = useState('score')
-  const [expanded, setExpanded] = useState(false)
+  const [rankPage, setRankPage] = useState(1)
+  useEffect(() => { setRankPage(1) }, [scope, criteria])
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState({ source: 'live', rows: [], updatedAt: null })
   const [mine, setMine] = useState({ rank: null, total: 0, score: 0, opinions: 0, comments: 0, surveys: 0, empathy: 0, source: 'live' })
@@ -127,10 +129,12 @@ export default function FanRankingPage() {
   const levelProgress = nextLevel ? Math.min(100, Math.round(((mine.score - myLevel.min) / (nextLevel.min - myLevel.min)) * 100)) : 100
   const percentile = hasRank && mine.total ? Math.max(1, Math.round((mine.rank / mine.total) * 100)) : null
 
+  const RANK_PER = 10
   const top3 = ranking.slice(0, 3)
   const rest = ranking.slice(3)
-  const visibleRest = expanded ? rest : rest.filter(p => p.viewRank <= 20)
-  const canExpand = rest.some(p => p.viewRank > 20)
+  const restTotalPages = Math.max(1, Math.ceil(rest.length / RANK_PER))
+  const restCur = Math.min(rankPage, restTotalPages)
+  const visibleRest = rest.slice((restCur - 1) * RANK_PER, restCur * RANK_PER)
   const isEmpty = !loading && ranking.length === 0
   const isError = data.source === 'error'
 
@@ -298,12 +302,7 @@ export default function FanRankingPage() {
                   </li>
                 ))}
               </ul>
-              {canExpand && (
-                <button type="button" className="fr-more-btn" onClick={() => setExpanded(v => !v)}>
-                  {expanded ? t('rank.showLess') : t('rank.showMore')}
-                  <svg viewBox="0 0 20 20" fill="none" className={`fr-more-ic${expanded ? ' up' : ''}`} aria-hidden="true"><path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </button>
-              )}
+              <Pagination page={restCur} total={restTotalPages} onChange={setRankPage} />
             </section>
             </>
             )}

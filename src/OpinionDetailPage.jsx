@@ -9,6 +9,8 @@ import { getOpinionDetail, listComments, addComment, deleteComment, updateCommen
 import { submitReport } from './lib/reportsRepo.js'
 import ReportModal from './components/ReportModal.jsx'
 import Icon from './components/Icon.jsx'
+import Pagination from './components/Pagination.jsx'
+import { usePagination } from './lib/usePagination.js'
 import AnimatedNumber from './components/AnimatedNumber.jsx'
 import { relativeTime } from './lib/relativeTime.js'
 import './ClubHomePage.css'
@@ -37,6 +39,7 @@ export default function OpinionDetailPage() {
 
   const [detail, setDetail] = useState(null) // { opinion, related }
   const [comments, setComments] = useState([])
+  const { paged: pagedComments, page: cmPage, total: cmTotal, setPage: setCmPage } = usePagination(comments, 10)
   const [draft, setDraft] = useState('')
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
@@ -301,7 +304,7 @@ export default function OpinionDetailPage() {
               <h2 className="od-comments-title">{t('detail.commentTitle')} <span><AnimatedNumber value={comments.length} /></span></h2>
 
               <ul className="od-comment-list">
-                {comments.map((c, i) => (
+                {pagedComments.map((c, i) => (
                   <li key={c.id || i} className="od-comment">
                     <span className="od-avatar sm" aria-hidden="true">{c.author[0]}</span>
                     <div className="od-comment-body">
@@ -331,6 +334,7 @@ export default function OpinionDetailPage() {
                   </li>
                 ))}
               </ul>
+              <Pagination page={cmPage} total={cmTotal} onChange={setCmPage} />
 
               {requiresIdentityVerification() ? (
                 <IdentityNotice />

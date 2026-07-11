@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import Pagination from '../components/Pagination.jsx'
+import { usePagination } from '../lib/usePagination.js'
 import Icon from '../components/Icon.jsx'
 import { adminListSurveys, setSurveyStatus, deleteSurvey } from '../lib/surveysRepo.js'
 
@@ -15,6 +17,7 @@ export default function AdminSurveys() {
   const { t } = useLang()
   const navigate = useNavigate()
   const [surveys, setSurveys] = useState([])
+  const { paged, page, total, setPage } = usePagination(surveys, 20)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState('')
 
@@ -70,7 +73,7 @@ export default function AdminSurveys() {
               </tr>
             </thead>
             <tbody>
-              {surveys.map(s => {
+              {paged.map(s => {
                 const sm = STATUS_META[s.status] || STATUS_META.draft
                 return (
                   <tr key={s.id}>
@@ -103,6 +106,7 @@ export default function AdminSurveys() {
               })}
             </tbody>
           </table>
+          <Pagination page={page} total={total} onChange={setPage} />
         </div>
       )}
     </div>

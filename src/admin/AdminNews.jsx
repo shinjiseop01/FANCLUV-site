@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { TEAMS, getTeam, teamName } from '../teams.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import Pagination from '../components/Pagination.jsx'
+import { usePagination } from '../lib/usePagination.js'
 import Icon from '../components/Icon.jsx'
 import { adminListNews, createNews, updateNews, deleteNews } from '../lib/newsRepo.js'
 
@@ -10,6 +12,7 @@ const EMPTY = { title: '', content: '', team: TEAMS[0].id, image: '' }
 export default function AdminNews() {
   const { t, lang } = useLang()
   const [news, setNews] = useState([])
+  const { paged, page, total, setPage } = usePagination(news, 20)
   const [form, setForm] = useState(null)
   const [error, setError] = useState('')
 
@@ -102,7 +105,7 @@ export default function AdminNews() {
               </tr>
             </thead>
             <tbody>
-              {news.map(n => {
+              {paged.map(n => {
                 const team = getTeam(n.team)
                 return (
                   <tr key={n.id}>
@@ -125,6 +128,7 @@ export default function AdminNews() {
               })}
             </tbody>
           </table>
+          <Pagination page={page} total={total} onChange={setPage} />
         </div>
       )}
     </div>

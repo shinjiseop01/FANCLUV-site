@@ -1,0 +1,30 @@
+/* FANCLUV — 공통 페이지네이션. --team/--ink/--canvas/--border/--muted 토큰으로
+   라이트·다크·구단색·관리자(인디고) 자동 대응. */
+.pgn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin-top: 20px; flex-wrap: wrap;
+}
+.pgn-num, .pgn-arrow {
+  min-width: 34px; height: 34px; padding: 0 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: 9px;
+  background: var(--canvas); color: var(--body);
+  font-size: 13.5px; font-weight: 700; font-family: inherit; cursor: pointer;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.pgn-num:hover:not(.on), .pgn-arrow:hover:not(:disabled) {
+  border-color: var(--team); color: var(--team-deep);
+}
+.pgn-num.on {
+  background: var(--team-deep); border-color: var(--team-deep); color: #fff; cursor: default;
+}
+.pgn-arrow { font-size: 18px; line-height: 1; }
+.pgn-arrow:disabled { opacity: .38; cursor: default; }
+.pgn-ellipsis {
+  min-width: 22px; text-align: center; color: var(--muted); font-weight: 700; user-select: none;
+}
+
+@media (max-width: 480px) {
+  .pgn { gap: 4px; }
+  .pgn-num, .pgn-arrow { min-width: 30px; height: 30px; font-size: 12.5px; padding: 0 6px; }
+}
