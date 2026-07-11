@@ -75,15 +75,25 @@ Deno.serve(async (req) => {
   // ── Edge Functions (이 함수가 응답 = alive) ──
   if (want('edge')) services.edge = svc(true, 0, null)
 
-  // ── OpenAI API (키 있으면 models 엔드포인트 경량 확인) ──
+  // ── OpenAI API (키 있으면 models 엔드포인트 경량 확인 — 무료 GET, 카테고리화) ──
+  // "Secret 존재"와 "실제 키 유효"를 구분한다. 키 값은 로그/응답에 절대 노출하지 않는다.
   if (want('openai')) {
-    if (!OPENAI_API_KEY) services.openai = svc(false, 0, 'not_configured', true)
+    if (!OPENAI_API_KEY) services.openai = svc(false, 0, 'unconfigured', true)
     else {
-      const [res, ms, err] = await timed(async () => {
+      const [cat, ms] = await timed(async () => {
         const r = await fetch('https://api.openai.com/v1/models', { headers: { Authorization: `Bearer ${OPENAI_API_KEY}` } })
-        return r.ok
+        if (r.ok) return 'valid'
+        if (r.status === 401) return 'invalid_key'
+        if (r.status === 403) return 'billing_required'
+        if (r.status === 429) {
+          const b = await r.json().catch(() => ({}))
+          return (b?.error?.type === 'insufficient_quota') ? 'quota_exceeded' : 'rate_limited'
+        }
+        return `http_${r.status}`
       })
-      services.openai = svc(res === true, ms, res === true ? null : (err || 'openai_error'))
+      const status = cat || 'network_error'
+      // valid 만 ok. 그 외(invalid_key/quota/billing/rate/network)는 error 로 표기 + 실제 코드 노출.
+      services.openai = { ok: status === 'valid', ms, status: status === 'valid' ? (ms > SLOW_MS ? 'slow' : 'ok') : 'error', error: status === 'valid' ? null : status }
     }
   }
 
