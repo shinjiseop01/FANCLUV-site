@@ -28,8 +28,12 @@ const cors = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
-// 캐시 TTL: 순위 5분 / 경기(일정+결과) 5분 (결과 신선도 우선; 일정 10분 요건 포함).
-const TTL_MIN: Record<string, number> = { standings: 5, fixtures: 5 }
+// 캐시 TTL(분): 순위 30 / 일정 15 / 경기중 1 / 종료 6시간. (요구사항 4)
+const TTL_STANDINGS = 30
+const TTL_FIXTURES = 15
+const TTL_LIVE = 1
+const TTL_FINISHED = 360
+const TTL_CONFIG = 12 * 60   // league_id/season/팀맵 해석 결과 캐시(12시간)
 const FETCH_TIMEOUT_MS = 8000
 
 // ── FANCLUV clubId ↔ 팀명 매핑 (외부 API 팀명을 내부 clubId 로 변환) ──
@@ -68,8 +72,14 @@ async function fetchJson(url: string, headers: Record<string, string>) {
 }
 
 // ── 표준 순위 행 (요구사항 4) ──
+// API-FOOTBALL v3: response[0].league.standings = [[ row, ... ]] (그룹 배열). 이를 펼친다.
+function unwrapStandings(raw: any): any[] {
+  const afGroups = raw?.response?.[0]?.league?.standings
+  if (Array.isArray(afGroups)) return afGroups.flat()
+  return raw?.standings || raw?.response || raw?.data || raw?.table || (Array.isArray(raw) ? raw : [])
+}
 function normalizeStandings(raw: any) {
-  const rows = raw?.standings || raw?.response || raw?.data || raw?.table || raw || []
+  const rows = unwrapStandings(raw)
   return (Array.isArray(rows) ? rows : []).map((r: any, i: number) => {
     const teamName = r.teamName || r.team?.name || r.name || r.club?.name || ''
     const gf = num(r.goalsFor ?? r.gf ?? r.scored ?? r.all?.goals?.for)
@@ -129,6 +139,45 @@ function numOrNull(v: any) { if (v === null || v === undefined || v === '') retu
 function fmtDate(v: any) { if (!v) return ''; const d = new Date(v); if (isNaN(d.getTime())) return String(v); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}` }
 function timeOf(v: any) { if (!v) return ''; const d = new Date(v); if (isNaN(d.getTime())) return ''; return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
 
+// ── K리그1 league_id·season·팀맵 자동 해석(하드코딩 금지, 12h 캐시) ──
+//   API-FOOTBALL: /leagues?country=South Korea → "K League 1" 선택 → 현재 시즌 →
+//   /teams?league&season 로 팀명→clubId 매핑. 결과를 league_cache('league:config')에 저장.
+function pickKLeague(list: any[]): any | null {
+  const leagues = (list || []).map((e: any) => ({
+    id: e?.league?.id, name: String(e?.league?.name || ''), type: e?.league?.type,
+    seasons: e?.seasons || [],
+  }))
+  // 정확히 "K League 1" 우선, 없으면 이름에 'league 1' 포함(2부 K League 2 제외).
+  return leagues.find(l => /k\s*league\s*1/i.test(l.name))
+    || leagues.find(l => /league\s*1/i.test(l.name) && !/league\s*2/i.test(l.name))
+    || null
+}
+async function resolveConfig(admin: any, base: string, headers: Record<string, string>) {
+  const { data: cached } = await admin.from('league_cache').select('*').eq('cache_key', 'league:config').maybeSingle()
+  if (cached?.data?.leagueId && Date.now() - new Date(cached.fetched_at).getTime() < TTL_CONFIG * 60000) {
+    return cached.data
+  }
+  const raw = await fetchJson(`${base}/leagues?country=South%20Korea`, headers)
+  const league = pickKLeague(Array.isArray(raw?.response) ? raw.response : [])
+  if (!league?.id) throw new Error('kleague1_not_found')
+  const seasons = league.seasons || []
+  const cur = seasons.find((s: any) => s.current) || seasons[seasons.length - 1] || {}
+  const season = cur.year
+  const coverage = cur.coverage || {}
+  // 팀맵: /teams?league&season → 팀명 → clubId
+  const teamMap: Record<string, number> = {}
+  try {
+    const tRaw = await fetchJson(`${base}/teams?league=${league.id}&season=${season}`, headers)
+    for (const e of (Array.isArray(tRaw?.response) ? tRaw.response : [])) {
+      const id = e?.team?.id; const name = e?.team?.name
+      if (id && name) { const club = toClubId(name, String(id)); teamMap[club] = id }
+    }
+  } catch { /* 팀맵 없으면 팀별 조회는 스킵 */ }
+  const config = { leagueId: league.id, leagueName: league.name, season, coverage, teamMap, resolvedAt: new Date().toISOString() }
+  await admin.from('league_cache').upsert({ cache_key: 'league:config', data: config, fetched_at: new Date().toISOString() })
+  return config
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
 
@@ -166,10 +215,17 @@ Deno.serve(async (req) => {
           coverage: { standings: s?.coverage?.standings, fixtures: s?.coverage?.fixtures, players: s?.coverage?.players },
         })),
       }))
+      // 자동 선택: K리그1 league_id + 현재 시즌 + coverage (하드코딩 아님).
+      const picked = pickKLeague(list)
+      let resolved = null
+      if (picked?.id) {
+        const cur = (picked.seasons || []).find((s: any) => s.current) || (picked.seasons || []).slice(-1)[0] || {}
+        resolved = { leagueId: picked.id, leagueName: picked.name, season: cur.year, current: !!cur.current, coverage: cur.coverage || {} }
+      }
       // 계정 quota 도 함께.
       let quota = null
       try { const st = await fetchJson(`${AF_BASE}/status`, afHeaders); quota = st?.response ?? null } catch { /* noop */ }
-      return json({ ok: true, provider: 'api-football', country: 'South Korea', leagues, quota, fetchedAt: new Date().toISOString() })
+      return json({ ok: true, provider: 'api-football', country: 'South Korea', leagues, resolved, quota, fetchedAt: new Date().toISOString() })
     } catch (e) {
       return json({ ok: false, code: 'discover_failed', message: String(e).slice(0, 200) })
     }
@@ -186,54 +242,91 @@ Deno.serve(async (req) => {
     }
   }
 
-  const resource = String(body.resource || 'standings')
-  const teamId = body.teamId ? String(body.teamId) : ''
-  if (!['standings', 'fixtures'].includes(resource)) return json({ ok: false, error: 'bad_resource' })
+  const resource = String(body.resource || 'standings')       // standings | fixtures | results | match
+  const teamId = body.teamId ? String(body.teamId) : ''       // FANCLUV clubId
+  const matchId = body.matchId ? String(body.matchId) : ''
+  const force = !!body.force                                   // 강제 동기화(캐시 무시)
+  if (!['standings', 'fixtures', 'results', 'match'].includes(resource)) return json({ ok: false, error: 'bad_resource' })
 
-  const cacheKey = resource === 'fixtures' ? `fixtures:${teamId || 'all'}` : 'standings'
-  const ttlMin = TTL_MIN[resource] || 5
+  const cacheKey =
+    resource === 'match' ? `match:${matchId}`
+    : resource === 'results' ? `results:${teamId || 'all'}`
+    : resource === 'fixtures' ? `fixtures:${teamId || 'all'}`
+    : 'standings'
 
-  // 1) 캐시 확인
+  // 1) 캐시 확인(강제 동기화면 스킵). TTL 은 resource/내용(경기중)에 따라 아래에서 판정.
   const { data: cached } = await admin.from('league_cache').select('*').eq('cache_key', cacheKey).maybeSingle()
-  if (cached && Date.now() - new Date(cached.fetched_at).getTime() < ttlMin * 60000) {
+  const cacheAgeMs = cached ? Date.now() - new Date(cached.fetched_at).getTime() : Infinity
+  const cachedTtlMin = cached?.data?._ttlMin || (resource === 'standings' ? TTL_STANDINGS : TTL_FIXTURES)
+  if (!force && cached && cacheAgeMs < cachedTtlMin * 60000) {
     return json({ ok: true, resource, source: 'cache', cachedAt: cached.fetched_at, ...(cached.data || {}) })
   }
 
-  // API 미설정 → 클라이언트가 Mock 으로 폴백하도록 알림.
-  if (!API_BASE) {
+  // API 미설정 → Mock 금지: 마지막 캐시(stale) 또는 not_configured(클라이언트가 EmptyState).
+  if (!API_BASE || !API_KEY) {
     if (cached?.data) return json({ ok: true, resource, source: 'stale', cachedAt: cached.fetched_at, ...cached.data })
     return json({ ok: false, code: 'not_configured', resource })
   }
 
-  const headers: Record<string, string> = { Accept: 'application/json' }
-  if (API_KEY) { headers.Authorization = `Bearer ${API_KEY}`; headers['X-API-Key'] = API_KEY; headers['x-apisports-key'] = API_KEY }
+  const headers = IS_AF ? afHeaders : (() => {
+    const h: Record<string, string> = { Accept: 'application/json' }
+    if (API_KEY) { h.Authorization = `Bearer ${API_KEY}`; h['X-API-Key'] = API_KEY; h['x-apisports-key'] = API_KEY }
+    return h
+  })()
 
   // 2) 실제 API 호출 + 정규화
   try {
-    let payload: Record<string, unknown>
-    if (resource === 'standings') {
-      const raw = await fetchJson(`${API_BASE}/standings`, headers)
-      payload = { standings: normalizeStandings(raw) }
+    let payload: Record<string, unknown> = {}
+    let ttlMin = resource === 'standings' ? TTL_STANDINGS : TTL_FIXTURES
+
+    if (IS_AF) {
+      // ── API-FOOTBALL 경로: league_id/season/팀맵 자동 해석 후 파라미터로 조회 ──
+      const cfg = await resolveConfig(admin, AF_BASE, afHeaders)
+      const L = `league=${cfg.leagueId}&season=${cfg.season}`
+      if (resource === 'match') {
+        if (!matchId) return json({ ok: false, code: 'no_match_id' })
+        const raw = await fetchJson(`${AF_BASE}/fixtures?id=${encodeURIComponent(matchId)}`, afHeaders)
+        const m = normalizeFixtures(raw)[0] || null
+        payload = { match: m }
+        ttlMin = m?.status === 'finished' ? TTL_FINISHED : (m?.status === 'live' ? TTL_LIVE : TTL_FIXTURES)
+      } else if (resource === 'standings') {
+        const raw = await fetchJson(`${AF_BASE}/standings?${L}`, afHeaders)
+        payload = { standings: normalizeStandings(raw) }
+        ttlMin = TTL_STANDINGS
+      } else {
+        // fixtures(전체 일정) / results(종료 경기). 특정 팀이면 팀맵으로 team= 추가.
+        const apiTeam = teamId ? cfg.teamMap?.[teamId] : null
+        const teamQ = apiTeam ? `&team=${apiTeam}` : ''
+        const statusQ = resource === 'results' ? '&status=FT-AET-PEN' : ''
+        const raw = await fetchJson(`${AF_BASE}/fixtures?${L}${teamQ}${statusQ}`, afHeaders)
+        const list = normalizeFixtures(raw)
+        payload = { fixtures: list }
+        const hasLive = list.some((m: any) => m.status === 'live')
+        ttlMin = resource === 'results' ? TTL_FINISHED : (hasLive ? TTL_LIVE : TTL_FIXTURES)
+      }
     } else {
-      const path = teamId ? `${API_BASE}/fixtures?team=${encodeURIComponent(teamId)}` : `${API_BASE}/fixtures`
-      const raw = await fetchJson(path, headers)
-      payload = { fixtures: normalizeFixtures(raw) }
+      // ── 제네릭 벤더(LEAGUE_API_BASE) 경로 — 기존 호환 ──
+      if (resource === 'standings') {
+        payload = { standings: normalizeStandings(await fetchJson(`${API_BASE}/standings`, headers)) }
+      } else {
+        const path = teamId ? `${API_BASE}/fixtures?team=${encodeURIComponent(teamId)}` : `${API_BASE}/fixtures`
+        payload = { fixtures: normalizeFixtures(await fetchJson(path, headers)) }
+      }
     }
 
-    const hasData =
-      (resource === 'standings' && Array.isArray(payload.standings) && (payload.standings as unknown[]).length) ||
-      (resource === 'fixtures' && Array.isArray(payload.fixtures) && (payload.fixtures as unknown[]).length)
+    const arr = (payload.standings || payload.fixtures) as unknown[] | undefined
+    const hasData = resource === 'match' ? !!payload.match : Array.isArray(arr) && arr.length > 0
 
     if (hasData) {
       const now = new Date().toISOString()
-      await admin.from('league_cache').upsert({ cache_key: cacheKey, data: payload, fetched_at: now })
+      await admin.from('league_cache').upsert({ cache_key: cacheKey, data: { ...payload, _ttlMin: ttlMin }, fetched_at: now })
       return json({ ok: true, resource, source: 'api', cachedAt: now, ...payload })
     }
-    // 빈 응답 → 마지막 캐시(stale) → 없으면 empty(클라이언트 Mock 폴백)
+    // 빈 응답 → 마지막 캐시(stale) → 없으면 empty. (Mock 금지)
     if (cached?.data) return json({ ok: true, resource, source: 'stale', cachedAt: cached.fetched_at, ...cached.data })
     return json({ ok: false, code: 'empty', resource })
-  } catch (_e) {
+  } catch (e) {
     if (cached?.data) return json({ ok: true, resource, source: 'stale', cachedAt: cached.fetched_at, ...cached.data })
-    return json({ ok: false, code: 'error', resource })
+    return json({ ok: false, code: 'error', resource, message: String(e).slice(0, 160) })
   }
 })

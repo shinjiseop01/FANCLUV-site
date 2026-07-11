@@ -9,13 +9,30 @@
 > standings/fixtures)을 수행할 수 없습니다.** 리그/팀 ID 를 추측·하드코딩하지 않는 원칙에
 > 따라 **데이터 연결·UI 변경은 하지 않았고**, 경기센터는 "연결 준비 중"을 유지합니다.
 
-**이번 턴에 완료한 것 (키 없이도 배포·검증됨)**
-- `league-fetcher` 에 **`discover` / `status` action 추가·배포**.
-  - `discover`: API-FOOTBALL `/leagues?country=South Korea` 로 **실제 리그·시즌·coverage**
-    를 조회(하드코딩 없음). `status`: 계정 플랜/quota.
-  - 키 미설정 시 `{ ok:false, code:'unconfigured' }` 반환(라이브 검증 완료).
-- 표준 시크릿 이름 **`API_FOOTBALL_KEY`** 로 통일(`LEAGUE_API_KEY` 는 하위호환 fallback).
-  API-FOOTBALL 이면 base(`https://v3.football.api-sports.io`)·헤더(`x-apisports-key`) 자동.
+**이번 턴에 완료한 것 (키 없이도 배포·컴파일·라이브 검증됨)**
+- `league-fetcher` 를 **실제 운영 수준으로 완성·재배포**(TS 컴파일 통과 = 배포 성공):
+  - **league_id·season 자동 해석**: `resolveConfig()` 가 `/leagues?country=South Korea`
+    에서 "K League 1"(pickKLeague, 2부 제외) + **현재 시즌**(`seasons[].current`) 을 고르고,
+    `/teams?league&season` 으로 **팀명→FANCLUV clubId 매핑 테이블**을 만들어 12h 캐시.
+    → standings/fixtures 호출이 **`?league=<id>&season=<year>`** 를 반드시 붙인다(이전엔 누락되어
+    실제로는 동작 불가였음 — 핵심 버그 수정).
+  - **resource 확장**: `standings` / `fixtures`(전체·팀별) / **`results`(종료경기 status=FT-AET-PEN)** /
+    **`match`(단일 경기 상세 `?id=`)**. `discover`/`status`/`health` 유지.
+  - **API-FOOTBALL 응답 언랩**: 순위는 `response[0].league.standings`(그룹 배열) 를 flatten.
+  - **캐시 TTL(요구사항 4)**: 순위 30분 / 일정 15분 / **경기중 1분**(응답에 live 있으면) / 종료 6시간.
+    `force:true` 로 강제 동기화(캐시 무시). 결과는 `league_cache` 에 `_ttlMin` 과 함께 저장.
+  - **오류 시 Mock 금지**: 실패/빈 응답 → 마지막 캐시(stale) → 없으면 `not_configured`/`empty`
+    (클라이언트가 EmptyState). 가짜 데이터 생성 없음.
+- `discover` 응답에 **자동 선택 결과**(`resolved:{leagueId,season,current,coverage}`) 포함.
+- 표준 시크릿 이름 **`API_FOOTBALL_KEY`**(`LEAGUE_API_KEY` 하위호환). AF면 base·헤더 자동.
+- 프론트(edgeLeagueProvider/matchRepo) **계약 불변** → 키만 설정되면 경기센터/팬홈/순위/일정/
+  결과/Executive 가 **프론트 코드 변경 없이** 실데이터로 전환된다.
+
+**아직 못한 것(외부 제한 — 근거 명확)**
+- **API 키 미설정**이라 실제 `league_id`/`season`/`coverage` 값·순위·일정·결과를 **가져올 수 없음**
+  → §1/§2/§9(공식 데이터 비교) **수행 불가**. 라이브 확인: discover = `{ok:false, code:'unconfigured'}`.
+- **Cron 자동 동기화**: 아래 설정을 준비했으나 **키 설정 전에는 활성화하지 않음**(호출해도
+  `not_configured` 만 반환 → 무의미). 키 설정 후 활성화.
 
 **사용자(외부 설정) — 순서대로 실행**
 1. https://www.api-football.com (API-Sports) 계정 생성 → **API Key 발급** + 플랜/약관 확인.
@@ -167,3 +184,39 @@ FANCLUV 내부 `team_id`(src/teams.jsx)는 아래와 같다. 공급자별 팀 ID
 - `supabase secrets set LEAGUE_API_KEY=... LEAGUE_PROVIDER=edge` + `league-fetcher` 재배포.
 - 엔터프라이즈/공식 경로는 **영업 문의·라이선스 계약·법무 검토** 선행.
 - 확정 전까지 경기센터는 "준비 중" 유지(코드 변경 없음).
+
+---
+
+## 7. 자동 동기화(Cron) 설정 — §8 (키 설정 후 활성화)
+
+> ⚠️ **API_FOOTBALL_KEY 설정 전에는 활성화하지 말 것**(호출해도 `not_configured` 만 반환).
+> 활성화 순서: 키 등록 → `discover` 로 커버리지 확인 → 아래 Cron 등록.
+
+Supabase(pg_cron + pg_net)로 `league-fetcher` 를 주기 호출한다. SQL Editor(service_role)에서:
+
+```sql
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+
+-- 헬퍼: league-fetcher 를 특정 resource 로 호출(강제 동기화).
+create or replace function public.cron_league_sync(p_resource text, p_team text default null)
+returns void language plpgsql security definer as $$
+begin
+  perform net.http_post(
+    url := 'https://cuuzbddxnzhhlrqmmebz.supabase.co/functions/v1/league-fetcher',
+    headers := jsonb_build_object('Content-Type','application/json'),
+    body := jsonb_build_object('resource', p_resource, 'teamId', p_team, 'force', true)
+  );
+end $$;
+
+-- 순위 30분 / 일정 15분 / 종료경기 6시간. (경기중 1분은 경기일에만 별도 스케줄 권장)
+select cron.schedule('league-standings', '*/30 * * * *', $$select public.cron_league_sync('standings')$$);
+select cron.schedule('league-fixtures',  '*/15 * * * *', $$select public.cron_league_sync('fixtures')$$);
+select cron.schedule('league-results',   '0 */6 * * *',  $$select public.cron_league_sync('results')$$);
+-- 경기중(라이브) 1분: 경기 있는 날/시간대에만 켰다 끄기(상시 1분은 quota 낭비).
+-- select cron.schedule('league-live', '* * * * *', $$select public.cron_league_sync('fixtures')$$);
+```
+
+- TTL(30/15/1/360분)은 edge 캐시가 이미 보장하므로 Cron 은 캐시 워밍 용도(빈 응답 시 stale 유지).
+- quota 소비를 고려해 라이브(1분) 스케줄은 **경기일에만** 켜는 것을 권장.
+- 해제: `select cron.unschedule('league-standings');` 등.
