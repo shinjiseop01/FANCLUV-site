@@ -4,17 +4,19 @@
 // 서버에서 호출해 **FANCLUV 표준 형태**로 정규화하고 league_cache 에 캐시한다.
 // → API Key 를 프론트에 노출하지 않고(CORS 회피), 특정 벤더 응답이 앱에 퍼지지 않게 한다.
 //
-// 요청 body: { resource: 'standings' | 'fixtures', teamId? }
-// 응답: { ok, resource, source: 'cache'|'api'|'stale'|'empty', standings? , fixtures?, cachedAt }
+// 요청 body:
+//   { action:'discover' }                         → 대한민국 리그·시즌·coverage 실조회(리그 ID 확정용)
+//   { action:'status' }                           → 계정 플랜/quota(관리자 표시)
+//   { resource:'standings' } / { resource:'fixtures', teamId? }  → 캐시 우선 순위/경기
+// 응답: { ok, ..., source: 'cache'|'api'|'stale'|'empty' }
 //
-// 벤더 교체: normalize* 함수만 벤더 응답에 맞추면 된다(LEAGUE_API_VENDOR 로 분기 가능).
-//   기본 normalizer 는 흔한 필드명(rank/position, team.name, points 등)을 폭넓게 수용한다.
+// ⚠️ 리그/팀 ID 는 하드코딩하지 않는다. 먼저 action:'discover' 로 실제 API 에서 K리그1
+//    league_id·season·coverage 를 확인(A/B/C 판정)한 뒤에만 sync/ UI 를 연결한다.
 //
-// 배포(경기센터는 로그인 사용자만 접근 → 기본 verify_jwt=true 유지):
-//   supabase functions deploy league-fetcher
-// 시크릿(서버 전용 — 프론트 노출 금지):
-//   supabase secrets set LEAGUE_API_BASE=https://... LEAGUE_API_KEY=... [LEAGUE_API_VENDOR=...]
-//   (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 는 플랫폼 자동 주입)
+// 배포: supabase functions deploy league-fetcher
+// 표준 시크릿(서버 전용 — 프론트 노출 금지):
+//   supabase secrets set API_FOOTBALL_KEY=<KEY> LEAGUE_PROVIDER=api-football
+//   (LEAGUE_API_KEY 는 하위호환 fallback. SUPABASE_URL/SERVICE_ROLE_KEY 는 자동 주입)
 // 마이그레이션: supabase/migrations/0020_league_cache.sql (league_cache 테이블)
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -132,11 +134,58 @@ Deno.serve(async (req) => {
 
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
   const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const API_BASE = Deno.env.get('LEAGUE_API_BASE') || ''
-  const API_KEY = Deno.env.get('LEAGUE_API_KEY') || ''
+  // 표준 시크릿: API_FOOTBALL_KEY (LEAGUE_API_KEY 는 하위호환 fallback).
+  const API_KEY = Deno.env.get('API_FOOTBALL_KEY') || Deno.env.get('LEAGUE_API_KEY') || ''
+  const PROVIDER = String(Deno.env.get('LEAGUE_PROVIDER') || '').toLowerCase()
+  const AF_BASE = 'https://v3.football.api-sports.io' // API-FOOTBALL v3
+  // API-FOOTBALL 이면 base 자동, 아니면 LEAGUE_API_BASE(제네릭 벤더).
+  const IS_AF = PROVIDER === 'api-football' || (!Deno.env.get('LEAGUE_API_BASE') && !!API_KEY)
+  const API_BASE = Deno.env.get('LEAGUE_API_BASE') || (IS_AF ? AF_BASE : '')
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } })
 
   const body = await req.json().catch(() => ({}))
+  const action = String(body.action || '')
+
+  // API-FOOTBALL 전용 헤더.
+  const afHeaders = { 'x-apisports-key': API_KEY, Accept: 'application/json' }
+
+  // ── discover: 실제 API 응답으로 대한민국 리그·시즌·coverage 를 확정한다(하드코딩 금지). ──
+  //   먼저 이 action 으로 K리그1 league_id/season/coverage 를 확인한 뒤에만 sync 를 연결한다.
+  if (action === 'discover') {
+    if (!API_KEY) return json({ ok: false, code: 'unconfigured', message: 'API_FOOTBALL_KEY 미설정' })
+    try {
+      const raw = await fetchJson(`${AF_BASE}/leagues?country=South%20Korea`, afHeaders)
+      const list = Array.isArray(raw?.response) ? raw.response : []
+      const leagues = list.map((e: any) => ({
+        league_id: e?.league?.id,
+        name: e?.league?.name,
+        type: e?.league?.type,
+        country: e?.country?.name,
+        seasons: (e?.seasons || []).map((s: any) => ({
+          year: s.year, current: s.current,
+          coverage: { standings: s?.coverage?.standings, fixtures: s?.coverage?.fixtures, players: s?.coverage?.players },
+        })),
+      }))
+      // 계정 quota 도 함께.
+      let quota = null
+      try { const st = await fetchJson(`${AF_BASE}/status`, afHeaders); quota = st?.response ?? null } catch { /* noop */ }
+      return json({ ok: true, provider: 'api-football', country: 'South Korea', leagues, quota, fetchedAt: new Date().toISOString() })
+    } catch (e) {
+      return json({ ok: false, code: 'discover_failed', message: String(e).slice(0, 200) })
+    }
+  }
+
+  // ── status: 계정 플랜/quota (관리자 표시용). ──
+  if (action === 'status' || action === 'health') {
+    if (!API_KEY) return json({ ok: false, code: 'unconfigured' })
+    try {
+      const st = await fetchJson(`${AF_BASE}/status`, afHeaders)
+      return json({ ok: true, provider: 'api-football', status: st?.response ?? null, fetchedAt: new Date().toISOString() })
+    } catch (e) {
+      return json({ ok: false, code: 'error', message: String(e).slice(0, 200) })
+    }
+  }
+
   const resource = String(body.resource || 'standings')
   const teamId = body.teamId ? String(body.teamId) : ''
   if (!['standings', 'fixtures'].includes(resource)) return json({ ok: false, error: 'bad_resource' })

@@ -1,5 +1,50 @@
 # FANCLUV — K리그 경기 데이터 공급자 조사 · 비교 · 권고안
 
+---
+
+## 🔷 API-FOOTBALL PoC 실행 상태 (2026-07-11)
+
+> **현재: 외부 설정 대기(BLOCKED on API key)**. API-FOOTBALL 키가 Supabase Secret 에
+> 등록되어 있지 않아(`API_FOOTBALL_KEY` 없음) **실제 커버리지 검증(league_id/season/
+> standings/fixtures)을 수행할 수 없습니다.** 리그/팀 ID 를 추측·하드코딩하지 않는 원칙에
+> 따라 **데이터 연결·UI 변경은 하지 않았고**, 경기센터는 "연결 준비 중"을 유지합니다.
+
+**이번 턴에 완료한 것 (키 없이도 배포·검증됨)**
+- `league-fetcher` 에 **`discover` / `status` action 추가·배포**.
+  - `discover`: API-FOOTBALL `/leagues?country=South Korea` 로 **실제 리그·시즌·coverage**
+    를 조회(하드코딩 없음). `status`: 계정 플랜/quota.
+  - 키 미설정 시 `{ ok:false, code:'unconfigured' }` 반환(라이브 검증 완료).
+- 표준 시크릿 이름 **`API_FOOTBALL_KEY`** 로 통일(`LEAGUE_API_KEY` 는 하위호환 fallback).
+  API-FOOTBALL 이면 base(`https://v3.football.api-sports.io`)·헤더(`x-apisports-key`) 자동.
+
+**사용자(외부 설정) — 순서대로 실행**
+1. https://www.api-football.com (API-Sports) 계정 생성 → **API Key 발급** + 플랜/약관 확인.
+2. 키를 **채팅/코드에 쓰지 말고** Supabase Secret 으로 등록(값은 로그 노출 금지):
+   ```bash
+   npx supabase@latest secrets set API_FOOTBALL_KEY=<발급받은_KEY> LEAGUE_PROVIDER=api-football
+   ```
+3. **커버리지 확정(discover)** — 관리자/service_role 로 호출:
+   ```bash
+   curl -s https://cuuzbddxnzhhlrqmmebz.supabase.co/functions/v1/league-fetcher \
+     -H "apikey: <ANON>" -H "Authorization: Bearer <SERVICE_ROLE>" \
+     -H "Content-Type: application/json" -d '{"action":"discover"}'
+   ```
+   → 응답의 `leagues[]` 에서 **K League 1 의 실제 `league_id` 와 `seasons[].current`,
+   `coverage.standings/fixtures`** 를 확인(A/충분·B/부분·C/부적합 판정).
+
+**키 설정·커버리지 확인 후 (다음 단계 — 이번 턴 미구현, 근거 확보 후 진행)**
+- 확정된 league_id/season 으로 standings/fixtures 정규화 어댑터(providers/apiFootball) 완성 +
+  팀 매핑(discover 의 external_team_id ↔ FANCLUV team_id) + league_cache 저장.
+- 커버리지 A/B 이면 MatchCenter·팬 홈 연결(connected/stale/unavailable/empty 상태 UI),
+  DemoBadge 제거. C 이면 연결 중단 + 대안(SportMonks 등) 보고.
+- Cron(순위 30~60분·일정 1~3h·당일 10~15분·결과 종료후·팀 1일1회) 적용.
+
+> ⚠️ 프론트에서 API-FOOTBALL 직접 호출 없음(Edge Function 만). 팬 화면은 캐시만 읽음.
+> 프로덕션 Mock 은 계속 차단(공급자 확정 전 "준비 중").
+
+---
+
+
 > **현재 상태**: 경기센터는 공급자 **미확정** → 프로덕션에서 Mock 미노출, "경기 데이터 공급원
 > 연결 준비 중" + K리그 공식 페이지 CTA(DEV 만 Mock+DemoBadge). 이 문서는 조사·비교·권고이며,
 > **어떤 공급자도 아직 코드에 연결하지 않았습니다**(계약/키 필요).
