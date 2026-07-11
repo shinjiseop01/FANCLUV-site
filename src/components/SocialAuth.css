@@ -73,9 +73,10 @@
 }
 .social-kakao:hover:not(:disabled) { filter: brightness(0.97); }
 
-/* NAVER — brand green */
+/* NAVER — brand green. 흰 텍스트 대비(WCAG AA)를 위해 접근성 대응으로 살짝 진하게
+   (#03C75A 는 흰 글씨 대비 2.25:1 로 미달 → #098040 은 약 5:1 로 AA 통과). */
 .social-naver {
-  background: #03C75A;
+  background: #098040;
   color: #FFFFFF;
 }
 .social-naver:hover:not(:disabled) { filter: brightness(0.96); }
