@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import Icon from '../components/Icon.jsx'
+import Button from '../components/Button.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import Pagination from '../components/Pagination.jsx'
@@ -72,9 +73,10 @@ export default function AdminSystemStatus() {
           <h1 className="adm-h1">{t('admin.sys.title')}</h1>
           <p className="adm-sub">{t('admin.sys.sub')}</p>
         </div>
-        <button className="adm-btn-primary" onClick={onTestAll} disabled={testing === 'all'}>
-          <Icon name="refresh" size={14} /> {testing === 'all' ? t('admin.sys.testingAll') : t('admin.sys.testAll')}
-        </button>
+        <Button variant="primary" size="lg" leftIcon="refresh"
+          loading={testing === 'all'} onClick={onTestAll}>
+          {testing === 'all' ? t('admin.sys.testingAll') : t('admin.sys.testAll')}
+        </Button>
       </header>
 
       {failing.length > 0 && (
@@ -111,9 +113,10 @@ export default function AdminSystemStatus() {
                         : t('admin.sys.testFail', { reason: reasonText(t, res.error) })}
                     </div>
                   )}
-                  <button className="adm-btn-sm sys-test-btn" onClick={() => onTest(row.key)} disabled={testing === row.key}>
-                    <Icon name="link" size={13} /> {testing === row.key ? t('admin.sys.testing') : t('admin.sys.test')}
-                  </button>
+                  <Button variant="secondary" size="sm" className="sys-test-btn" leftIcon="link"
+                    loading={testing === row.key} onClick={() => onTest(row.key)}>
+                    {testing === row.key ? t('admin.sys.testing') : t('admin.sys.test')}
+                  </Button>
                 </div>
               )
             })}

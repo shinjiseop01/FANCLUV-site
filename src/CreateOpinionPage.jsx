@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
+import Icon from './components/Icon.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import IdentityNotice from './components/IdentityNotice.jsx'
 import { logout, getCurrentUser, requiresIdentityVerification } from './lib/auth.js'
@@ -179,7 +180,7 @@ export default function CreateOpinionPage() {
               </div>
               {/* 사진 첨부는 실제 업로드 연동(Storage) 후 제공 예정 — 베타에서는 노출하지 않음 */}
 
-              {error && <div className="cw-error" role="alert">⚠ {error}</div>}
+              {error && <div className="cw-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>}
 
               <button type="submit" className="cw-submit">{isEdit ? t('create.editSubmit') : t('create.submit')}</button>
             </form>

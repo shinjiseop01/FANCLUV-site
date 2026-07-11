@@ -1,0 +1,99 @@
+/* FANCLUV — 공용 Button. 모든 값은 디자인 토큰 참조(하드코딩 hex 금지). */
+.fc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: var(--btn-height-md);
+  padding: 0 var(--btn-padding-x-md);
+  border: 1px solid transparent;
+  border-radius: var(--btn-radius);
+  font: inherit;
+  font-weight: var(--btn-font-weight);
+  font-size: 14px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--btn-transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.fc-btn:disabled,
+.fc-btn[aria-disabled='true'] {
+  opacity: var(--btn-disabled-opacity);
+  cursor: not-allowed;
+}
+.fc-btn:not(:disabled):active { transform: translateY(1px); }
+.fc-btn:focus-visible {
+  outline: 2px solid var(--team, var(--info));
+  outline-offset: 2px;
+}
+.fc-btn-full { width: 100%; }
+.fc-btn-label { display: inline-block; }
+.fc-btn-ico, .fc-btn-spin { flex: 0 0 auto; }
+
+/* ── Sizes ── (모바일 터치 영역: md/lg 는 40/48px, sm 은 32px) ── */
+.fc-btn-sm { height: var(--btn-height-sm); padding: 0 var(--btn-padding-x-sm); font-size: 13px; border-radius: calc(var(--btn-radius) - 2px); }
+.fc-btn-md { height: var(--btn-height-md); padding: 0 var(--btn-padding-x-md); }
+.fc-btn-lg { height: var(--btn-height-lg); padding: 0 var(--btn-padding-x-lg); font-size: 15px; }
+.fc-btn-icon {
+  height: var(--btn-height-md);
+  width: var(--btn-height-md);
+  padding: 0;
+  border-radius: var(--btn-radius);
+}
+.fc-btn-icon.fc-btn-sm { height: var(--btn-height-sm); width: var(--btn-height-sm); }
+.fc-btn-icon.fc-btn-lg { height: var(--btn-height-lg); width: var(--btn-height-lg); }
+
+/* ── Variants ── 색상은 의미/브랜드 토큰 재사용 ── */
+/* primary = 팀/브랜드색 */
+.fc-btn-primary {
+  background: var(--team-deep, var(--info));
+  color: #fff;
+  box-shadow: var(--btn-shadow);
+}
+.fc-btn-primary:not(:disabled):hover { filter: brightness(1.06); }
+
+/* secondary = 중립 채움 */
+.fc-btn-secondary {
+  background: var(--page-bg);
+  color: var(--ink);
+  border-color: var(--border);
+}
+.fc-btn-secondary:not(:disabled):hover { background: var(--border-soft); }
+
+/* danger = 위험(삭제) */
+.fc-btn-danger { background: var(--danger); color: #fff; box-shadow: var(--btn-shadow); }
+.fc-btn-danger:not(:disabled):hover { filter: brightness(1.06); }
+
+/* success = 성공(게시/승인) */
+.fc-btn-success { background: var(--success); color: #fff; box-shadow: var(--btn-shadow); }
+.fc-btn-success:not(:disabled):hover { filter: brightness(1.06); }
+
+/* outline = 테두리형 */
+.fc-btn-outline {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--border);
+}
+.fc-btn-outline:not(:disabled):hover { border-color: var(--team, var(--info)); color: var(--team, var(--info)); }
+
+/* ghost = 배경 없음 */
+.fc-btn-ghost {
+  background: transparent;
+  color: var(--body);
+}
+.fc-btn-ghost:not(:disabled):hover { background: var(--page-bg); color: var(--ink); }
+
+/* active(토글 on) */
+.fc-btn.is-active { background: var(--team-deep, var(--info)); color: #fff; border-color: transparent; }
+
+/* loading 스피너 회전 */
+.fc-btn-spin { animation: fc-btn-rotate var(--motion-slow) linear infinite; }
+.fc-btn.is-loading { cursor: progress; }
+@keyframes fc-btn-rotate { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-btn { transition: none; }
+  .fc-btn:not(:disabled):active { transform: none; }
+  .fc-btn-spin { animation-duration: 0.9s; } /* 회전은 상태 전달이라 유지하되 느리게 */
+}

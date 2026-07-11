@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getCurrentUser, completeOnboarding, isIdentityVerificationEnabled } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
+import Icon from './components/Icon.jsx'
 import { useNicknameCheck } from './lib/useNicknameCheck.js'
 import NicknameStatus from './components/NicknameStatus.jsx'
 import Avatar from './components/Avatar.jsx'
@@ -96,7 +97,7 @@ export default function OnboardingPage() {
             </div>
           </div>
 
-          {error && <div className="su-error" role="alert">⚠ {error}</div>}
+          {error && <div className="su-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>}
 
           <button type="submit" className="su-btn" disabled={loading || nickCheck.state !== 'available'}>
             {loading ? (

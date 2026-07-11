@@ -139,7 +139,7 @@ export default function SurveyBuilder() {
         </div>
       </header>
 
-      {error && <div className="adm-error" role="alert">⚠ {error}</div>}
+      {error && <div className="adm-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>}
       {locked && <div className="sb-lock-note"><Icon name="alert" size={15} /> {t('admin.sv.lockNote')}</div>}
 
       {preview ? (

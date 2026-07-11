@@ -185,7 +185,7 @@ export default function AdminReportDocs() {
             <label>{t('admin.rpt.fTitle')}</label>
             <input className="adm-input" value={creating.title} onChange={e => setC('title', e.target.value)} placeholder={t('admin.rpt.fTitlePh')} maxLength={100} />
           </div>
-          {createErr && <div className="adm-error" role="alert">⚠ {createErr}</div>}
+          {createErr && <div className="adm-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{createErr}</div>}
           <div className="adm-form-actions">
             <button type="submit" className="adm-btn-primary" disabled={busy}>{t('admin.rpt.createDraft')}</button>
             <button type="button" className="adm-btn-ghost" onClick={() => setCreating(null)}>{t('admin.cancel')}</button>

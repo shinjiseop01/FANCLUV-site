@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { findAccountByHint } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
+import Icon from './components/Icon.jsx'
 import './SignupPage.css'
 import './RecoveryPages.css'
 
@@ -47,7 +48,7 @@ export default function FindIdPage() {
 
         {result ? (
           <div className="rec-result" role="status">
-            <span className="rec-result-icon" aria-hidden="true">✓</span>
+            <span className="rec-result-icon" aria-hidden="true"><Icon name="successCircle" size={26} /></span>
             <p className="rec-result-label">{t('findId.resultLabel')}</p>
             <p className="rec-result-value">{result.maskedEmail}</p>
             <div className="rec-result-actions">
@@ -69,7 +70,7 @@ export default function FindIdPage() {
               />
             </div>
 
-            {error && <div className="su-error" role="alert">⚠ {error}</div>}
+            {error && <div className="su-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>}
 
             <button type="submit" className="su-btn" disabled={loading}>
               {loading ? (

@@ -207,7 +207,7 @@ export default {
   'signup.loginLink': 'Log in',
   'signup.errNickname': 'Please enter a nickname.',
   // Nickname validation (real-time)
-  'nickname.hint': '⚠ Enter at least 2 characters using complete Korean letters, English, or numbers.',
+  'nickname.hint': 'Enter at least 2 characters using complete Korean letters, English, or numbers.',
   'nickname.checking': 'Checking…',
   'nickname.available': 'This nickname is available.',
   'nickname.taken': 'This nickname is already in use.',

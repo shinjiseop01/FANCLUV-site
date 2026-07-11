@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
+import Icon from './components/Icon.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser, changePassword } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
@@ -83,7 +84,7 @@ export default function ChangePasswordPage() {
 
         {done ? (
           <section className="st-card ac-done">
-            <span className="ac-done-icon" aria-hidden="true">✓</span>
+            <span className="ac-done-icon" aria-hidden="true"><Icon name="successCircle" size={26} /></span>
             <h2>{t('pw.doneTitle')}</h2>
             <p>{t('pw.doneDesc')}</p>
             <button className="ac-save-btn" onClick={() => navigate(`/club/${team.id}/settings`)}>{t('pw.backSettings')}</button>
@@ -105,7 +106,7 @@ export default function ChangePasswordPage() {
               <input type="password" className="ac-input" value={confirm}
                 onChange={e => { setConfirm(e.target.value); setError('') }} autoComplete="new-password" />
             </div>
-            {error && <div className="ac-msg error" role="alert">⚠ {error}</div>}
+            {error && <div className="ac-msg error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>}
             <button type="submit" className="ac-save-btn">{t('pw.submit')}</button>
           </form>
         )}

@@ -18,7 +18,49 @@
   --danger-bg:  rgba(220, 38, 38, 0.12);
   --info:       #2563eb;
   --info-bg:    rgba(37, 99, 235, 0.12);
+
+  /* ── Motion tokens (duration + easing). 모든 transition/animation 이 참조. ── */
+  --motion-fast:   120ms;
+  --motion-normal: 180ms;
+  --motion-slow:   260ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+  --ease-enter:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit:     cubic-bezier(0.4, 0, 1, 1);
+
+  /* ── Spacing scale (4px 기반). 신규 컴포넌트/이관 영역에서 사용. ── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --section-gap:  var(--space-6);
+  --card-padding: var(--space-5);
+  --card-gap:     var(--space-4);
+
+  /* ── Button tokens. variant 색상은 의미색 토큰을 재사용. ── */
+  /* 높이는 기존 FANCLUV 버튼 관례에 맞춤(primary ~52 / small ~32)로 시각 회귀 최소화. */
+  --btn-radius:        10px;
+  --btn-height-sm:     32px;
+  --btn-height-md:     42px;
+  --btn-height-lg:     52px;
+  --btn-padding-x-sm:  11px;
+  --btn-padding-x-md:  16px;
+  --btn-padding-x-lg:  18px;
+  --btn-font-weight:   700;
+  --btn-transition:    background-color var(--motion-fast) var(--ease-standard),
+                       border-color var(--motion-fast) var(--ease-standard),
+                       color var(--motion-fast) var(--ease-standard),
+                       transform var(--motion-fast) var(--ease-standard),
+                       box-shadow var(--motion-fast) var(--ease-standard);
+  --btn-shadow:        0 1px 2px rgba(0, 0, 0, 0.06);
+  --btn-disabled-opacity: 0.5;
 }
+
+/* 인라인 상태 아이콘(✓⚠✉ 대체)을 텍스트와 baseline 정렬. */
+.fc-inline-ico { vertical-align: -0.15em; margin-right: 4px; flex: 0 0 auto; }
 
 /* Semantic status tokens — dark mode (brighter tints for dark surfaces). */
 html[data-theme="dark"] {

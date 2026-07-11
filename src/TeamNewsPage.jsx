@@ -189,7 +189,7 @@ export default function TeamNewsPage() {
               <div className="tn-active-filter">
                 <span>{t('news.filteredBy')}</span>
                 <button type="button" className="tn-keyword-chip" onClick={() => setKeyword(keyword)}>
-                  #{keyword} <span aria-hidden="true">✕</span>
+                  #{keyword} <Icon name="close" size={12} />
                 </button>
               </div>
             )}

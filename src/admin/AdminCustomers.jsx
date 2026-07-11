@@ -148,7 +148,7 @@ export default function AdminCustomers() {
             <div className="adm-field"><label>{t('admin.cust.cPhone')}</label>
               <input className="adm-input" value={creating.contactPhone} onChange={e => setC('contactPhone', e.target.value)} placeholder="02-000-0000" /></div>
           </div>
-          {createErr && <div className="adm-error" role="alert">⚠ {createErr}</div>}
+          {createErr && <div className="adm-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{createErr}</div>}
           <div className="adm-form-actions">
             <button type="submit" className="adm-btn-primary" disabled={busy}>{t('admin.cust.create')}</button>
             <button type="button" className="adm-btn-ghost" onClick={() => setCreating(null)}>{t('admin.cancel')}</button>

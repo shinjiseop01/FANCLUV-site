@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
+import Icon from './components/Icon.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import IdentityNotice from './components/IdentityNotice.jsx'
 import QuestionField from './components/survey/QuestionField.jsx'
@@ -177,7 +178,7 @@ export default function SurveyDetailPage() {
               {survey.desc && <p className="sv-desc">{survey.desc}</p>}
             </header>
 
-            {error && <div className="sv-error" role="alert">⚠ {error}</div>}
+            {error && <div className="sv-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>}
 
             <form className="sv-form" onSubmit={handleSubmit}>
               {survey.questions.map((q, i) => (

@@ -4,6 +4,7 @@ import { signup, issueEmailCode, confirmEmailCode, needsOnboarding, requiresIden
 import { isSupabaseConfigured } from './lib/supabase.js'
 import { logger } from './lib/logger.js'
 import { useLang } from './contexts/LanguageContext.jsx'
+import Icon from './components/Icon.jsx'
 import { useNicknameCheck } from './lib/useNicknameCheck.js'
 import NicknameStatus from './components/NicknameStatus.jsx'
 import SocialAuth from './components/SocialAuth.jsx'
@@ -196,7 +197,7 @@ export default function SignupPage() {
             )}
 
             {emailVerified && (
-              <p className="su-verified">✓ {t('signup.emailVerified')}</p>
+              <p className="su-verified"><Icon name="check" size={14} className="fc-inline-ico" />{t('signup.emailVerified')}</p>
             )}
           </div>
 
@@ -253,11 +254,11 @@ export default function SignupPage() {
           </div>
 
           {error && (
-            <div className="su-error" role="alert">⚠ {error}</div>
+            <div className="su-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>
           )}
 
           {confirmSent && (
-            <div className="su-verified" role="status">✓ {t('signup.confirmEmailSent')}</div>
+            <div className="su-verified" role="status"><Icon name="check" size={14} className="fc-inline-ico" />{t('signup.confirmEmailSent')}</div>
           )}
 
           <button type="submit" className="su-btn" disabled={loading || nickCheck.state !== 'available'}>

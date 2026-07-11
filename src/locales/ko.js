@@ -207,7 +207,7 @@ export default {
   'signup.loginLink': '로그인',
   'signup.errNickname': '닉네임을 입력해주세요.',
   // 닉네임 검증(실시간)
-  'nickname.hint': '⚠ 닉네임은 완성된 한글, 영문, 숫자로 2자 이상 입력해 주세요.',
+  'nickname.hint': '닉네임은 완성된 한글, 영문, 숫자로 2자 이상 입력해 주세요.',
   'nickname.checking': '확인 중…',
   'nickname.available': '사용 가능한 닉네임입니다.',
   'nickname.taken': '이미 사용 중인 닉네임입니다.',

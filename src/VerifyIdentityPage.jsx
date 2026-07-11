@@ -11,6 +11,7 @@ import {
 } from './lib/auth.js'
 import { getIdentityProvider, identityProviderId, IDENTITY_AGENCY_LABELS, isIdentityMock } from './lib/identity/identityProvider.js'
 import { useLang } from './contexts/LanguageContext.jsx'
+import Icon from './components/Icon.jsx'
 import './SignupPage.css'
 import './VerifyIdentityPage.css'
 
@@ -88,7 +89,7 @@ export default function VerifyIdentityPage() {
         </p>
         {mock && <p className="vi-mock-note">{t('identity.mockNote')}</p>}
 
-        {error && <div className="su-error" role="alert">⚠ {error}</div>}
+        {error && <div className="su-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>}
 
         <button type="button" className="su-btn" onClick={handleVerify} disabled={loading}>
           {loading ? (

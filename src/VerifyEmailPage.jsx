@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useLang } from './contexts/LanguageContext.jsx'
+import Icon from './components/Icon.jsx'
 import { getCurrentUser, verifyEmail, logout } from './lib/auth.js'
 import './SignupPage.css'
 import './RecoveryPages.css'
@@ -46,7 +47,7 @@ export default function VerifyEmailPage() {
 
         {done ? (
           <div className="rec-result" role="status">
-            <span className="rec-result-icon" aria-hidden="true">✓</span>
+            <span className="rec-result-icon" aria-hidden="true"><Icon name="successCircle" size={26} /></span>
             <p className="rec-result-label">{t('verify.doneLabel')}</p>
             <p className="rec-result-value">{user.email}</p>
             <div className="rec-result-actions">
@@ -56,7 +57,7 @@ export default function VerifyEmailPage() {
         ) : (
           <>
             <div className="signup-header">
-              <span className="ve-badge" aria-hidden="true">✉</span>
+              <span className="ve-badge" aria-hidden="true"><Icon name="mail" size={22} /></span>
               <h1 className="signup-title">{reason === 'login' ? t('verify.needTitle') : t('verify.sentTitle')}</h1>
               <p className="signup-subtitle">{t('verify.toEmail', { email: user.email })}</p>
             </div>

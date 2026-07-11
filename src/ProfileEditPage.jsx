@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
+import Icon from './components/Icon.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser, updateAvatar, changeNickname, nicknameChangeInfo, issueEmailCode, attachEmail } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
@@ -248,8 +249,8 @@ export default function ProfileEditPage() {
           )}
         </section>
 
-        {error && <div className="ac-msg error" role="alert">⚠ {error}</div>}
-        {okMsg && <div className="ac-msg ok" role="status">✓ {okMsg}</div>}
+        {error && <div className="ac-msg error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>}
+        {okMsg && <div className="ac-msg ok" role="status"><Icon name="check" size={14} className="fc-inline-ico" />{okMsg}</div>}
       </main>
 
       {cropSrc && (

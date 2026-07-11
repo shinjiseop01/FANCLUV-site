@@ -82,7 +82,7 @@ export default function AdminNews() {
               <input className="adm-input" value={form.image} onChange={e => set('image', e.target.value)} placeholder="https://..." />
             </div>
           </div>
-          {error && <div className="adm-error" role="alert">⚠ {error}</div>}
+          {error && <div className="adm-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>}
           <div className="adm-form-actions">
             <button type="submit" className="adm-btn-primary">{form.id ? t('admin.save') : t('admin.nw.create')}</button>
             <button type="button" className="adm-btn-ghost" onClick={close}>{t('admin.cancel')}</button>

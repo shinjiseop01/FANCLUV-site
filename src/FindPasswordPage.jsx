@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { requestPasswordReset } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
+import Icon from './components/Icon.jsx'
 import './SignupPage.css'
 import './RecoveryPages.css'
 
@@ -50,7 +51,7 @@ export default function FindPasswordPage() {
 
         {sentTo ? (
           <div className="rec-result" role="status">
-            <span className="rec-result-icon" aria-hidden="true">✉</span>
+            <span className="rec-result-icon" aria-hidden="true"><Icon name="mail" size={26} /></span>
             <p className="rec-result-label">{t('findPw.done')}</p>
             <p className="rec-result-value">{sentTo}</p>
             <p className="rec-result-note">{t('findPw.doneDesc')}</p>
@@ -73,7 +74,7 @@ export default function FindPasswordPage() {
               />
             </div>
 
-            {error && <div className="su-error" role="alert">⚠ {error}</div>}
+            {error && <div className="su-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>}
 
             <button type="submit" className="su-btn" disabled={loading}>
               {loading ? (

@@ -5,6 +5,7 @@ import { postAuthPath } from './lib/authRoute.js'
 import { isSupabaseConfigured, isProdMisconfigured } from './lib/supabase.js'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { useLang } from './contexts/LanguageContext.jsx'
+import Icon from './components/Icon.jsx'
 import SocialAuth from './components/SocialAuth.jsx'
 import './LoginPage.css'
 
@@ -155,7 +156,7 @@ export default function LoginPage() {
 
           {notice && (
             <div className={`auth-alert ${notice.kind}`} role="alert">
-              <span aria-hidden="true">{notice.kind === 'success' ? '✓' : '⚠'}</span> {notice.text}
+              <Icon name={notice.kind === 'success' ? 'successCircle' : 'warningTriangle'} size={14} className="fc-inline-ico" /> {notice.text}
             </div>
           )}
 
@@ -195,7 +196,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="error-msg" role="alert">⚠ {error}</div>
+              <div className="error-msg" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>
             )}
 
             <button type="submit" className="login-btn" disabled={loading}>
