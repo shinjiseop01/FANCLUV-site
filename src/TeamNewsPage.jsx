@@ -7,6 +7,9 @@ import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getClubLinks, CLUB_LINK_CHANNELS } from './clubLinks.js'
 import Icon from './components/Icon.jsx'
 import { getTeamNews } from './lib/news/teamNewsProvider.js'
+import { getHomeContent, refreshHome } from './lib/homeRepo.js'
+import { listSurveys } from './lib/surveysRepo.js'
+import { subscribeChanges } from './lib/realtime.js'
 import { getNewsSource } from './lib/news/newsSources.js'
 import { isEdgeNewsEnabled } from './lib/news/providers/edgeNewsProvider.js'
 import DemoBadge from './components/DemoBadge.jsx'
@@ -19,8 +22,6 @@ import './TeamNewsPage.css'
 
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 const CATEGORIES = ['전체', '구단 공지', '경기', '선수', '인터뷰', '이적', '이벤트']
-
-const KEYWORDS = ['#감독', '#이적', '#티켓', '#MD', '#응원가', '#유니폼', '#주장', '#멤버십']
 
 export default function TeamNewsPage() {
   const NICKNAME = getCurrentUser()?.nickname || '팬'
@@ -36,6 +37,8 @@ export default function TeamNewsPage() {
   const [category, setCategory] = useState('전체')
   const [sort, setSort] = useState('latest') // 'latest' | 'important'
   const [openId, setOpenId] = useState(null) // AI 요약이 펼쳐진 뉴스 id (카드 내 확장, 페이지 이동 없음)
+  const [keywords, setKeywords] = useState([]) // 실 의견 기반 키워드
+  const [ongoing, setOngoing] = useState(null) // 진행 중(종료 임박) 실제 설문
 
   // 키워드 칩 클릭 → URL query 로 관련 뉴스만 필터 (다시 누르면 해제)
   const setKeyword = kw => {
@@ -52,7 +55,19 @@ export default function TeamNewsPage() {
     getTeamNews(team.id)
       .then(l => { if (active) { setNews(l); setLoading(false) } })
       .catch(() => { if (active) { setNews([]); setError(true); setLoading(false) } })
-    return () => { active = false }
+    // 사이드바(키워드·진행 중 설문) 실데이터 + Realtime
+    const loadSide = () => {
+      refreshHome(team.id)
+      getHomeContent(team.id).then(c => { if (active) setKeywords(c.trendingKeywords || []) })
+      listSurveys(team.id).then(list => {
+        if (!active) return
+        const open = (list || []).filter(s => s.status === 'published').sort((a, b) => a.dday - b.dday)
+        setOngoing(open[0] || null)
+      })
+    }
+    loadSide()
+    const unsub = subscribeChanges(['opinions', 'likes', 'comments', 'surveys', 'survey_responses'], loadSide)
+    return () => { active = false; unsub && unsub() }
   }, [teamId, team])
 
   // 뉴스 클릭: 외부(원본 URL 있음)는 새 탭, 관리자/내부 뉴스는 내부 상세로 이동.
@@ -244,17 +259,21 @@ export default function TeamNewsPage() {
 
                 <section className="tn-panel">
                   <h2 className="tn-panel-title">{t('news.keywords')}</h2>
-                  <div className="tn-tags">
-                    {KEYWORDS.map(k => {
-                      const active = k.replace(/^#/, '') === keyword
-                      return (
-                        <button key={k} type="button"
-                          className={`tn-tag${active ? ' on' : ''}`}
-                          aria-pressed={active}
-                          onClick={() => setKeyword(k)}>{k}</button>
-                      )
-                    })}
-                  </div>
+                  {keywords.length === 0 ? (
+                    <p className="op-side-empty">{t('home.topicsEmpty')}</p>
+                  ) : (
+                    <div className="tn-tags">
+                      {keywords.map(k => {
+                        const active = k.tag === keyword
+                        return (
+                          <button key={k.tag} type="button"
+                            className={`tn-tag${active ? ' on' : ''}`}
+                            aria-pressed={active}
+                            onClick={() => setKeyword(k.tag)}>#{k.tag}</button>
+                        )
+                      })}
+                    </div>
+                  )}
                 </section>
 
                 <section className="tn-panel">
@@ -277,9 +296,15 @@ export default function TeamNewsPage() {
 
                 <section className="tn-panel tn-survey-card">
                   <h2 className="tn-panel-title">{t('news.ongoing')}</h2>
-                  <span className="tn-survey-tag">참여 가능 · D-5</span>
-                  <p className="tn-survey-name">2026 시즌 홈 경기장 시설 만족도 조사</p>
-                  <button className="tn-survey-btn" onClick={goSurvey}>{t('news.ctaSurveyShort')}</button>
+                  {ongoing ? (
+                    <>
+                      <span className="tn-survey-tag">{t('survey.statusOpen')}{ongoing.dday != null ? ` · ${ongoing.dday === 0 ? 'D-DAY' : `D-${ongoing.dday}`}` : ''}</span>
+                      <p className="tn-survey-name">{ongoing.title}</p>
+                      <button className="tn-survey-btn" onClick={() => navigate(`/club/${team.id}/survey/${ongoing.id}`)}>{t('news.ctaSurveyShort')}</button>
+                    </>
+                  ) : (
+                    <p className="op-side-empty">{t('home.surveyEmpty')}</p>
+                  )}
                 </section>
               </aside>
             </div>

@@ -296,3 +296,6 @@
   .tn-ai-card { padding: 14px 13px 12px; }
   .tn-ai-feedback { flex-direction: column; }
 }
+
+/* 사이드바 실데이터 Empty State */
+.op-side-empty { font-size: 13px; color: var(--muted); line-height: 1.5; padding: 4px 2px; }

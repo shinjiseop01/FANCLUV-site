@@ -326,3 +326,6 @@
   .op-list-head { flex-direction: column; align-items: flex-start; gap: 10px; }
   .op-stars { margin-left: 0; }
 }
+
+/* 사이드바 실데이터 Empty State */
+.op-side-empty { font-size: 13px; color: var(--muted); line-height: 1.5; padding: 4px 2px; }

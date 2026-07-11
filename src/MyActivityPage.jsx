@@ -48,6 +48,9 @@ export default function MyActivityPage() {
 
   const [data, setData] = useState({ opinions: [], surveys: [], timeline: [], stats: { opinions: 0, comments: 0, surveys: 0, empathy: 0 } })
   const [loading, setLoading] = useState(true)
+  const [opPage, setOpPage] = useState(1)   // 내 의견 페이지(5개/페이지)
+  const [svPage, setSvPage] = useState(1)   // 참여 설문 페이지(5개/페이지)
+  const PER = 5
 
   useEffect(() => {
     if (!team) { setLoading(false); return }
@@ -70,6 +73,14 @@ export default function MyActivityPage() {
   }
 
   const { opinions, surveys, timeline, stats } = data
+  // 페이지네이션(5개/페이지, 최신순) — 데이터 변동 시 페이지 클램프.
+  const opPages = Math.max(1, Math.ceil(opinions.length / PER))
+  const svPages = Math.max(1, Math.ceil(surveys.length / PER))
+  const opCur = Math.min(opPage, opPages)
+  const svCur = Math.min(svPage, svPages)
+  const opView = opinions.slice((opCur - 1) * PER, opCur * PER)
+  const svView = surveys.slice((svCur - 1) * PER, svCur * PER)
+  const recent = timeline.slice(0, 5) // 최근 활동 5개만
   // 활동점수 = 실 DB 통계 기반(의견10·댓글3·설문5·받은공감1) — 로컬 로그 미사용.
   const score = stats.opinions * 10 + stats.comments * 3 + stats.surveys * 5 + stats.empathy
   const { badge, next, progress } = getActivityBadge(score)
@@ -158,8 +169,9 @@ export default function MyActivityPage() {
                   onCta={() => navigate(`/club/${team.id}/write`)}
                 />
               ) : (
+              <>
               <ul className="ma-op-list">
-                {opinions.map(o => (
+                {opView.map(o => (
                   <li key={o.id}>
                     <button className="ma-op" onClick={() => navigate(`/club/${team.id}/opinions/${o.id}`)}>
                       <div className="ma-op-top">
@@ -175,6 +187,8 @@ export default function MyActivityPage() {
                   </li>
                 ))}
               </ul>
+              <Pager page={opCur} total={opPages} onChange={setOpPage} />
+              </>
               )}
             </section>
 
@@ -184,8 +198,9 @@ export default function MyActivityPage() {
               {surveys.length === 0 ? (
                 <EmptyState compact iconName="poll" title={t('act.emptySurveys')} message="" />
               ) : (
+              <>
               <ul className="ma-survey-list">
-                {surveys.map((s, i) => (
+                {svView.map((s, i) => (
                   <li key={s.id || i} className="ma-survey">
                     <div className="ma-survey-info">
                       <p className="ma-survey-title">{s.title}</p>
@@ -198,6 +213,8 @@ export default function MyActivityPage() {
                   </li>
                 ))}
               </ul>
+              <Pager page={svCur} total={svPages} onChange={setSvPage} />
+              </>
               )}
             </section>
           </div>
@@ -229,7 +246,7 @@ export default function MyActivityPage() {
                 <p className="ma-tl-empty">{t('act.emptyTimeline')}</p>
               ) : (
               <ul className="ma-timeline">
-                {timeline.map((ev, i) => {
+                {recent.map((ev, i) => {
                   const meta = EV_META[ev.type] || EV_META.opinion_create
                   return (
                     <li key={i} className="ma-tl-item">
@@ -279,5 +296,20 @@ function StatCard({ label, value, icon }) {
       <span className="ma-stat-value"><AnimatedNumber value={value} /></span>
       <span className="ma-stat-label">{label}</span>
     </div>
+  )
+}
+
+// 페이지 번호 pager (5개/페이지). total<=1 이면 렌더 안 함.
+function Pager({ page, total, onChange }) {
+  if (total <= 1) return null
+  const pages = Array.from({ length: total }, (_, i) => i + 1)
+  return (
+    <nav className="ma-pager" aria-label="페이지">
+      <button className="ma-pager-arrow" disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label="이전">‹</button>
+      {pages.map(p => (
+        <button key={p} className={`ma-pager-num${p === page ? ' on' : ''}`} aria-current={p === page ? 'page' : undefined} onClick={() => onChange(p)}>{p}</button>
+      ))}
+      <button className="ma-pager-arrow" disabled={page >= total} onClick={() => onChange(page + 1)} aria-label="다음">›</button>
+    </nav>
   )
 }

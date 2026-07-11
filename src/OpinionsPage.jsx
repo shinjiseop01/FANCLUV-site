@@ -5,6 +5,9 @@ import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { listOpinions } from './lib/opinionsRepo.js'
+import { getHomeContent, refreshHome } from './lib/homeRepo.js'
+import { listSurveys } from './lib/surveysRepo.js'
+import { subscribeChanges } from './lib/realtime.js'
 import EmptyState from './components/EmptyState.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import Avatar from './components/Avatar.jsx'
@@ -36,6 +39,9 @@ export default function OpinionsPage() {
   const [page, setPage] = useState(1)
   const [opinions, setOpinions] = useState([])
   const [loading, setLoading] = useState(true)
+  // 사이드바 실데이터: 인기 카테고리·키워드(homeRepo) + 진행 중 설문(surveysRepo)
+  const [side, setSide] = useState({ popularCategories: [], trendingKeywords: [], source: 'live' })
+  const [ongoing, setOngoing] = useState(null)
 
   // 홈 등에서 필터 링크로 재진입 시 URL query 변화를 필터에 반영.
   useEffect(() => {
@@ -58,6 +64,24 @@ export default function OpinionsPage() {
       setLoading(false)
     })
     return () => { active = false }
+  }, [teamId, team])
+
+  // 사이드바(인기 카테고리·키워드·진행 중 설문) 실데이터 로드 + Realtime 갱신.
+  useEffect(() => {
+    if (!team) return
+    let active = true
+    const loadSide = () => {
+      refreshHome(team.id) // 캐시 무효화 후 최신 집계
+      getHomeContent(team.id).then(c => { if (active) setSide(c) })
+      listSurveys(team.id).then(list => {
+        if (!active) return
+        const open = (list || []).filter(s => s.status === 'published').sort((a, b) => a.dday - b.dday)
+        setOngoing(open[0] || null)
+      })
+    }
+    loadSide()
+    const unsub = subscribeChanges(['opinions', 'likes', 'comments', 'surveys', 'survey_responses'], loadSide)
+    return () => { active = false; unsub && unsub() }
   }, [teamId, team])
 
   const popularThreshold = useMemo(() => {
@@ -240,37 +264,47 @@ export default function OpinionsPage() {
           <aside className="op-side">
             <section className="op-panel">
               <h2 className="op-panel-title">{t('op.sideOngoing')}</h2>
-              <div className="op-survey">
-                <span className="op-survey-tag">{t('survey.tag')}</span>
-                <p className="op-survey-name">{t('op.surveyName')}</p>
-                <p className="op-survey-desc">{t('op.surveyDesc')}</p>
-                <button className="op-survey-btn" onClick={() => navigate(`/club/${team.id}/survey`)}>{t('op.joinSurvey')}</button>
-              </div>
+              {ongoing ? (
+                <div className="op-survey">
+                  <span className="op-survey-tag">{t('survey.statusOpen')}{ongoing.dday != null ? ` · ${ongoing.dday === 0 ? 'D-DAY' : `D-${ongoing.dday}`}` : ''}</span>
+                  <p className="op-survey-name">{ongoing.title}</p>
+                  {ongoing.desc && <p className="op-survey-desc">{ongoing.desc}</p>}
+                  <p className="op-survey-desc">{t('survey.participants', { count: (ongoing.participants || 0).toLocaleString() })}</p>
+                  <button className="op-survey-btn" onClick={() => navigate(`/club/${team.id}/survey/${ongoing.id}`)}>{t('op.joinSurvey')}</button>
+                </div>
+              ) : (
+                <p className="op-side-empty">{t('home.surveyEmpty')}</p>
+              )}
             </section>
 
             <section className="op-panel">
               <h2 className="op-panel-title">{t('op.sidePopularCat')}</h2>
-              <ul className="op-side-cats">
-                {[['경기장', 320], ['응원문화', 254], ['티켓', 188], ['선수', 142], ['구단 운영', 121]].map(([name, n]) => (
-                  <li key={name}>
-                    <button type="button" className={`op-side-cat${category === name ? ' on' : ''}`} onClick={() => setCategory(name)}>
-                      <span className="op-dot" />{name}<em>{n}</em>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              {(side.popularCategories || []).length === 0 ? (
+                <p className="op-side-empty">{t('home.categoriesEmpty')}</p>
+              ) : (
+                <ul className="op-side-cats">
+                  {side.popularCategories.map(c => (
+                    <li key={c.name}>
+                      <button type="button" className={`op-side-cat${category === c.name ? ' on' : ''}`} onClick={() => setCategory(c.name)}>
+                        <span className="op-dot" />{c.name}<em>{c.count}</em>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
 
             <section className="op-panel">
               <h2 className="op-panel-title">{t('op.sideKeywords')}</h2>
-              <div className="op-tags">
-                {['#티켓', '#응원가', '#MD', '#경기장', '#유니폼', '#선수', '#원정', '#시즌권'].map(tag => {
-                  const kw = tag.replace(/^#/, '')
-                  return (
-                    <button key={tag} type="button" className={`op-tag${query === kw ? ' on' : ''}`} onClick={() => setQuery(kw)}>{tag}</button>
-                  )
-                })}
-              </div>
+              {(side.trendingKeywords || []).length === 0 ? (
+                <p className="op-side-empty">{t('home.topicsEmpty')}</p>
+              ) : (
+                <div className="op-tags">
+                  {side.trendingKeywords.map(k => (
+                    <button key={k.tag} type="button" className={`op-tag${query === k.tag ? ' on' : ''}`} onClick={() => setQuery(k.tag)}>#{k.tag}</button>
+                  ))}
+                </div>
+              )}
             </section>
           </aside>
         </div>
