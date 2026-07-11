@@ -157,12 +157,20 @@ async function resolveConfig(admin: any, base: string, headers: Record<string, s
   if (cached?.data?.leagueId && Date.now() - new Date(cached.fetched_at).getTime() < TTL_CONFIG * 60000) {
     return cached.data
   }
-  const raw = await fetchJson(`${base}/leagues?country=South%20Korea`, headers)
-  const league = pickKLeague(Array.isArray(raw?.response) ? raw.response : [])
+  let raw = await fetchJson(`${base}/leagues?search=${encodeURIComponent('K League')}`, headers)
+  let list = Array.isArray(raw?.response) ? raw.response : []
+  if (!list.length) {
+    raw = await fetchJson(`${base}/leagues?country=South-Korea`, headers)
+    list = Array.isArray(raw?.response) ? raw.response : []
+  }
+  const league = pickKLeague(list)
   if (!league?.id) throw new Error('kleague1_not_found')
   const seasons = league.seasons || []
   const cur = seasons.find((s: any) => s.current) || seasons[seasons.length - 1] || {}
-  const season = cur.year
+  // 시즌: 기본은 현재 시즌(자동). LEAGUE_SEASON 이 설정되면 그 값으로 오버라이드
+  //   (무료 플랜은 현재 시즌 미제공 → 운영자가 접근 가능 시즌을 지정할 수 있게. 하드코딩 아님).
+  const seasonOverride = Number(Deno.env.get('LEAGUE_SEASON'))
+  const season = Number.isFinite(seasonOverride) && seasonOverride > 0 ? seasonOverride : cur.year
   const coverage = cur.coverage || {}
   // 팀맵: /teams?league&season → 팀명 → clubId
   const teamMap: Record<string, number> = {}
@@ -203,8 +211,13 @@ Deno.serve(async (req) => {
   if (action === 'discover') {
     if (!API_KEY) return json({ ok: false, code: 'unconfigured', message: 'API_FOOTBALL_KEY 미설정' })
     try {
-      const raw = await fetchJson(`${AF_BASE}/leagues?country=South%20Korea`, afHeaders)
-      const list = Array.isArray(raw?.response) ? raw.response : []
+      // 국가명 하드코딩 대신 리그명 검색(견고). 결과 없으면 국가 파라미터로 폴백.
+      let raw = await fetchJson(`${AF_BASE}/leagues?search=${encodeURIComponent('K League')}`, afHeaders)
+      let list = Array.isArray(raw?.response) ? raw.response : []
+      if (!list.length) {
+        raw = await fetchJson(`${AF_BASE}/leagues?country=South-Korea`, afHeaders)
+        list = Array.isArray(raw?.response) ? raw.response : []
+      }
       const leagues = list.map((e: any) => ({
         league_id: e?.league?.id,
         name: e?.league?.name,
@@ -225,7 +238,8 @@ Deno.serve(async (req) => {
       // 계정 quota 도 함께.
       let quota = null
       try { const st = await fetchJson(`${AF_BASE}/status`, afHeaders); quota = st?.response ?? null } catch { /* noop */ }
-      return json({ ok: true, provider: 'api-football', country: 'South Korea', leagues, resolved, quota, fetchedAt: new Date().toISOString() })
+      const country = list?.[0]?.country?.name || (resolved ? 'South Korea' : null)
+      return json({ ok: true, provider: 'api-football', country, leagues, resolved, quota, fetchedAt: new Date().toISOString() })
     } catch (e) {
       return json({ ok: false, code: 'discover_failed', message: String(e).slice(0, 200) })
     }
