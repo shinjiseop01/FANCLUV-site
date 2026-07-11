@@ -272,9 +272,11 @@
 
 .tn-ai-feedback { display: flex; gap: 8px; }
 .tn-ai-fb {
-  flex: 1; padding: 9px 10px; border: 1px solid var(--border); border-radius: 10px;
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 10px; border: 1px solid var(--border); border-radius: 10px;
   background: var(--canvas); color: var(--body); font-size: 13px; font-weight: 600; cursor: pointer; transition: border-color .12s, color .12s;
 }
+.tn-ai-fb svg { flex-shrink: 0; }
 .tn-ai-fb:hover { border-color: var(--team); color: var(--team-deep); }
 .tn-ai-thanks { font-size: 13px; color: #10A46E; font-weight: 700; padding: 6px 2px; }
 

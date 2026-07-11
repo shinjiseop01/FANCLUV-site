@@ -33,7 +33,7 @@ export default function NewsSummaryCard({ item, teamId, open, onClose }) {
       <button className="tn-ai-close" onClick={onClose} aria-label={t('common.close')}>
         <Icon name="close" size={16} />
       </button>
-      <div className="tn-ai-head"><span className="tn-ai-spark">✨</span> {t('news.aiSummary')}</div>
+      <div className="tn-ai-head"><Icon name="sparkle" size={16} className="tn-ai-spark" /> {t('news.aiSummary')}</div>
 
       {status !== 'ready' ? (
         <div className="tn-ai-loading" role="status">
@@ -57,8 +57,8 @@ export default function NewsSummaryCard({ item, teamId, open, onClose }) {
               <span className="tn-ai-thanks">{t('news.aiThanks')}</span>
             ) : (
               <>
-                <button className="tn-ai-fb" onClick={() => vote('up')}>👍 {t('news.aiHelpful')}</button>
-                <button className="tn-ai-fb" onClick={() => vote('down')}>👎 {t('news.aiUnhelpful')}</button>
+                <button className="tn-ai-fb" onClick={() => vote('up')}><Icon name="thumbsUp" size={15} /> {t('news.aiHelpful')}</button>
+                <button className="tn-ai-fb" onClick={() => vote('down')}><Icon name="thumbsDown" size={15} /> {t('news.aiUnhelpful')}</button>
               </>
             )}
           </div>

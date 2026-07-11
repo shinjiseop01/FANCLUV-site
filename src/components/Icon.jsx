@@ -295,6 +295,13 @@ const PATHS = {
   textBlock: (
     <path d="M4 7h16M4 12h16M4 17h10" />
   ),
+  // 피드백: 도움됨 / 개선필요 (outline, fill 시 active)
+  thumbsUp: (
+    <path d="M7 22V11M7 11l3.5-7.5a2 2 0 0 1 2.6-1 1.9 1.9 0 0 1 1.1 2.1L13.4 9H19a2 2 0 0 1 2 2.3l-1.1 7A2 2 0 0 1 17.9 20H7M7 11H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3" />
+  ),
+  thumbsDown: (
+    <path d="M17 2v11M17 13l-3.5 7.5a2 2 0 0 1-2.6 1 1.9 1.9 0 0 1-1.1-2.1L10.6 15H5a2 2 0 0 1-2-2.3l1.1-7A2 2 0 0 1 6.1 4H17M17 13h3a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1h-3" />
+  ),
 }
 
 export default function Icon({ name, size = 18, className = '', strokeWidth = 1.7, style }) {

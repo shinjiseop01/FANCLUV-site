@@ -75,7 +75,10 @@ export default function TeamNewsPage() {
     return sorted
   }, [news, category, sort, keyword])
 
-  const popular = useMemo(() => [...news].sort((a, b) => b.views - a.views).slice(0, 5), [news])
+  // 주요 뉴스: 실제 지표만 사용(중요 표시 → 최신순). 가짜 조회 수 기준 정렬 제거.
+  const popular = useMemo(() => [...news]
+    .sort((a, b) => (Number(b.important) - Number(a.important)) || (String(b.publishedAt || b.date).localeCompare(String(a.publishedAt || a.date))))
+    .slice(0, 5), [news])
 
   if (!team) {
     return (
@@ -231,7 +234,7 @@ export default function TeamNewsPage() {
                           <span className="tn-pop-rank">{i + 1}</span>
                           <span className="tn-pop-text">
                             <span className="tn-pop-title">{n.title}</span>
-                            <span className="tn-pop-views">조회 {n.views.toLocaleString()}</span>
+                            <span className="tn-pop-views">{n.date}</span>
                           </span>
                         </button>
                       </li>
@@ -297,7 +300,7 @@ function AiSummarySection({ item, teamId, open, onToggle, t }) {
         aria-expanded={open}
         onClick={() => onToggle(prev => (prev === item.id ? null : item.id))}
       >
-        <span className="tn-ai-spark">✨</span> {t('news.aiSummary')}
+        <Icon name="sparkle" size={16} className="tn-ai-spark" /> {t('news.aiSummary')}
       </button>
       <div className={`tn-ai-expand${open ? ' open' : ''}`}>
         <div className="tn-ai-expand-inner">
@@ -331,11 +334,6 @@ function NewsDetail({ news, team, t, onBack, onWrite, onSurvey }) {
       </div>
       <h1 className="tn-detail-title">{news.title}</h1>
       <Thumb team={team} category={news.category} imageUrl={news.imageUrl} hero />
-      <div className="tn-reactions tn-detail-reactions">
-        <span className="ic-txt"><Icon name="comment" size={13} /> 팬 의견 {news.opinions}개</span>
-        <span className="ic-txt"><Icon name="chart" size={13} /> 설문 참여 {news.survey}명</span>
-        <span className="ic-txt"><Icon name="eye" size={13} /> 조회 {news.views.toLocaleString()}</span>
-      </div>
       <div className="tn-detail-body">
         <p className="tn-lead">{news.summary}</p>
         {news.body.map((p, i) => <p key={i}>{p}</p>)}
