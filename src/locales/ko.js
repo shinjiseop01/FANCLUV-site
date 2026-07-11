@@ -681,6 +681,7 @@ export default {
   'act.recent': '최근 활동',
   'act.emptyTimeline': '아직 활동 내역이 없습니다.',
   'act.emptySurveys': '아직 참여한 설문이 없습니다.',
+  'act.emptySurveysCta': '설문 보러 가기',
   'act.tlOpinion': "'{title}' 의견을 작성했습니다.",
   'act.tlComment': "'{title}'에 댓글을 남겼습니다.",
   'act.tlLike': "'{title}'에 공감했습니다.",

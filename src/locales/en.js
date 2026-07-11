@@ -681,6 +681,7 @@ export default {
   'act.recent': 'Recent Activity',
   'act.emptyTimeline': 'No activity yet.',
   'act.emptySurveys': 'No surveys joined yet.',
+  'act.emptySurveysCta': 'Browse surveys',
   'act.tlOpinion': "Posted the opinion '{title}'.",
   'act.tlComment': "Commented on '{title}'.",
   'act.tlLike': "Liked '{title}'.",

@@ -197,7 +197,9 @@ export default function MyActivityPage() {
             <section className="ma-panel">
               <h2 className="ma-panel-title">{t('act.mySurveys')}</h2>
               {surveys.length === 0 ? (
-                <EmptyState compact iconName="poll" title={t('act.emptySurveys')} message="" />
+                <EmptyState compact iconName="poll" title={t('act.emptySurveys')} message=""
+                  ctaLabel={t('act.emptySurveysCta')}
+                  onCta={() => navigate(`/club/${team.id}/survey`)} />
               ) : (
               <>
               <ul className="ma-survey-list">

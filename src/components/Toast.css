@@ -43,15 +43,15 @@
 }
 .fc-toast-msg { flex: 1 1 auto; word-break: break-word; }
 
-/* 상태별 좌측 강조 + 아이콘 배경 */
-.fc-toast-success { border-left: 4px solid #16a34a; }
-.fc-toast-success .fc-toast-icon { background: #16a34a; }
-.fc-toast-error   { border-left: 4px solid #dc2626; }
-.fc-toast-error   .fc-toast-icon { background: #dc2626; }
-.fc-toast-warning { border-left: 4px solid #d97706; }
-.fc-toast-warning .fc-toast-icon { background: #d97706; }
-.fc-toast-info    { border-left: 4px solid #2563eb; }
-.fc-toast-info    .fc-toast-icon { background: #2563eb; }
+/* 상태별 좌측 강조 + 아이콘 배경 — 의미색 디자인 토큰 사용 */
+.fc-toast-success { border-left: 4px solid var(--success); }
+.fc-toast-success .fc-toast-icon { background: var(--success); }
+.fc-toast-error   { border-left: 4px solid var(--danger); }
+.fc-toast-error   .fc-toast-icon { background: var(--danger); }
+.fc-toast-warning { border-left: 4px solid var(--warning); }
+.fc-toast-warning .fc-toast-icon { background: var(--warning); }
+.fc-toast-info    { border-left: 4px solid var(--info); }
+.fc-toast-info    .fc-toast-icon { background: var(--info); }
 
 /* 다크 테마 (앱 토글: data-theme, 또는 OS 선호) */
 :root[data-theme='dark'] .fc-toast {

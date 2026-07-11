@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
+import { useEscapeKey } from '../lib/useEscapeKey.js'
 
 // 프로필 이미지 1:1 크롭 모달.
 // - 정사각형 프레임 안에서 이미지를 드래그(이동) + 줌(슬라이더)으로 배치
@@ -10,6 +11,7 @@ const OUTPUT = 400  // 저장 해상도 px
 
 export default function AvatarCropper({ src, onCancel, onCropped }) {
   const { t } = useLang()
+  useEscapeKey(() => onCancel?.())
   const [img, setImg] = useState(null)          // HTMLImageElement
   const [zoom, setZoom] = useState(1)           // 1 ~ 3
   const [offset, setOffset] = useState({ x: 0, y: 0 }) // 프레임 기준 이미지 좌상단 위치(px)

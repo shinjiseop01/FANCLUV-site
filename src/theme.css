@@ -7,6 +7,29 @@
   /* Base colour that team-tinted surfaces blend into via color-mix().
      Flips to a dark surface in dark mode so tints don't wash out to white. */
   --mix-base: #FFFFFF;
+
+  /* Semantic status tokens (success/warning/danger/info) — light mode.
+     Use these instead of hard-coding greens/reds. Dark overrides below. */
+  --success:    #16a34a;
+  --success-bg: rgba(22, 163, 74, 0.12);
+  --warning:    #d97706;
+  --warning-bg: rgba(217, 119, 6, 0.12);
+  --danger:     #dc2626;
+  --danger-bg:  rgba(220, 38, 38, 0.12);
+  --info:       #2563eb;
+  --info-bg:    rgba(37, 99, 235, 0.12);
+}
+
+/* Semantic status tokens — dark mode (brighter tints for dark surfaces). */
+html[data-theme="dark"] {
+  --success:    #4ade80;
+  --success-bg: rgba(16, 159, 110, 0.18);
+  --warning:    #fbbf24;
+  --warning-bg: rgba(217, 119, 6, 0.20);
+  --danger:     #f87171;
+  --danger-bg:  rgba(220, 38, 38, 0.20);
+  --info:       #60a5fa;
+  --info-bg:    rgba(37, 99, 235, 0.22);
 }
 
 /* ───────────────────────── LIGHT MODE (global default) ─────────────────────────

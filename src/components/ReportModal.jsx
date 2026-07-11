@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
+import { useEscapeKey } from '../lib/useEscapeKey.js'
 import { REPORT_REASONS } from '../lib/reportsRepo.js'
 
 // 신고 모달 — 사유 선택 + '기타' 선택 시 직접 입력.
@@ -8,6 +9,9 @@ export default function ReportModal({ open, onClose, onSubmit, submitting = fals
   const { t } = useLang()
   const [reason, setReason] = useState('')
   const [detail, setDetail] = useState('')
+
+  // ESC 로 닫기(제출 중에는 무시). open 일 때만 리스너 등록.
+  useEscapeKey(() => { if (!submitting) onClose() }, open)
 
   if (!open) return null
 
