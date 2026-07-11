@@ -191,6 +191,9 @@ export default function AdminDashboard() {
             {data?.source === 'supabase' && (
               <span className="adm-live-chip" title={t('admin.dash.liveHint')}>{t('admin.dash.liveNote')}</span>
             )}
+            {data?.source === 'error' && (
+              <span className="adm-mock-chip" title={t('admin.dash.errorHint')}>{t('admin.dash.errorNote')}</span>
+            )}
             <button className="adm-refresh-btn" onClick={onRefresh} disabled={refreshing || !data}>
               <Icon name="refresh" size={15} className={refreshing ? 'adm-spin' : ''} />
               {refreshing ? t('admin.dash.refreshing') : t('admin.dash.refresh')}

@@ -906,6 +906,8 @@ export default {
   // 대시보드 고도화
   'admin.dash.mockNote': 'Mock 데이터',
   'admin.dash.mockHint': '현재는 예시 데이터입니다. Supabase 연동 시 실제 데이터로 표시됩니다.',
+  'admin.dash.errorNote': '집계 일시 오류',
+  'admin.dash.errorHint': '통계 집계에 실패해 0으로 표시됩니다. 잠시 후 새로고침해 주세요. (가짜 수치를 만들지 않습니다)',
   // KPI
   'admin.dash.totalMembers': '전체 회원 수',
   'admin.dash.activeMembers': '활성 회원 수',

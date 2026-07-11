@@ -906,6 +906,8 @@ export default {
   // Dashboard (enhanced)
   'admin.dash.mockNote': 'Mock data',
   'admin.dash.mockHint': 'Sample data for now. Real data will show once Supabase is connected.',
+  'admin.dash.errorNote': 'Stats temporarily unavailable',
+  'admin.dash.errorHint': 'Aggregation failed, so values show as 0. Please refresh shortly. (We never fabricate numbers.)',
   // KPI
   'admin.dash.totalMembers': 'Total Members',
   'admin.dash.activeMembers': 'Active Members',

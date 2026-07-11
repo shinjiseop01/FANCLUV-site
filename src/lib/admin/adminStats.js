@@ -47,11 +47,13 @@ async function loadDashboard() {
     try {
       return await loadFromSupabase()
     } catch (e) {
-      // RPC 미배포/네트워크 오류 등: 데모 Mock 으로 폴백해 대시보드 자체는 유지.
-      logger.warn('관리자 통계 집계 실패 → Mock 폴백', { error: e })
-      return mockDashboard()
+      // 프로덕션: RPC 미배포/네트워크 오류 시에도 가짜 KPI 를 만들지 않는다.
+      // 정직한 0(빈 대시보드)으로 폴백 — 실서비스에 Mock 숫자가 노출되지 않도록.
+      logger.warn('관리자 통계 집계 실패 → 빈 대시보드 폴백', { error: e })
+      return { ...emptyDashboard(), source: 'error' }
     }
   }
+  // Supabase 미설정(로컬 DEV)에서만 데모 Mock 으로 화면 미리보기.
   return mockDashboard()
 }
 
