@@ -6,13 +6,14 @@
 //
 // ⚠️ 프로덕션 ref 면 즉시 종료. service_role 은 절대 프론트/Git 에 두지 말 것(env 만).
 import { createClient } from '@supabase/supabase-js'
+import { guardStaging } from '../staging/guard.mjs'
 
-const URL = process.env.STAGING_URL || ''
-const SR = process.env.SERVICE_ROLE || ''
 const stage = process.argv[2] || 'small'
-if (URL.includes('cuuzbddxnzhhlrqmmebz')) { console.error('거부: 프로덕션 URL'); process.exit(1) }
-if (!URL || !SR) { console.error('STAGING_URL/SERVICE_ROLE 필요'); process.exit(1) }
 if (stage === 'large') { console.error('large 는 전용 인프라/사전승인 필요 — 이 스크립트는 실행하지 않음'); process.exit(1) }
+// 중앙 안전 가드: 프로덕션/미확인/prefix/서비스롤 조건 검증 + 환경 요약 출력.
+const g = guardStaging({ requireServiceRole: true, sizeLabel: stage, cleanupCmd: 'node tests/seed/cleanup.mjs' })
+const URL = g.URL || process.env.STAGING_URL
+const SR = g.serviceRole
 
 const SIZES = {
   small:  { users: 100,  opinions: 1000,  comments: 5000,  likes: 10000,  responses: 1000,  notifs: 10000,  events: 10000 },
