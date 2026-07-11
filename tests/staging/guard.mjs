@@ -50,5 +50,5 @@ export function guardStaging(opts = {}) {
   if (opts.cleanupCmd) console.log('정리 명령    :', opts.cleanupCmd)
   console.log('──────────────────────────────')
 
-  return { URL, ref, prefix, serviceRole: sr }
+  return { URL, ref, prefix, serviceRole }
 }
