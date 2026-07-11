@@ -55,20 +55,25 @@ function mapRow(r) {
 
 // 관리자 공지 등록(createNotice)은 noticesRepo.js 로 이동했다(공지 CRUD/노출 일원화).
 
-// ── 목록 ──
-export async function listNotifications() {
+// ── 목록 ── opts: { limit, type, unreadOnly }
+//   기본 30개(벨/프리뷰). 알림센터는 더 큰 limit 로 불러 클라이언트에서 필터/페이지네이션.
+export async function listNotifications(opts = {}) {
+  const { limit = 30, type = null, unreadOnly = false } = opts
   if (isSupabaseConfigured) {
     const me = getCurrentUser()
     if (!me) return []
-    const { data, error } = await supabase
-      .from('notifications').select('*')
-      .eq('user_id', me.id)
-      .order('created_at', { ascending: false }).limit(30)
+    let q = supabase.from('notifications').select('*').eq('user_id', me.id)
+    if (type) q = q.eq('type', type)
+    if (unreadOnly) q = q.eq('is_read', false)
+    const { data, error } = await q.order('created_at', { ascending: false }).limit(limit)
     if (error) return []
     return (data || []).map(mapRow)
   }
   // Mock: 운영자 전용(audience:'admin') 알림은 관리자에게만 노출.
-  return getMockList().filter(canSeeMock).map(mapRow)
+  let list = getMockList().filter(canSeeMock)
+  if (type) list = list.filter(n => n.type === type)
+  if (unreadOnly) list = list.filter(n => !n.is_read)
+  return list.slice(0, limit).map(mapRow)
 }
 
 // ── 안읽음 수 ──
@@ -106,4 +111,57 @@ export async function markAllRead() {
   // 본인에게 보이는 알림만 읽음 처리(안 보이는 운영자 알림은 건드리지 않음).
   writeMock(getMockList().map(n => (canSeeMock(n) ? { ...n, is_read: true } : n)))
   return { ok: true }
+}
+
+// ── 삭제(단건) ──
+export async function deleteNotification(id) {
+  if (isSupabaseConfigured) {
+    const me = getCurrentUser()
+    if (!me) return { ok: false }
+    const { error } = await supabase.from('notifications').delete().eq('id', id).eq('user_id', me.id)
+    return { ok: !error }
+  }
+  writeMock(getMockList().filter(n => n.id !== id))
+  return { ok: true }
+}
+
+// ── 전체 삭제(본인에게 보이는 알림) ──
+export async function deleteAll() {
+  if (isSupabaseConfigured) {
+    const me = getCurrentUser()
+    if (!me) return { ok: false }
+    const { error } = await supabase.from('notifications').delete().eq('user_id', me.id)
+    return { ok: !error }
+  }
+  writeMock(getMockList().filter(n => !canSeeMock(n)))
+  return { ok: true }
+}
+
+// ── 운영 알림 생성(관리자 전원) ── 직접 insert 금지: notify_admins RPC 로 일원화.
+//   운영 실패(Edge/OpenAI/뉴스/경기/시스템)에서 호출한다.
+export async function notifyAdmins({ type = 'notice', title, body, url = null }) {
+  if (isSupabaseConfigured) {
+    const { data, error } = await supabase.rpc('notify_admins', {
+      p_type: type, p_title: title, p_body: body, p_url: url,
+    })
+    if (error) return { ok: false, error }
+    return { ok: true, count: data || 0 }
+  }
+  pushMockNotification({ type, title, body, isImportant: true, audience: 'admin' })
+  return { ok: true }
+}
+
+// ── Realtime 구독 ── 내 알림 변화(추가/읽음/삭제) 시 onChange 호출.
+//   NotificationBell / 알림센터가 새로고침 없이 갱신하도록.
+export function subscribeNotifications(onChange) {
+  if (!isSupabaseConfigured) return () => {}
+  const me = getCurrentUser()
+  if (!me) return () => {}
+  const channel = supabase
+    .channel(`notif:${me.id}`)
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${me.id}` },
+      () => onChange())
+    .subscribe()
+  return () => { try { supabase.removeChannel(channel) } catch { /* noop */ } }
 }

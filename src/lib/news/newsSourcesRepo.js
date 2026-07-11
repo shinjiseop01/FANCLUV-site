@@ -11,7 +11,7 @@ import { supabase, isSupabaseConfigured } from '../supabase.js'
 import { retrySupabase } from '../retry.js'
 import { logger } from '../logger.js'
 import { isAdmin } from '../auth.js'
-import { pushMockNotification } from '../notificationsRepo.js'
+import { pushMockNotification, notifyAdmins } from '../notificationsRepo.js'
 import { invokeFunction } from '../edgeFunctions.js'
 import { NEWS_SOURCES, getNewsSource, getDefaultSources } from './newsSources.js'
 import { fetchMockNews } from './providers/mockNewsProvider.js'
@@ -162,12 +162,9 @@ async function createFailureAlert(clubId, count) {
   const title = '뉴스 연결 실패'
   const body = `${name} 뉴스 연결 실패 ${count}회`
   if (isSupabaseConfigured) {
-    // 관리자 사용자에게 알림 insert (best-effort).
-    try {
-      const { data: admins } = await supabase.from('profiles').select('id').in('role', ['admin', 'superadmin', 'staff'])
-      const rows = (admins || []).map(a => ({ user_id: a.id, type: 'notice', title, body, is_read: false }))
-      if (rows.length) await supabase.from('notifications').insert(rows)
-    } catch (e) { logger.warn('뉴스 실패 알림 생성 실패', { error: e }) }
+    // 직접 insert 금지 → notify_admins RPC 로 일원화.
+    const res = await notifyAdmins({ type: 'notice', title, body })
+    if (!res.ok) logger.warn('뉴스 실패 알림 생성 실패', { error: res.error })
   } else {
     pushMockNotification({ type: 'notice', title, body, isImportant: true, audience: 'admin' })
   }

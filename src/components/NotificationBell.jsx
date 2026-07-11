@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { relativeTime } from '../lib/relativeTime.js'
 import Icon from './Icon.jsx'
-import { listNotifications, unreadCount, markRead, markAllRead } from '../lib/notificationsRepo.js'
+import { listNotifications, unreadCount, markRead, markAllRead, subscribeNotifications } from '../lib/notificationsRepo.js'
+import { getCurrentUser } from '../lib/auth.js'
 
 // Header notification bell. Loads notifications from notificationsRepo
 // (Supabase when configured, otherwise mock). Shows an unread badge, a list,
@@ -18,12 +19,19 @@ export default function NotificationBell() {
   const ref = useRef(null)
 
   async function refresh() {
-    const [list, count] = await Promise.all([listNotifications(), unreadCount()])
+    // 드롭다운 미리보기는 최근 5개. 배지(unread)는 전체 기준 정확 카운트.
+    const [list, count] = await Promise.all([listNotifications({ limit: 5 }), unreadCount()])
     setItems(list)
     setUnread(count)
   }
 
   useEffect(() => { refresh() }, [])
+
+  // Realtime: 새 알림/읽음/삭제 시 새로고침 없이 배지·목록 자동 갱신.
+  useEffect(() => {
+    const unsub = subscribeNotifications(() => refresh())
+    return unsub
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -111,6 +119,13 @@ export default function NotificationBell() {
               ))}
             </ul>
           )}
+          <div className="fc-bell-foot">
+            <button type="button" className="fc-bell-viewall" onClick={() => {
+              const team = getCurrentUser()?.selectedTeam
+              setOpen(false)
+              navigate(team ? `/club/${team}/notifications` : '/team-select')
+            }}>{t('common.viewAllNotifications')}</button>
+          </div>
         </div>
       )}
 

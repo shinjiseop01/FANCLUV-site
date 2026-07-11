@@ -13,7 +13,7 @@ import { leagueProviderInfo, probeLeague, refreshLeague } from '../../services/l
 import { peekCache } from '../cache.js'
 import { isSupabaseConfigured, supabase } from '../supabase.js'
 import { isAdmin } from '../auth.js'
-import { pushMockNotification } from '../notificationsRepo.js'
+import { pushMockNotification, notifyAdmins } from '../notificationsRepo.js'
 import { logger } from '../logger.js'
 
 export const FAILURE_THRESHOLD = 3       // 연속 3회 실패 → 관리자 알림
@@ -187,11 +187,8 @@ function recordOutcome({ realFail, source, summary }) {
 // 관리자 알림 발송 — Supabase(admins) 또는 Mock 알림.
 async function sendAlert(title, body) {
   if (isSupabaseConfigured) {
-    try {
-      const { data: admins } = await supabase.from('profiles').select('id').in('role', ['admin', 'superadmin', 'staff'])
-      const rows = (admins || []).map(a => ({ user_id: a.id, type: 'notice', title, body, is_read: false }))
-      if (rows.length) await supabase.from('notifications').insert(rows)
-    } catch (e) { logger.warn('League API 알림 생성 실패', { error: e }) }
+    const res = await notifyAdmins({ type: 'notice', title, body })
+    if (!res.ok) logger.warn('League API 알림 생성 실패', { error: res.error })
   } else {
     pushMockNotification({ type: 'notice', title, body, isImportant: true, audience: 'admin' })
   }

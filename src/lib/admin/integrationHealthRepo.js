@@ -11,7 +11,7 @@ import { supabase, isSupabaseConfigured } from '../supabase.js'
 import { invokeFunction } from '../edgeFunctions.js'
 import { logger } from '../logger.js'
 import { isAdmin } from '../auth.js'
-import { pushMockNotification } from '../notificationsRepo.js'
+import { pushMockNotification, notifyAdmins } from '../notificationsRepo.js'
 import { getTeamNews } from '../news/teamNewsProvider.js'
 import { getStandings } from '../../services/league/leagueProvider.js'
 
@@ -248,11 +248,9 @@ async function createAlert(key) {
   const title = '서비스 연결 실패'
   const body = `${labelText(key)} 연속 ${FAILURE_THRESHOLD}회 이상 연결 실패`
   if (isSupabaseConfigured) {
-    try {
-      const { data: admins } = await supabase.from('profiles').select('id').in('role', ['admin', 'superadmin', 'staff'])
-      const rows = (admins || []).map(a => ({ user_id: a.id, type: 'notice', title, body, is_read: false }))
-      if (rows.length) await supabase.from('notifications').insert(rows)
-    } catch (e) { logger.warn('상태 알림 생성 실패', { error: e }) }
+    // 직접 insert 금지 → notify_admins RPC(SECURITY DEFINER)로 일원화.
+    const res = await notifyAdmins({ type: 'notice', title, body })
+    if (!res.ok) logger.warn('상태 알림 생성 실패', { error: res.error })
   } else {
     pushMockNotification({ type: 'notice', title, body, isImportant: true, audience: 'admin' })
   }

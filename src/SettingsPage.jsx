@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { useToast } from './contexts/ToastContext.jsx'
@@ -12,7 +12,7 @@ import {
 import { IDENTITY_AGENCY_LABELS } from './lib/identity/identityProvider.js'
 import { getTeam, teamName, TeamEmblem, menuPath, TEAMS } from './teams.jsx'
 import { getCurrentDevice } from './lib/deviceInfo.js'
-import { getPrefs, setPref } from './lib/notifyPrefs.js'
+import { getPrefs, setPref, loadServerPrefs } from './lib/notifyPrefs.js'
 import { getPermission, requestPermission, sendTestNotification, isSupported } from './lib/browserPush.js'
 import { useNicknameCheck } from './lib/useNicknameCheck.js'
 import { saveAvatar, clearAvatar, validateImageFile } from './lib/avatarStorage.js'
@@ -82,6 +82,8 @@ export default function SettingsPage() {
   const [prefs, setPrefs] = useState(getPrefs())
   const [perm, setPerm] = useState(getPermission())
   const toast = useToast()
+  // 서버(profiles.notification_prefs) 설정을 불러와 로컬 캐시/화면에 동기화.
+  useEffect(() => { loadServerPrefs().then(p => setPrefs({ ...p })) }, [])
   // 회원탈퇴
   const [showWithdraw, setShowWithdraw] = useState(false)
   const [withdrawText, setWithdrawText] = useState('')

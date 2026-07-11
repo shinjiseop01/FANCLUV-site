@@ -1,0 +1,61 @@
+/* FANCLUV — 알림센터. 디자인 토큰 사용. */
+.ntf-main { max-width: 720px; margin: 0 auto; padding: var(--space-6) var(--space-4) 60px; }
+
+.ntf-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); flex-wrap: wrap; }
+.ntf-title { font-size: 22px; font-weight: 800; color: var(--ink); }
+.ntf-actions { display: flex; gap: var(--space-2); }
+
+.ntf-filters { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+.ntf-filter {
+  height: 32px; padding: 0 14px; border-radius: 100px;
+  border: 1px solid var(--border); background: var(--canvas); color: var(--body);
+  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
+}
+.ntf-filter:hover { border-color: var(--team); color: var(--team); }
+.ntf-filter.on { background: var(--team-deep); border-color: transparent; color: #fff; }
+
+.ntf-list { list-style: none; display: flex; flex-direction: column; gap: var(--space-2); }
+.ntf-item {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  padding: var(--space-4); border: 1px solid var(--border); border-radius: 14px;
+  background: var(--canvas); cursor: pointer; text-align: left;
+  transition: border-color var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard);
+}
+.ntf-item:hover { border-color: var(--team); }
+.ntf-item.unread { background: color-mix(in srgb, var(--team) 6%, var(--canvas)); }
+.ntf-item:focus-visible { outline: 2px solid var(--team); outline-offset: 2px; }
+
+.ntf-item-ico {
+  flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--page-bg); color: var(--team-deep);
+}
+.ntf-item-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ntf-item-title { display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ink); font-size: 14px; }
+.ntf-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--danger); flex: 0 0 auto; }
+.ntf-important { font-size: 11px; font-weight: 800; color: var(--danger); background: var(--danger-bg); padding: 1px 6px; border-radius: 6px; }
+.ntf-item-text { color: var(--body); font-size: 13.5px; line-height: 1.45; word-break: break-word; }
+.ntf-item-time { color: var(--muted); font-size: 12px; }
+
+.ntf-del {
+  flex: 0 0 auto; width: 30px; height: 30px; border: none; background: transparent;
+  color: var(--muted); border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  transition: background-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
+}
+.ntf-del:hover { background: var(--danger-bg); color: var(--danger); }
+
+.ntf-loading { text-align: center; color: var(--muted); padding: 40px 0; }
+
+/* Bell 전체보기 링크 */
+.fc-bell-foot { border-top: 1px solid var(--border); padding: 8px; }
+.fc-bell-viewall {
+  width: 100%; height: 36px; border: none; background: transparent; color: var(--team-deep);
+  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; border-radius: 8px;
+}
+.fc-bell-viewall:hover { background: var(--page-bg); }
+
+@media (max-width: 480px) {
+  .ntf-title { font-size: 20px; }
+  .ntf-item { padding: var(--space-3); }
+}
