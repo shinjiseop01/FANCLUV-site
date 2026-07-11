@@ -1,0 +1,14 @@
+# FANCLUV — robots.txt
+# 공개 랜딩/정보 페이지는 색인 허용. 로그인 뒤 개인/운영 영역은 크롤 제외.
+User-agent: *
+Allow: /$
+Allow: /signup
+Disallow: /admin
+Disallow: /executive
+Disallow: /auth/callback
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /verify-identity
+Disallow: /onboarding
+
+Sitemap: https://fancluv-site.vercel.app/sitemap.xml

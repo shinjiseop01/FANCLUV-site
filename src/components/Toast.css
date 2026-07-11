@@ -1,0 +1,89 @@
+/* FANCLUV — 전역 Toast. 테마(라이트/다크) 및 모바일 대응. */
+.fc-toasts {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: min(92vw, 380px);
+  pointer-events: none;
+}
+
+.fc-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  color: #1a1a1a;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  animation: fc-toast-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fc-toast-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #fff;
+}
+.fc-toast-msg { flex: 1 1 auto; word-break: break-word; }
+
+/* 상태별 좌측 강조 + 아이콘 배경 */
+.fc-toast-success { border-left: 4px solid #16a34a; }
+.fc-toast-success .fc-toast-icon { background: #16a34a; }
+.fc-toast-error   { border-left: 4px solid #dc2626; }
+.fc-toast-error   .fc-toast-icon { background: #dc2626; }
+.fc-toast-warning { border-left: 4px solid #d97706; }
+.fc-toast-warning .fc-toast-icon { background: #d97706; }
+.fc-toast-info    { border-left: 4px solid #2563eb; }
+.fc-toast-info    .fc-toast-icon { background: #2563eb; }
+
+/* 다크 테마 (앱 토글: data-theme, 또는 OS 선호) */
+:root[data-theme='dark'] .fc-toast {
+  background: #1c2029;
+  color: #e8eaed;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .fc-toast {
+    background: #1c2029;
+    color: #e8eaed;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  }
+}
+
+@keyframes fc-toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 560px) {
+  .fc-toasts {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    max-width: none;
+    align-items: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-toast { animation: none; }
+}

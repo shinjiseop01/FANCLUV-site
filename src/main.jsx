@@ -6,6 +6,7 @@ import { isSupabaseConfigured } from './lib/supabase.js'
 import { LanguageProvider } from './contexts/LanguageContext.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
+import { ToastProvider } from './contexts/ToastContext.jsx'
 import { registerServiceWorker } from './lib/registerSW.js'
 import { initAnalytics, analytics } from './services/analytics/index.js'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
@@ -127,6 +128,7 @@ createRoot(document.getElementById('root')).render(
     <LanguageProvider>
     <ErrorBoundary>
     <AuthProvider>
+    <ToastProvider>
     <BrowserRouter>
       <RouteAnalytics />
       <Suspense fallback={<RouteFallback />}>
@@ -190,6 +192,7 @@ createRoot(document.getElementById('root')).render(
       </Routes>
       </Suspense>
     </BrowserRouter>
+    </ToastProvider>
     </AuthProvider>
     </ErrorBoundary>
     </LanguageProvider>

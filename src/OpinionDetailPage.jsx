@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
+import { useToast } from './contexts/ToastContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import IdentityNotice from './components/IdentityNotice.jsx'
 import { logout, getCurrentUser, requiresIdentityVerification } from './lib/auth.js'
@@ -36,6 +37,7 @@ export default function OpinionDetailPage() {
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, t } = useLang()
+  const toast = useToast()
 
   const [detail, setDetail] = useState(null) // { opinion, related }
   const [comments, setComments] = useState([])
@@ -44,7 +46,6 @@ export default function OpinionDetailPage() {
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [toast, setToast] = useState('')
   const [reportOpen, setReportOpen] = useState(false)
   const [reporting, setReporting] = useState(false)
   const [deleteId, setDeleteId] = useState(null)   // 삭제 확인 중인 댓글 id
@@ -83,10 +84,8 @@ export default function OpinionDetailPage() {
     )
   }
 
-  function flash(msg) {
-    setToast(msg)
-    setTimeout(() => setToast(''), 1800)
-  }
+  // 공용 Toast 로 통일 — 성공/안내는 info, 실패는 error 로 노출.
+  function flash(msg, type = 'info') { toast[type === 'error' ? 'error' : 'info'](msg) }
 
   function handleShare() {
     const url = window.location.href
@@ -130,7 +129,7 @@ export default function OpinionDetailPage() {
       setComments(await listComments(opinionId))
       setDraft('')
     } else if (res.error) {
-      flash(res.error)
+      flash(res.error, 'error')
     }
   }
 
@@ -381,8 +380,6 @@ export default function OpinionDetailPage() {
         </div>
         )}
       </main>
-
-      {toast && <div className="od-toast" role="status">{toast}</div>}
 
       <ReportModal
         open={reportOpen}

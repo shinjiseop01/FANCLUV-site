@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
+import { useToast } from './contexts/ToastContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import LazyImage from './components/LazyImage.jsx'
 import { useTheme } from './contexts/ThemeContext.jsx'
@@ -80,7 +81,7 @@ export default function SettingsPage() {
   // 알림 설정(localStorage 영속) + 브라우저 알림 권한 상태
   const [prefs, setPrefs] = useState(getPrefs())
   const [perm, setPerm] = useState(getPermission())
-  const [toast, setToast] = useState('')
+  const toast = useToast()
   // 회원탈퇴
   const [showWithdraw, setShowWithdraw] = useState(false)
   const [withdrawText, setWithdrawText] = useState('')
@@ -103,7 +104,7 @@ export default function SettingsPage() {
   }
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
-  function flash(msg) { setToast(msg); setTimeout(() => setToast(''), 1800) }
+  function flash(msg, type = 'info') { toast[type === 'error' ? 'error' : 'info'](msg) }
   function handleLogout() { logout(); navigate('/') }
 
   // ── 프로필 수정 열기/닫기 ──
@@ -507,8 +508,6 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
-
-      {toast && <div className="st-toast" role="status">{toast}</div>}
     </div>
   )
 }

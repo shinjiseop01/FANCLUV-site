@@ -31,6 +31,11 @@ export const SERVICES = [
   { key: 'openai',   labelKey: 'admin.sys.svc.openai',   kind: 'server' },
   { key: 'email',    labelKey: 'admin.sys.svc.email',    kind: 'server' },
   { key: 'push',     labelKey: 'admin.sys.svc.push',     kind: 'push' },
+  // OAuth 는 상호작용(사용자 동의)이 필요해 클라이언트에서 실제 로그인은 검사 못 한다.
+  // 대신 "설정 여부"를 점검한다: configured(🟢) / 미설정(🟡 비활성). 실제 로그인은 QA로 확인.
+  { key: 'oauthGoogle', labelKey: 'admin.sys.svc.oauthGoogle', kind: 'oauth' },
+  { key: 'oauthKakao',  labelKey: 'admin.sys.svc.oauthKakao',  kind: 'oauth' },
+  { key: 'oauthNaver',  labelKey: 'admin.sys.svc.oauthNaver',  kind: 'oauth' },
 ]
 const SERVICE_MAP = Object.fromEntries(SERVICES.map(s => [s.key, s]))
 
@@ -58,14 +63,25 @@ export async function listServices() {
   } else {
     stored = readMock(HKEY, {})
   }
-  return SERVICES.map(s => ({
-    key: s.key, labelKey: s.labelKey, kind: s.kind,
-    status: stored[s.key]?.status || 'unknown',
-    lastSuccessAt: stored[s.key]?.lastSuccessAt || null,
-    lastFailureAt: stored[s.key]?.lastFailureAt || null,
-    responseMs: stored[s.key]?.responseMs ?? null,
-    consecutiveFailures: stored[s.key]?.consecutiveFailures || 0,
-  }))
+  return SERVICES.map(s => {
+    // OAuth 설정 상태는 순수 클라이언트 점검이라 저장값 없이 즉시 계산해 보여준다.
+    if (s.kind === 'oauth') {
+      const r = checkOAuth(s.key)
+      return {
+        key: s.key, labelKey: s.labelKey, kind: s.kind,
+        status: computeStatus(r), reason: r.error || null,
+        lastSuccessAt: null, lastFailureAt: null, responseMs: null, consecutiveFailures: 0,
+      }
+    }
+    return {
+      key: s.key, labelKey: s.labelKey, kind: s.kind,
+      status: stored[s.key]?.status || 'unknown',
+      lastSuccessAt: stored[s.key]?.lastSuccessAt || null,
+      lastFailureAt: stored[s.key]?.lastFailureAt || null,
+      responseMs: stored[s.key]?.responseMs ?? null,
+      consecutiveFailures: stored[s.key]?.consecutiveFailures || 0,
+    }
+  })
 }
 
 // ── 최근 시스템 로그(오류) ──
@@ -114,8 +130,29 @@ async function runTest(def) {
     case 'news': return timedPipeline(() => getTeamNews('seoul'), v => Array.isArray(v) && v.length > 0)
     case 'league': return timedPipeline(() => getStandings(), v => v && Array.isArray(v.rows) && v.rows.length > 0)
     case 'push': return checkPush()
+    case 'oauth': return checkOAuth(def.key)
     default: return { ok: false, ms: null, error: 'unknown' }
   }
+}
+
+// OAuth 설정 여부 점검(클라이언트 감지 가능한 범위).
+//   • Kakao/Naver: 프론트에 REST 키(VITE_*_CLIENT_ID)가 있어야 authorize 이동 가능.
+//   • Google: Supabase 네이티브 provider(대시보드 설정) — 프론트가 활성 여부를 알 수 없어
+//     Supabase 연결 여부를 전제로 '설정됨(추정)'으로 표시. 실제 로그인은 QA로 확인.
+function isConfigured(v) {
+  const s = String(v || '').trim()
+  return !!s && !s.includes('your-')
+}
+function checkOAuth(key) {
+  const env = import.meta.env || {}
+  if (key === 'oauthKakao') {
+    return isConfigured(env.VITE_KAKAO_CLIENT_ID) ? { ok: true, ms: null } : { ok: false, ms: null, disabled: true, error: 'not_configured' }
+  }
+  if (key === 'oauthNaver') {
+    return isConfigured(env.VITE_NAVER_CLIENT_ID) ? { ok: true, ms: null } : { ok: false, ms: null, disabled: true, error: 'not_configured' }
+  }
+  // google (native): Supabase 미설정이면 불가, 설정이면 '설정됨(추정)'.
+  return isSupabaseConfigured ? { ok: true, ms: null } : { ok: false, ms: null, disabled: true, error: 'not_configured' }
 }
 
 // health-check Edge Function 호출(서버 서비스). Mock 모드면 전부 '비활성화'.

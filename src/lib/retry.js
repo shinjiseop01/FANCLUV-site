@@ -16,6 +16,30 @@ import { logger } from './logger.js'
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
+// 타임아웃 초과 시 던지는 오류(‘일시적 오류’로 재시도 대상 + 사용자 안내 매핑).
+export class TimeoutError extends Error {
+  constructor(ms, label = 'request') {
+    super(`${label} timed out after ${ms}ms`)
+    this.name = 'TimeoutError'
+    this.code = 'timeout'
+  }
+}
+
+// ── 요청 타임아웃 (무한 대기 방지) ──
+// fn(signal) 에 AbortController.signal 을 넘겨 취소 신호를 전달하고, ms 초과 시
+// TimeoutError 로 reject 한다. fetch 처럼 signal 을 받는 요청은 실제로 중단되며,
+// signal 을 못 받는 요청(supabase.functions.invoke 등)도 race 로 대기를 끊는다.
+//   const data = await withTimeout(signal => fetch(url, { signal }), 10000, 'news')
+export function withTimeout(fn, ms = 15000, label = 'request') {
+  const controller = new AbortController()
+  let timer
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => { try { controller.abort() } catch { /* noop */ } reject(new TimeoutError(ms, label)) }, ms)
+  })
+  const run = Promise.resolve().then(() => fn(controller.signal))
+  return Promise.race([run, timeout]).finally(() => clearTimeout(timer))
+}
+
 export async function withRetry(fn, options = {}) {
   const {
     retries = 3,
