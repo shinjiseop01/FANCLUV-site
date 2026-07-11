@@ -1,4 +1,5 @@
 // FANCLUV — 설문 플랫폼 데이터 레이어 (단일 데이터 소스).
+import { teamOrFilter } from './safety.js'
 //
 // 정규화 스키마(surveys → survey_questions → survey_answers)를 기반으로
 // 관리자 빌더 / 팬 참여 / 결과 집계를 모두 지원한다. Supabase 미설정 시
@@ -185,7 +186,7 @@ export async function listSurveys(teamId) {
     const { data, error } = await supabase
       .from('surveys_view').select('*')
       .eq('status', 'published').eq('is_public', true)
-      .or(`team_id.eq.${teamId},team_id.is.null`)
+      .or(teamOrFilter(teamId)) // PostgREST or-filter 인젝션 방어(safety.js)
       .order('created_at', { ascending: false })
     if (error) return []
     return (data || []).map(mapSurveyMeta).filter(s => !isHidden(s.closedAt))

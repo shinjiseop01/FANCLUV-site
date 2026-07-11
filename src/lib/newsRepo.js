@@ -1,4 +1,5 @@
 // FANCLUV — Team news repository.
+import { teamOrFilter } from './safety.js'
 //
 // TeamNewsPage(팬) + AdminNews(관리자)의 단일 데이터 소스.
 // Supabase 설정 시 team_news 테이블, 아니면 Mock. 모든 함수 async.
@@ -47,7 +48,7 @@ export async function listNews(teamId) {
     const { data, error } = await supabase
       .from('team_news').select('*')
       .eq('status', 'published')
-      .or(`team_id.eq.${teamId},team_id.is.null`)
+      .or(teamOrFilter(teamId)) // PostgREST or-filter 인젝션 방어(safety.js)
       .order('created_at', { ascending: false })
     if (error) return []
     return (data || []).map(mapNews)
