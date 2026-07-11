@@ -25,18 +25,31 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const NAVER_TOKEN_URL = 'https://nid.naver.com/oauth2.0/token'
 const NAVER_PROFILE_URL = 'https://openapi.naver.com/v1/nid/me'
 
+// state(클라이언트 생성) 로 넘어온 복귀 origin 을 allowlist 로 검증한다.
+// 허용: SITE_URL + ALLOWED_ORIGINS(쉼표구분). 그 외는 SITE_URL 로 강제(세션 유출 방지).
+function pickSafeOrigin(state: string, siteUrl: string): string {
+  const allow = new Set(
+    [siteUrl, ...(Deno.env.get('ALLOWED_ORIGINS') ?? '').split(',')]
+      .map((s) => s.trim().replace(/\/$/, ''))
+      .filter(Boolean),
+  )
+  try {
+    const parsed = JSON.parse(atob(state))
+    const cand = String(parsed?.r ?? '').trim().replace(/\/$/, '')
+    if (cand && allow.has(cand)) return cand
+  } catch { /* 파싱 실패 → siteUrl 폴백 */ }
+  return siteUrl
+}
+
 Deno.serve(async (req) => {
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
   const state = url.searchParams.get('state') ?? ''
   const naverError = url.searchParams.get('error')
 
-  // state 에 담긴 앱 복귀 주소(origin) 복원. (없으면 SITE_URL 폴백)
-  let appOrigin = Deno.env.get('SITE_URL') ?? ''
-  try {
-    const parsed = JSON.parse(atob(state))
-    if (parsed?.r) appOrigin = parsed.r
-  } catch { /* state 파싱 실패 시 폴백 사용 */ }
+  // state 에 담긴 앱 복귀 주소(origin) 복원 — allowlist 검증(세션 유출 오픈 리다이렉트 방지).
+  const SITE_URL = Deno.env.get('SITE_URL') ?? ''
+  const appOrigin = pickSafeOrigin(state, SITE_URL)
 
   // 성공/실패 모두 앱의 /auth/callback 으로 돌려보내 일관되게 처리한다.
   const redirectApp = (params: string) =>

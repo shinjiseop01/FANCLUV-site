@@ -814,8 +814,25 @@ export async function requestPasswordReset(email) {
   const q = (email || '').trim()
   if (!q) return { ok: false }
   if (isSupabaseConfigured) {
-    const { error } = await supabase.auth.resetPasswordForEmail(q, { redirectTo: window.location.origin })
+    // 재설정 링크는 새 비밀번호 입력 화면(/reset-password)으로 돌려보낸다.
+    const { error } = await supabase.auth.resetPasswordForEmail(q, { redirectTo: `${window.location.origin}/reset-password` })
     return { ok: !error }
   }
   return { ok: readUsers().some(u => u.email.toLowerCase() === q.toLowerCase()) }
+}
+
+// ── 비밀번호 재설정 완료 ── 재설정 메일 링크로 들어온 복구(recovery) 세션에서
+//    새 비밀번호를 저장한다. (현재 비밀번호 없이 — 복구 세션이 인증을 대신함)
+export async function completePasswordReset(newPassword) {
+  if (!newPassword || newPassword.length < 4) return { ok: false, error: '비밀번호는 4자 이상이어야 합니다.' }
+  if (isSupabaseConfigured) {
+    // 복구 링크가 심어준 세션이 있어야 성공한다(없으면 링크 만료/무효).
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return { ok: false, error: '재설정 링크가 만료되었거나 유효하지 않습니다. 다시 요청해 주세요.', code: 'no_session' }
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) return { ok: false, error: translateAuthError(error) }
+    return { ok: true }
+  }
+  // Mock: 복구 링크 흐름이 없으므로 현재 세션 사용자의 비밀번호를 갱신.
+  return mockPatchSessionUser({ password: newPassword })
 }

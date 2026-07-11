@@ -22,6 +22,7 @@ import AuthCallbackPage from './AuthCallbackPage.jsx'
 const SignupPage = lazy(() => import('./SignupPage.jsx'))
 const FindIdPage = lazy(() => import('./FindIdPage.jsx'))
 const FindPasswordPage = lazy(() => import('./FindPasswordPage.jsx'))
+const ResetPasswordPage = lazy(() => import('./ResetPasswordPage.jsx'))
 const VerifyEmailPage = lazy(() => import('./VerifyEmailPage.jsx'))
 const OnboardingPage = lazy(() => import('./OnboardingPage.jsx'))
 const VerifyIdentityPage = lazy(() => import('./VerifyIdentityPage.jsx'))
@@ -135,6 +136,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/find-id" element={<FindIdPage />} />
         <Route path="/find-password" element={<FindPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email" element={<RequireAuth><VerifyEmailPage /></RequireAuth>} />
         <Route path="/onboarding" element={<RequireAuth><OnboardingPage /></RequireAuth>} />
         <Route path="/verify-identity" element={<RequireAuth><VerifyIdentityPage /></RequireAuth>} />

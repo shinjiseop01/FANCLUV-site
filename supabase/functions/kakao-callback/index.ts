@@ -26,6 +26,22 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const KAKAO_TOKEN_URL = 'https://kauth.kakao.com/oauth/token'
 const KAKAO_PROFILE_URL = 'https://kapi.kakao.com/v2/user/me'
 
+// state(클라이언트 생성) 로 넘어온 복귀 origin 을 allowlist 로 검증한다.
+// 허용: SITE_URL + ALLOWED_ORIGINS(쉼표구분, 프리뷰/로컬 등). 그 외는 SITE_URL 로 강제.
+function pickSafeOrigin(state: string, siteUrl: string): string {
+  const allow = new Set(
+    [siteUrl, ...(Deno.env.get('ALLOWED_ORIGINS') ?? '').split(',')]
+      .map((s) => s.trim().replace(/\/$/, ''))
+      .filter(Boolean),
+  )
+  try {
+    const parsed = JSON.parse(atob(state))
+    const cand = String(parsed?.r ?? '').trim().replace(/\/$/, '')
+    if (cand && allow.has(cand)) return cand
+  } catch { /* 파싱 실패 → siteUrl 폴백 */ }
+  return siteUrl
+}
+
 Deno.serve(async (req) => {
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
@@ -33,11 +49,12 @@ Deno.serve(async (req) => {
   const kakaoError = url.searchParams.get('error')
 
   // state 에 담긴 앱 복귀 주소(origin) 복원(없으면 SITE_URL 폴백).
-  let appOrigin = Deno.env.get('SITE_URL') ?? ''
-  try {
-    const parsed = JSON.parse(atob(state))
-    if (parsed?.r) appOrigin = parsed.r
-  } catch { /* 폴백 사용 */ }
+  // ⚠️ 보안: state 는 클라이언트가 만들 수 있으므로 origin 을 그대로 신뢰하면
+  //   공격자가 r=https://evil.com 을 심어 세션이 담긴 magiclink 를 외부로 유출시킬 수
+  //   있다(오픈 리다이렉트→토큰 탈취). 반드시 allowlist(SITE_URL + ALLOWED_ORIGINS)
+  //   에 포함된 origin 만 허용하고, 아니면 SITE_URL 로 강제한다.
+  const SITE_URL = Deno.env.get('SITE_URL') ?? ''
+  const appOrigin = pickSafeOrigin(state, SITE_URL)
 
   const redirectApp = (params: string) =>
     Response.redirect(`${appOrigin || 'https://example.com'}/auth/callback?${params}`, 302)
