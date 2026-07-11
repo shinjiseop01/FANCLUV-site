@@ -7,7 +7,7 @@ import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import Icon from './components/Icon.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
-import { loadStandings, loadMatchData, refreshMatch, isLeagueApiConfigured } from './lib/matchRepo.js'
+import { loadStandings, loadMatchData, refreshMatch, isLeagueApiConfigured, isLeagueUnconfigured } from './lib/matchRepo.js'
 import DemoBadge from './components/DemoBadge.jsx'
 import './ClubHomePage.css'
 import './MatchCenterPage.css'
@@ -108,7 +108,16 @@ export default function MatchCenterPage() {
 
       {/* ── Main ── */}
       <main className="mc-main">
-        {loading ? <SkeletonList count={4} lines={2} /> : (error || !data) ? (
+        {isLeagueUnconfigured ? (
+          /* 프로덕션 · 실제 공급원 미설정 → Mock 노출 금지, "준비 중" + 공식 페이지 링크 */
+          <EmptyState
+            iconName="ball"
+            title={t('match.providerPendingTitle')}
+            message={t('match.providerPendingMsg')}
+            ctaLabel={t('match.officialCta')}
+            onCta={() => window.open('https://www.kleague.com', '_blank', 'noopener,noreferrer')}
+          />
+        ) : loading ? <SkeletonList count={4} lines={2} /> : (error || !data || !next) ? (
           <EmptyState
             iconName="ball"
             title={t('match.emptyTitle')}

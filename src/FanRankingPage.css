@@ -281,3 +281,16 @@
 
 /* 오늘 활동 pending (다음날 00시 반영) */
 .fr-pending { margin-top: 12px; font-size: 12.5px; font-weight: 700; color: var(--team-deep); background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); border-radius: 8px; padding: 8px 12px; text-align: center; }
+
+/* ── 실데이터 랭킹 추가 스타일 ── */
+.fr-myrank-none { font-size: 14px; color: var(--muted); padding: 8px 0 4px; line-height: 1.5; }
+.fr-score-detail {
+  margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border);
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline;
+}
+.fr-score-detail-title { font-size: 12.5px; font-weight: 700; color: var(--muted); width: 100%; }
+.fr-score-line { font-size: 13px; color: var(--body); }
+.fr-score-line em { font-style: normal; font-weight: 700; color: var(--ink); }
+.fr-score-total { font-size: 14px; font-weight: 800; color: var(--team-deep); margin-left: auto; }
+.fr-row.me { background: color-mix(in srgb, var(--team) 10%, var(--canvas)); border-radius: 10px; }
+.fr-update-note { font-size: 11.5px; font-weight: 500; color: var(--muted); margin-left: 8px; }

@@ -1,86 +1,37 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
-import { getActivityScore } from './lib/activityScore.js'
-import { getTeam, teamName, TEAMS, TeamEmblem, menuPath } from './teams.jsx'
+import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import RankIcon from './components/RankIcon.jsx'
+import Avatar from './components/Avatar.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
-import { useFakeLoading } from './lib/useFakeLoading.js'
+import { getRanking, getMyRank } from './lib/rankingRepo.js'
+import { ACTIVITY_POINTS } from './lib/activityScore.js'
+import { subscribeChanges } from './lib/realtime.js'
 import './ClubHomePage.css'
 import './FanRankingPage.css'
 
-// Mock data is always present; flip to false to preview the empty state.
-const HAS_RANKING = true
-
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
-// fans competing across the whole league
-const LEAGUE_NAMES = [
-  '블루윙', '레전드7', '직관러', '서포터K', '풋볼러버', '응원단장', '굿즈수집가', '시즌권홀더',
-  '평일직관', '홈경기지킴이', '원정메이트', '풋볼맘', '필드의신', '12번째선수', '북패치', '응원가장인',
-  '티켓요정', '골넣자', '주말축구', '클린시트', '미드필더', '라스트맨', '풋살왕', '관중석불꽃',
-  '응원봉', '한일전', '스카프부대', '코너킥', '오프사이드', '해트트릭', '캡틴리더', '벤치워머',
-  '풋볼다이어리', '경기장로컬', '시즌초심', '득점왕팬', '왼발잡이', '풀타임직관', '응원리더', '데이터팬',
-  '하프타임', '추가시간', '득점기계', '리그광', '구단사랑', '인저리타임', '백넘버', '잔디남',
-  '응원폼', '풋볼브레인',
-]
-// fans within our own club
-const CLUB_NAMES = [
-  '홈경기단골', '시즌권1호', '울트라스', '직관마스터', '응원대장', '굿즈덕후', '원정버스', '깃발지기',
-  '북소리', '응원가왕', '골세리머니', '팬존터줏대감', '하이파이브', '스카프장인', '경기장요정', '주말직관러',
-  '12th맨', '클럽러버', '서포터스', '응원불사조', '관중석터줏', '풀스타디움', '티켓헌터', '레전드팬',
-]
-
 const CRITERIA = [
-  { key: 'score', label: '활동 점수', unit: '점' },
-  { key: 'opinions', label: '의견 작성', unit: '건' },
-  { key: 'comments', label: '댓글 작성', unit: '개' },
-  { key: 'surveys', label: '설문 참여', unit: '회' },
-  { key: 'empathy', label: '공감 받은 수', unit: '개' },
+  { key: 'score', unit: '점' },
+  { key: 'opinions', unit: '건' },
+  { key: 'comments', unit: '개' },
+  { key: 'surveys', unit: '회' },
+  { key: 'empathy', unit: '개' },
 ]
-
-function hash(str) {
-  let h = 2166136261
-  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) }
-  return h >>> 0
-}
-function fanMetrics(key) {
-  const h = hash(key)
-  return {
-    score: 380 + (h % 1500),
-    opinions: 4 + ((h >> 3) % 64),
-    comments: 8 + ((h >> 6) % 190),
-    surveys: 1 + ((h >> 9) % 42),
-    empathy: 18 + ((h >> 12) % 620),
-    change: (h % 7) - 3, // -3 ~ +3
-  }
-}
-
 const CRIT_KEY = { score: 'rank.critScore', opinions: 'rank.critOpinions', comments: 'rank.critComments', surveys: 'rank.critSurveys', empathy: 'rank.critEmpathy' }
-
-// 1·2·3위 메달 색상 (금 / 은 / 동)
 const MEDAL_COLORS = ['#E8B33D', '#A9B2BD', '#C77B45']
 
-// my rank (mock) per scope
-const MY = {
-  league: { total: 12483, rank: 328, change: 5, score: 245, opinions: 18, comments: 64, surveys: 9, empathy: 320 },
-  club: { total: 1428, rank: 15, change: 2, score: 245, opinions: 18, comments: 64, surveys: 9, empathy: 320 },
-}
-
-const WEEK_STATS = [
-  { key: 'opinions', icon: 'opinions', label: '가장 많은 의견 작성', name: '블루윙', value: '32건' },
-  { key: 'comments', icon: 'comments', label: '가장 많은 댓글', name: '레전드7', value: '128개' },
-  { key: 'surveys', icon: 'surveys', label: '가장 많은 설문 참여', name: '서포터K', value: '19회' },
-  { key: 'empathy', icon: 'empathy', label: '가장 많은 공감', name: '직관러', value: '540개' },
-]
+// 점수 정책(단일 소스: activityScore.ACTIVITY_POINTS = DB 0041 와 동일)
 const SCORE_RULES = [
-  { label: '의견 작성', points: '+10점' },
-  { label: '댓글 작성', points: '+3점' },
-  { label: '설문 참여', points: '+5점' },
-  { label: '공감 받기', points: '+2점' },
+  { label: '의견 작성', points: `+${ACTIVITY_POINTS.opinion}점` },
+  { label: '댓글 작성', points: `+${ACTIVITY_POINTS.comment}점` },
+  { label: '설문 참여', points: `+${ACTIVITY_POINTS.survey}점` },
+  { label: '공감 받기', points: `+${ACTIVITY_POINTS.like}점` },
 ]
 const LEVELS = [
   { icon: 'rookie', name: 'Rookie Fan', min: 0 },
@@ -88,42 +39,67 @@ const LEVELS = [
   { icon: 'super', name: 'Super Fan', min: 600 },
   { icon: 'legend', name: 'Legend Fan', min: 1200 },
 ]
-const BADGES = [
-  { icon: 'opinions', label: '첫 의견 작성', desc: '의견 1건 작성하기', done: true },
-  { icon: 'comments', label: '댓글 10개 작성', desc: '댓글 10개 남기기', progress: 70 },
-  { icon: 'surveys', label: '설문 5회 참여', desc: '설문 5회 참여하기', progress: 40 },
-  { icon: 'empathy', label: '공감 50개 받기', desc: '내 의견에 공감 50개', progress: 24 },
-]
 
 function Change({ value }) {
-  if (value > 0) return <span className="fr-chg up" title="상승">▲ {value}</span>
-  if (value < 0) return <span className="fr-chg down" title="하락">▼ {Math.abs(value)}</span>
-  return <span className="fr-chg same" title="변동 없음">—</span>
+  // 실제 지난주 대비 변동 데이터가 없으면 표시하지 않는다(가짜 화살표 금지).
+  if (value == null) return null
+  if (value > 0) return <span className="fr-chg up">▲ {value}</span>
+  if (value < 0) return <span className="fr-chg down">▼ {Math.abs(value)}</span>
+  return <span className="fr-chg same">—</span>
 }
 
 export default function FanRankingPage() {
-  const NICKNAME = getCurrentUser()?.nickname || '팬'
+  const me = getCurrentUser()
+  const NICKNAME = me?.nickname || '팬'
   const { teamId } = useParams()
   const navigate = useNavigate()
   const team = getTeam(teamId)
   const { lang, t } = useLang()
-  const loading = useFakeLoading()
-  const [scope, setScope] = useState('league') // 'league' | 'club'
-  const [criteria, setCriteria] = useState('score')
-  const [expanded, setExpanded] = useState(false) // 랭킹 목록: 기본 20위까지, 더보기 시 50위까지
 
-  // build + sort the ranking for current scope/criteria
+  const [scope, setScope] = useState('league') // 'league'(전체) | 'club'(팀별)
+  const [criteria, setCriteria] = useState('score')
+  const [expanded, setExpanded] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState({ source: 'live', rows: [], updatedAt: null })
+  const [mine, setMine] = useState({ rank: null, total: 0, score: 0, opinions: 0, comments: 0, surveys: 0, empathy: 0, source: 'live' })
+  const debounceRef = useRef(null)
+
+  const scopeTeamId = scope === 'club' ? team?.id || null : null
+
+  const load = useCallback(() => {
+    if (!team) return
+    let active = true
+    setLoading(true)
+    Promise.all([getRanking(scopeTeamId), getMyRank(me?.id, scopeTeamId)])
+      .then(([rk, my]) => { if (!active) return; setData(rk); setMine(my); setLoading(false) })
+      .catch(() => { if (active) { setData({ source: 'error', rows: [], updatedAt: null }); setLoading(false) } })
+    return () => { active = false }
+  }, [team, scopeTeamId, me?.id])
+
+  useEffect(() => { const cleanup = load(); return cleanup }, [load])
+
+  // 실시간: 의견/댓글/설문/공감 변화 시 debounce 후 랭킹 재조회(과도한 재조회 방지).
+  useEffect(() => {
+    const unsub = subscribeChanges(['opinions', 'comments', 'likes', 'survey_responses'], () => {
+      clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => load(), 1500)
+    })
+    return () => { clearTimeout(debounceRef.current); unsub && unsub() }
+  }, [load])
+
+  // 페이지 포커스 복귀 시 재조회
+  useEffect(() => {
+    const onFocus = () => load()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [load])
+
+  // 선택 기준으로 재정렬(랭크 위치는 현재 뷰 기준 idx+1).
   const ranking = useMemo(() => {
-    if (!team) return []
-    const fans =
-      scope === 'league'
-        ? LEAGUE_NAMES.map((name, i) => ({ name, team: TEAMS[(i * 3 + 1) % TEAMS.length], ...fanMetrics(name) }))
-        : CLUB_NAMES.map(name => ({ name, team, ...fanMetrics(name + team.id) }))
-    return fans
-      .slice()
-      .sort((a, b) => b[criteria] - a[criteria])
-      .map((f, i) => ({ ...f, rank: i + 1 }))
-  }, [team, scope, criteria])
+    const rows = [...(data.rows || [])]
+    if (criteria !== 'score') rows.sort((a, b) => b[criteria] - a[criteria])
+    return rows.map((r, i) => ({ ...r, viewRank: i + 1 }))
+  }, [data.rows, criteria])
 
   if (!team) {
     return (
@@ -135,41 +111,54 @@ export default function FanRankingPage() {
   }
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
-  const goWrite = () => navigate(`/club/${team.id}/write`)
-  const goSurvey = () => navigate(`/club/${team.id}/survey`)
-
   const crit = CRITERIA.find(c => c.key === criteria)
-  const fmt = v => v.toLocaleString()
-  // 활동 점수는 다음날 00시 반영 — 오늘 활동은 pending(내일 반영).
-  const activity = getActivityScore()
-  const baseMine = MY[scope]
-  const mine = { ...baseMine, score: baseMine.score + activity.reflected }
-  const myValue = criteria === 'score' ? mine.score : mine[criteria]
-  const scopeLabel = scope === 'league' ? t('rank.tabLeague') : t('rank.tabClub')
   const critLabel = t(CRIT_KEY[criteria])
+  const fmt = v => (Number(v) || 0).toLocaleString()
+  const scopeLabel = scope === 'league' ? t('rank.tabLeague') : t('rank.tabClub')
 
-  // my level (from activity score)
+  const myValue = criteria === 'score' ? mine.score : mine[criteria]
+  const hasRank = mine.rank != null
+
+  // 내 레벨(실제 점수 기준)
   let myLevelIdx = 0
-  for (let i = LEVELS.length - 1; i >= 0; i--) {
-    if (mine.score >= LEVELS[i].min) { myLevelIdx = i; break }
-  }
+  for (let i = LEVELS.length - 1; i >= 0; i--) { if (mine.score >= LEVELS[i].min) { myLevelIdx = i; break } }
   const myLevel = LEVELS[myLevelIdx]
   const nextLevel = LEVELS[myLevelIdx + 1]
-  const levelProgress = nextLevel
-    ? Math.min(100, Math.round(((mine.score - myLevel.min) / (nextLevel.min - myLevel.min)) * 100))
-    : 100
-  const percentile = Math.max(1, Math.round((mine.rank / mine.total) * 100))
+  const levelProgress = nextLevel ? Math.min(100, Math.round(((mine.score - myLevel.min) / (nextLevel.min - myLevel.min)) * 100)) : 100
+  const percentile = hasRank && mine.total ? Math.max(1, Math.round((mine.rank / mine.total) * 100)) : null
 
   const top3 = ranking.slice(0, 3)
-  const rest = ranking.slice(3, 50)
-  // 기본은 1~20위까지만(상위 3위는 포디움, 목록은 4~20위) → "더보기" 시 50위까지.
-  const visibleRest = expanded ? rest : rest.filter(p => p.rank <= 20)
-  const canExpand = rest.some(p => p.rank > 20)
+  const rest = ranking.slice(3)
+  const visibleRest = expanded ? rest : rest.filter(p => p.viewRank <= 20)
+  const canExpand = rest.some(p => p.viewRank > 20)
+  const isEmpty = !loading && ranking.length === 0
+  const isError = data.source === 'error'
+
+  // 내 점수 상세(실제 집계)
+  const breakdown = [
+    { label: t('rank.critOpinions'), n: mine.opinions, pt: ACTIVITY_POINTS.opinion },
+    { label: t('rank.critComments'), n: mine.comments, pt: ACTIVITY_POINTS.comment },
+    { label: t('rank.critSurveys'), n: mine.surveys, pt: ACTIVITY_POINTS.survey },
+    { label: t('rank.critEmpathy'), n: mine.empathy, pt: ACTIVITY_POINTS.like },
+  ]
+
+  // 주간(현 기준) 최다 활동자 — 실제 랭킹에서 파생(가짜 데이터 아님)
+  const topByMetric = (key) => {
+    let best = null
+    for (const r of data.rows || []) if (!best || r[key] > best[key]) best = r
+    return best && best[key] > 0 ? best : null
+  }
+
+  // 실제 배지 진행도
+  const badges = [
+    { icon: 'opinions', label: t('rank.badgeOpinion'), target: 1, cur: mine.opinions },
+    { icon: 'comments', label: t('rank.badgeComment'), target: 10, cur: mine.comments },
+    { icon: 'surveys', label: t('rank.badgeSurvey'), target: 5, cur: mine.surveys },
+    { icon: 'empathy', label: t('rank.badgeEmpathy'), target: 50, cur: mine.empathy },
+  ].map(b => ({ ...b, done: b.cur >= b.target, progress: Math.min(100, Math.round((b.cur / b.target) * 100)) }))
 
   return (
     <div className="ch-root" style={themeStyle}>
-
-      {/* ── Header (shared style) ── */}
       <header className="ch-header">
         <div className="ch-topbar">
           <div className="ch-logo" role="button" tabIndex={0} onClick={() => navigate(`/club/${teamId}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/club/${teamId}`) } }}>FANCLUV</div>
@@ -198,14 +187,7 @@ export default function FanRankingPage() {
         </nav>
       </header>
 
-      {/* ── Main ── */}
       <main className="fr-main">
-        {loading ? (
-          <SkeletonList count={5} lines={1} />
-        ) : !HAS_RANKING ? (
-          <EmptyState icon={<RankIcon name="legend" size={30} />} title={t('empty.rankingTitle')} message={t('empty.rankingMsg')} />
-        ) : (
-        <>
         <section className="fr-pagehead">
           <h1>{t('rank.title')}</h1>
           <p>{t('rank.subtitle')}</p>
@@ -213,78 +195,85 @@ export default function FanRankingPage() {
 
         {/* Scope tabs */}
         <div className="fr-tabs" role="tablist" aria-label="랭킹 범위">
-          <button role="tab" aria-selected={scope === 'league'}
-            className={`fr-tab${scope === 'league' ? ' on' : ''}`} onClick={() => setScope('league')}>
-            {t('rank.tabLeague')}
-          </button>
-          <button role="tab" aria-selected={scope === 'club'}
-            className={`fr-tab${scope === 'club' ? ' on' : ''}`} onClick={() => setScope('club')}>
-            {t('rank.tabClub')}
-          </button>
+          <button role="tab" aria-selected={scope === 'league'} className={`fr-tab${scope === 'league' ? ' on' : ''}`} onClick={() => { setScope('league'); setExpanded(false) }}>{t('rank.tabLeague')}</button>
+          <button role="tab" aria-selected={scope === 'club'} className={`fr-tab${scope === 'club' ? ' on' : ''}`} onClick={() => { setScope('club'); setExpanded(false) }}>{t('rank.tabClub')}</button>
         </div>
 
         {/* Criteria filter */}
         <div className="fr-criteria" role="group" aria-label="랭킹 기준">
           {CRITERIA.map(c => (
-            <button key={c.key} className={`fr-crit${criteria === c.key ? ' on' : ''}`}
-              onClick={() => setCriteria(c.key)}>{t(CRIT_KEY[c.key])}</button>
+            <button key={c.key} className={`fr-crit${criteria === c.key ? ' on' : ''}`} onClick={() => setCriteria(c.key)}>{t(CRIT_KEY[c.key])}</button>
           ))}
         </div>
 
+        {loading ? (
+          <SkeletonList count={6} lines={1} />
+        ) : isError ? (
+          <EmptyState icon={<RankIcon name="legend" size={30} />} title={t('rank.errorTitle')} message={t('rank.errorMsg')} />
+        ) : (
         <div className="fr-grid">
-          {/* Left 70% */}
           <div className="fr-col-main">
-
-            {/* TOP 3 */}
-            <section className="fr-top3" aria-label="TOP 3">
-              {[top3[1], top3[0], top3[2]].map(p => {
-                if (!p) return null
-                const center = p.rank === 1
-                return (
-                  <div key={p.rank} className={`fr-podium r${p.rank}${center ? ' first' : ''}`}>
-                    <div className="fr-medal" aria-hidden="true">
-                      <RankIcon name="medal" size={center ? 36 : 30} style={{ color: MEDAL_COLORS[p.rank - 1] }} />
-                    </div>
-                    <span className="fr-podium-avatar">{p.name[0]}</span>
-                    <span className="fr-podium-name">{p.name}</span>
-                    <span className="fr-podium-team">
-                      <TeamEmblem color={p.team.color} size={16} /> {p.team.short}
-                    </span>
-                    <span className="fr-podium-score">{fmt(p[criteria])}<em>{crit.unit}</em></span>
-                    <span className="fr-podium-rank">{p.rank}위 <Change value={p.change} /></span>
-                  </div>
-                )
-              })}
-            </section>
 
             {/* My rank */}
             <section className="fr-myrank">
               <div className="fr-myrank-head">
-                <span className="fr-myrank-avatar">{NICKNAME[0]}</span>
+                <Avatar name={NICKNAME} src={me?.avatarUrl} size={38} />
                 <div>
                   <span className="fr-myrank-name">{t('rank.myRank', { name: NICKNAME })}</span>
                   <span className="fr-myrank-level"><RankIcon name={myLevel.icon} size={15} /> {myLevel.name}</span>
                 </div>
                 <span className="fr-myrank-scope">{scopeLabel}</span>
               </div>
-              <div className="fr-myrank-stats">
-                <div className="fr-myrank-stat">
-                  <span className="fr-myrank-value">{fmt(mine.rank)}<em>위</em></span>
-                  <span className="fr-myrank-label">/ {fmt(mine.total)}명 중</span>
+              {hasRank ? (
+                <div className="fr-myrank-stats">
+                  <div className="fr-myrank-stat">
+                    <span className="fr-myrank-value">{fmt(mine.rank)}<em>위</em></span>
+                    <span className="fr-myrank-label">/ {fmt(mine.total)}{t('rank.ofN')}</span>
+                  </div>
+                  <div className="fr-myrank-stat">
+                    <span className="fr-myrank-value">{fmt(myValue)}<em>{crit.unit}</em></span>
+                    <span className="fr-myrank-label">{critLabel}</span>
+                  </div>
+                  {percentile != null && (
+                    <div className="fr-myrank-stat">
+                      <span className="fr-myrank-value">{t('rank.topPct', { p: percentile })}</span>
+                      <span className="fr-myrank-label">{t('rank.percentile')}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="fr-myrank-stat">
-                  <span className="fr-myrank-value">{fmt(myValue)}<em>{crit.unit}</em></span>
-                  <span className="fr-myrank-label">{critLabel}</span>
-                </div>
-                <div className="fr-myrank-stat">
-                  <span className="fr-myrank-value fr-myrank-chg"><Change value={mine.change} /></span>
-                  <span className="fr-myrank-label">지난주 대비</span>
-                </div>
+              ) : (
+                <p className="fr-myrank-none">{t('rank.noRankYet')}</p>
+              )}
+              {/* 점수 상세(실제 집계) */}
+              <div className="fr-score-detail">
+                <span className="fr-score-detail-title">{t('rank.scoreBreakdown')}</span>
+                {breakdown.map(b => (
+                  <span key={b.label} className="fr-score-line">{b.label} {b.n}×{b.pt} = <em>{b.n * b.pt}{t('rank.pt')}</em></span>
+                ))}
+                <span className="fr-score-total">{t('rank.totalScore', { n: fmt(mine.score) })}</span>
               </div>
-              <p className="fr-myrank-hint">
-                현재 상위 <strong>{percentile}%</strong> 입니다. 의견을 하나 더 남기면 순위가 올라가요!
-              </p>
-              <div className="fr-myrank-bar"><span style={{ width: `${100 - percentile}%` }} /></div>
+            </section>
+
+            {isEmpty ? (
+              <EmptyState icon={<RankIcon name="legend" size={30} />} title={t('rank.emptyTitle')} message={t('rank.emptyMsg')} />
+            ) : (
+            <>
+            {/* TOP 3 */}
+            <section className="fr-top3" aria-label="TOP 3">
+              {[top3[1], top3[0], top3[2]].map(p => {
+                if (!p) return null
+                const center = p.viewRank === 1
+                return (
+                  <div key={p.userId} className={`fr-podium r${p.viewRank}${center ? ' first' : ''}`}>
+                    <div className="fr-medal" aria-hidden="true"><RankIcon name="medal" size={center ? 36 : 30} style={{ color: MEDAL_COLORS[p.viewRank - 1] }} /></div>
+                    <Avatar name={p.nickname} src={p.avatarUrl} size={center ? 52 : 44} />
+                    <span className="fr-podium-name">{p.nickname}</span>
+                    {p.team && <span className="fr-podium-team"><TeamEmblem color={p.team.color} size={16} /> {p.team.short}</span>}
+                    <span className="fr-podium-score">{fmt(p[criteria])}<em>{crit.unit}</em></span>
+                    <span className="fr-podium-rank">{p.viewRank}위</span>
+                  </div>
+                )
+              })}
             </section>
 
             {/* Full ranking */}
@@ -292,18 +281,17 @@ export default function FanRankingPage() {
               <div className="fr-panel-head">
                 <h2 className="fr-panel-title">
                   {scopeLabel} {t('rank.top50')}
-                  <span className="fr-update-note">{t('rank.updateNote')}</span>
+                  {data.updatedAt && <span className="fr-update-note">{t('rank.updatedAt', { time: new Date(data.updatedAt).toLocaleTimeString(lang === 'en' ? 'en-US' : 'ko-KR', { hour: '2-digit', minute: '2-digit' }) })}</span>}
                 </h2>
                 <span className="fr-week">{t('rank.criteriaBasis', { c: critLabel })}</span>
               </div>
               <ul className={`fr-list ${scope}`}>
                 {visibleRest.map(p => (
-                  <li key={p.rank} className="fr-row">
-                    <span className="fr-rank">{p.rank}</span>
-                    <span className="fr-rowchg"><Change value={p.change} /></span>
-                    <span className="fr-avatar">{p.name[0]}</span>
-                    <span className="fr-name">{p.name}</span>
-                    {scope === 'league' && (
+                  <li key={p.userId} className={`fr-row${p.userId === me?.id ? ' me' : ''}`}>
+                    <span className="fr-rank">{p.viewRank}</span>
+                    <Avatar name={p.nickname} src={p.avatarUrl} size={30} />
+                    <span className="fr-name">{p.nickname}</span>
+                    {scope === 'league' && p.team && (
                       <span className="fr-team"><TeamEmblem color={p.team.color} size={18} /> {teamName(p.team, lang)}</span>
                     )}
                     <span className="fr-score">{fmt(p[criteria])}{crit.unit}</span>
@@ -313,30 +301,32 @@ export default function FanRankingPage() {
               {canExpand && (
                 <button type="button" className="fr-more-btn" onClick={() => setExpanded(v => !v)}>
                   {expanded ? t('rank.showLess') : t('rank.showMore')}
-                  <svg viewBox="0 0 20 20" fill="none" className={`fr-more-ic${expanded ? ' up' : ''}`} aria-hidden="true">
-                    <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                  <svg viewBox="0 0 20 20" fill="none" className={`fr-more-ic${expanded ? ' up' : ''}`} aria-hidden="true"><path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </button>
               )}
             </section>
+            </>
+            )}
           </div>
 
-          {/* Right 30% */}
+          {/* Right */}
           <aside className="fr-col-side">
-
-            {/* Week stats */}
+            {/* Top per metric (실제 파생) */}
             <section className="fr-panel">
-              <h2 className="fr-panel-title">{t('rank.weekActivity')}</h2>
+              <h2 className="fr-panel-title">{t('rank.topActivity')}</h2>
               <div className="fr-weekstats">
-                {WEEK_STATS.map(s => (
-                  <div key={s.key} className="fr-weekstat">
-                    <span className="fr-weekstat-icon" aria-hidden="true"><RankIcon name={s.icon} size={20} /></span>
-                    <div className="fr-weekstat-body">
-                      <span className="fr-weekstat-label">{s.label}</span>
-                      <span className="fr-weekstat-name">{s.name} · {s.value}</span>
+                {[['opinions', 'rank.critOpinions', '건'], ['comments', 'rank.critComments', '개'], ['surveys', 'rank.critSurveys', '회'], ['empathy', 'rank.critEmpathy', '개']].map(([key, lk, unit]) => {
+                  const b = topByMetric(key)
+                  return (
+                    <div key={key} className="fr-weekstat">
+                      <span className="fr-weekstat-icon" aria-hidden="true"><RankIcon name={key} size={20} /></span>
+                      <div className="fr-weekstat-body">
+                        <span className="fr-weekstat-label">{t(lk)}</span>
+                        <span className="fr-weekstat-name">{b ? `${b.nickname} · ${fmt(b[key])}${unit}` : t('rank.noneYet')}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </section>
 
@@ -348,33 +338,31 @@ export default function FanRankingPage() {
                   <div key={lv.name} className={`fr-level${i === myLevelIdx ? ' on' : ''}`}>
                     <span className="fr-level-emoji" aria-hidden="true"><RankIcon name={lv.icon} size={18} /></span>
                     <span className="fr-level-name">{lv.name}</span>
-                    {i === myLevelIdx && <span className="fr-level-tag">현재</span>}
+                    {i === myLevelIdx && <span className="fr-level-tag">{t('rank.current')}</span>}
                   </div>
                 ))}
               </div>
               {nextLevel && (
                 <>
                   <div className="fr-level-bar"><span style={{ width: `${levelProgress}%` }} /></div>
-                  <p className="fr-level-hint">다음 레벨 <strong><RankIcon name={nextLevel.icon} size={14} /> {nextLevel.name}</strong>까지 {levelProgress}%</p>
+                  <p className="fr-level-hint">{t('rank.toNext', { name: nextLevel.name, p: levelProgress })}</p>
                 </>
               )}
-              <div className="fr-rules">
-                {SCORE_RULES.map(r => (
-                  <span key={r.label} className="fr-rule">{r.label} <em>{r.points}</em></span>
-                ))}
+              <div className="fr-rules" title={t('rank.scoreBasisHint')}>
+                {SCORE_RULES.map(r => (<span key={r.label} className="fr-rule">{r.label} <em>{r.points}</em></span>))}
               </div>
             </section>
 
-            {/* Badges */}
+            {/* Badges (실제 진행도) */}
             <section className="fr-panel">
               <h2 className="fr-panel-title">{t('rank.badges')}</h2>
               <div className="fr-badges">
-                {BADGES.map(b => (
+                {badges.map(b => (
                   <div key={b.label} className={`fr-badge${b.done ? ' done' : ''}`}>
                     <span className="fr-badge-icon" aria-hidden="true"><RankIcon name={b.icon} size={20} /></span>
                     <div className="fr-badge-body">
-                      <span className="fr-badge-label">{b.label}{b.done && <span className="fr-badge-done">획득 완료</span>}</span>
-                      <span className="fr-badge-desc">{b.desc}</span>
+                      <span className="fr-badge-label">{b.label}{b.done && <span className="fr-badge-done">{t('rank.badgeDone')}</span>}</span>
+                      <span className="fr-badge-desc">{b.cur} / {b.target}</span>
                       {!b.done && <span className="fr-badge-bar"><span style={{ width: `${b.progress}%` }} /></span>}
                     </div>
                   </div>
@@ -382,15 +370,13 @@ export default function FanRankingPage() {
               </div>
             </section>
 
-            {/* CTA */}
             <section className="fr-cta">
               <p className="fr-cta-text">{t('rank.ctaText')}</p>
-              <button className="fr-cta-btn primary" onClick={goWrite}><RankIcon name="opinions" size={16} /> {t('rank.ctaWrite')}</button>
-              <button className="fr-cta-btn secondary" onClick={goSurvey}><RankIcon name="surveys" size={16} /> {t('rank.ctaSurvey')}</button>
+              <button className="fr-cta-btn primary" onClick={() => navigate(`/club/${team.id}/write`)}><RankIcon name="opinions" size={16} /> {t('rank.ctaWrite')}</button>
+              <button className="fr-cta-btn secondary" onClick={() => navigate(`/club/${team.id}/survey`)}><RankIcon name="surveys" size={16} /> {t('rank.ctaSurvey')}</button>
             </section>
           </aside>
         </div>
-        </>
         )}
       </main>
     </div>

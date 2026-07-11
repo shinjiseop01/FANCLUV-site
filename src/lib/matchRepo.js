@@ -4,12 +4,14 @@
 // 여기서 화면 렌더에 쓰기 좋은 형태(team 객체 포함)로 변환한다. 화면은 이 repo 만 호출한다.
 // 실제 API↔Mock 전환·5분 캐시·폴백은 leagueProvider(facade)가 담당한다.
 import { getTeam } from '../teams.jsx'
-import { getStandings, getFixtures, getTeamSeason, refreshLeague, leagueMode } from '../services/league/leagueProvider.js'
+import { getStandings, getFixtures, getTeamSeason, refreshLeague, leagueMode, leagueConfigState, isLeagueProdUnconfigured } from '../services/league/leagueProvider.js'
 import { stadiumOf } from '../services/league/mockLeagueProvider.js'
 
-export { stadiumOf, getTeamSeason, leagueMode }
+export { stadiumOf, getTeamSeason, leagueMode, leagueConfigState, isLeagueProdUnconfigured }
 // 실데이터(비-Mock: edge/api) 활성 여부.
 export const isLeagueApiConfigured = leagueMode() !== 'mock'
+// 프로덕션인데 공급원 미설정(=Mock 노출 금지, "준비 중" 표시 대상).
+export const isLeagueUnconfigured = isLeagueProdUnconfigured
 
 // 표준 경기 → 화면 경기(홈/원정 team 객체 포함)
 function toDisplayMatch(m) {
