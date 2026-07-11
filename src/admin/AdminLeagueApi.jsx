@@ -3,7 +3,7 @@ import { useLang } from '../contexts/LanguageContext.jsx'
 import Icon from '../components/Icon.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import {
-  getLeagueStatus, testLeagueApi, resetLeagueOps,
+  getLeagueStatus, testLeagueApi, resetLeagueOps, getApiQuota, forceSyncLeague,
   STANDING_FIELDS, MATCH_FIELDS, FAILURE_THRESHOLD,
 } from '../lib/admin/leagueOpsRepo.js'
 
@@ -74,14 +74,18 @@ function NormalizeBlock({ t, titleKey, fields, chk }) {
 export default function AdminLeagueApi() {
   const { t } = useLang()
   const [status, setStatus] = useState(null)
+  const [quota, setQuota] = useState(null)
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [simulate, setSimulate] = useState(false)
   const [test, setTest] = useState(null)
 
   async function refresh() {
     const s = await getLeagueStatus()
     setStatus(s); setLoading(false)
+    // 실 Provider(edge/api)일 때만 계정 quota/응답시간 조회.
+    if (s && s.mode !== 'mock') getApiQuota().then(setQuota)
   }
   useEffect(() => { refresh() }, [])
 
@@ -90,6 +94,12 @@ export default function AdminLeagueApi() {
     const res = await testLeagueApi({ simulateFail: simulate })
     setTest(res)
     setTesting(false)
+    refresh()
+  }
+  async function onForceSync() {
+    setSyncing(true)
+    await forceSyncLeague()
+    setSyncing(false)
     refresh()
   }
   async function onReset() {
@@ -114,11 +124,33 @@ export default function AdminLeagueApi() {
             <input type="checkbox" checked={simulate} onChange={e => setSimulate(e.target.checked)} />
             <span>{t('admin.lg.simulate')}</span>
           </label>
+          <button className="adm-btn-ghost" onClick={onForceSync} disabled={syncing || status.mode === 'mock'}>
+            <Icon name="refresh" size={14} className={syncing ? 'adm-spin' : ''} /> {syncing ? t('admin.lg.syncing') : t('admin.lg.forceSync')}
+          </button>
           <button className="adm-btn-primary" onClick={onTest} disabled={testing}>
             <Icon name="refresh" size={14} /> {testing ? t('admin.lg.testing') : t('admin.lg.testBtn')}
           </button>
         </div>
       </header>
+
+      {/* API 계정 상태 / quota (실 Provider 일 때) */}
+      {status.mode !== 'mock' && (
+        <section className="lg-status-card">
+          <h2 className="adm-h2 lg-section-title">{t('admin.lg.quotaTitle')}</h2>
+          <dl className="lg-status-grid">
+            <div><dt>{t('admin.lg.apiConnected')}</dt><dd>
+              {quota == null ? '…' : quota.ok
+                ? <span className="lg-src-badge lg-src-api">{t('admin.lg.connected')}</span>
+                : <span className="lg-src-badge lg-src-mock">{t('admin.lg.disconnected')}</span>}
+            </dd></div>
+            <div><dt>{t('admin.lg.responseMs')}</dt><dd>{quota?.responseMs != null ? `${quota.responseMs}ms` : '-'}</dd></div>
+            <div><dt>{t('admin.lg.todayCalls')}</dt><dd>{quota?.ok ? quota.todayCalls : '-'}{quota?.limitDay ? ` / ${quota.limitDay}` : ''}</dd></div>
+            <div><dt>{t('admin.lg.remainingCalls')}</dt><dd>{quota?.ok && quota.remaining != null ? quota.remaining : '-'}</dd></div>
+            <div><dt>{t('admin.lg.plan')}</dt><dd>{quota?.plan || '-'}</dd></div>
+            <div><dt>{t('admin.lg.lastSync')}</dt><dd>{fmt(status.lastSuccessAt)}</dd></div>
+          </dl>
+        </section>
+      )}
 
       {/* 연속 실패 임계 알림 배너 */}
       {status.alerting && (

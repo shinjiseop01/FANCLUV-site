@@ -14,6 +14,7 @@ import { peekCache } from '../cache.js'
 import { isSupabaseConfigured, supabase } from '../supabase.js'
 import { isAdmin } from '../auth.js'
 import { pushMockNotification, notifyAdmins } from '../notificationsRepo.js'
+import { invokeFunction } from '../edgeFunctions.js'
 import { logger } from '../logger.js'
 
 export const FAILURE_THRESHOLD = 3       // 연속 3회 실패 → 관리자 알림
@@ -202,4 +203,45 @@ export function resetLeagueOps() {
   ops.consecutiveFailures = 0
   ops.alertedAt = null
   writeOps(ops)
+}
+
+// ── API 계정 상태/quota (관리자 표시) ── league-fetcher status action 경유.
+//   API-FOOTBALL /status: requests.current(오늘 사용), requests.limit_day(일 한도).
+export async function getApiQuota() {
+  if (!isAdmin()) return { ok: false, error: 'forbidden' }
+  if (!isSupabaseConfigured) return { ok: false, code: 'not_configured' }
+  const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now())
+  const { data, error } = await invokeFunction('league-fetcher', { body: { action: 'status' } })
+  const responseMs = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+  if (error || !data?.ok) return { ok: false, code: data?.code || 'error', responseMs }
+  const s = data.status || {}
+  const req = s.requests || {}
+  const current = num(req.current)
+  const limitDay = num(req.limit_day)
+  return {
+    ok: true,
+    plan: s.subscription?.plan || s.account?.plan || null,
+    active: s.subscription?.active ?? null,
+    todayCalls: current,
+    limitDay,
+    remaining: limitDay ? Math.max(0, limitDay - current) : null,
+    responseMs,
+    fetchedAt: data.fetchedAt || new Date().toISOString(),
+  }
+}
+function num(v) { const n = Number(v); return isNaN(n) ? 0 : n }
+
+// ── 강제 동기화 ── 캐시 무시하고 순위+일정을 즉시 재수집(관리자 버튼).
+export async function forceSyncLeague() {
+  if (!isAdmin()) return { ok: false, error: 'forbidden' }
+  if (!isSupabaseConfigured) return { ok: false, code: 'not_configured' }
+  const results = {}
+  for (const resource of ['standings', 'fixtures']) {
+    const { data, error } = await invokeFunction('league-fetcher', { body: { resource, force: true } })
+    results[resource] = { ok: !error && !!data?.ok, source: data?.source || null, code: data?.code || null }
+  }
+  // 캐시 무효화(프론트 5분 캐시)까지 비워 즉시 최신 반영.
+  refreshLeague()
+  const ok = Object.values(results).some(r => r.ok)
+  return { ok, results, at: new Date().toISOString() }
 }
