@@ -70,26 +70,26 @@ function computeFromOpinions(rows) {
     .filter(k => k.mentions > 0)
     .sort((a, b) => b.mentions - a.mentions).slice(0, 5)
 
-  return {
-    source: 'live',
-    popularOpinions: popularOpinions.length ? popularOpinions : MOCK_POPULAR_OPINIONS,
-    popularCategories: popularCategories.length ? popularCategories : MOCK_CATEGORIES,
-    trendingKeywords: trendingKeywords.length ? trendingKeywords : MOCK_TOPICS,
-  }
+  // ⚠️ 실데이터만 반환한다. 특정 항목이 비어도 Mock 으로 채우지 않는다(빈 배열 → Empty State).
+  return { source: 'live', popularOpinions, popularCategories, trendingKeywords }
 }
 
-// 홈 인기 콘텐츠 (async, 캐시 30초). Supabase 실패/미설정 시 Mock.
+// 홈 인기 콘텐츠 (async, 캐시 30초).
+//   · Supabase(프로덕션): 실데이터만 사용. 데이터가 없으면 빈 배열(source:'live'),
+//     조회 실패면 source:'error' — 절대 Mock 으로 대체하지 않는다.
+//   · Supabase 미설정(DEV): 기존 Mock 콘텐츠로 화면 미리보기.
 export function getHomeContent(teamId) {
   return withCache(`home:${teamId}`, async () => {
     if (isSupabaseConfigured) {
-      // 일시적 오류 시 최대 3회 재시도(retrySupabase).
       const { data, error } = await retrySupabase(() => supabase
         .from('opinions_view')
         .select('id, title, body, category, likes_count, comments_count, author_nickname, created_at')
         .eq('team_id', teamId)
         .order('created_at', { ascending: false })
         .limit(200))
-      if (!error && data && data.length) return computeFromOpinions(data)
+      // 데이터 없음(정상)과 연동 실패를 구분한다.
+      if (error) return { source: 'error', popularOpinions: [], popularCategories: [], trendingKeywords: [] }
+      return computeFromOpinions(data || [])
     }
     return MOCK_CONTENT
   })
@@ -97,4 +97,23 @@ export function getHomeContent(teamId) {
 
 export function refreshHome(teamId) {
   invalidate(`home:${teamId}`)
+  invalidate(`homestats:${teamId}`)
+}
+
+// ── 팀 홈 상단 통계(팬 수/의견/댓글/공감/만족도) ──
+// Supabase(프로덕션): RPC club_home_stats 로 실제 집계. 조회 실패 시 0 + error(가짜 값 금지).
+// DEV(Mock): 팀별로 안정적인 예시 숫자(화면 미리보기용, 실서비스엔 안 나감).
+function mockClubStats(id) {
+  const seed = String(id).split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  return { fans: 2800 + (seed % 47) * 137, opinions: 1100 + (seed % 38) * 73, comments: 7400 + (seed % 53) * 191, satisfaction: 72 + (seed % 21), likes: 0, source: 'mock' }
+}
+export function getClubStats(teamId) {
+  return withCache(`homestats:${teamId}`, async () => {
+    if (isSupabaseConfigured) {
+      const { data, error } = await retrySupabase(() => supabase.rpc('club_home_stats', { p_team_id: teamId }))
+      if (error || !data) return { fans: 0, opinions: 0, comments: 0, likes: 0, satisfaction: 0, source: 'error' }
+      return { ...data, source: 'live' }
+    }
+    return mockClubStats(teamId)
+  })
 }

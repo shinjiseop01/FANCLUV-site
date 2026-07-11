@@ -6,8 +6,9 @@ import { logout, getCurrentUser } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { SkeletonList } from './components/Skeleton.jsx'
 import { relativeTime } from './lib/relativeTime.js'
-import { getHomeContent } from './lib/homeRepo.js'
-import { loadMatchData, loadStandings } from './lib/matchRepo.js'
+import { getHomeContent, getClubStats } from './lib/homeRepo.js'
+import { loadMatchData, loadStandings, isLeagueApiConfigured } from './lib/matchRepo.js'
+import { listSurveys } from './lib/surveysRepo.js'
 import Icon from './components/Icon.jsx'
 import './ClubHomePage.css'
 
@@ -15,22 +16,7 @@ import './ClubHomePage.css'
 const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
 // id 는 설문 상세 라우트(/survey/:surveyId)와 연결 — Mock 팬 설문 id 사용.
-const ONGOING_SURVEYS = [
-  { id: 'home', title: '2026 홈 유니폼 디자인 선호도', deadline: 'D-3', count: 1284 },
-  { id: 'cheer', title: '응원가 리뉴얼 의견 수렴', deadline: 'D-7', count: 842 },
-  { id: 'facility', title: '경기 시작 시간 선호 조사', deadline: 'D-12', count: 1567 },
-]
-
-// deterministic per-club stats so each page differs but stays stable
-function clubStats(id) {
-  const seed = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-  return {
-    fans: 2800 + (seed % 47) * 137,
-    opinions: 1100 + (seed % 38) * 73,
-    comments: 7400 + (seed % 53) * 191,
-    satisfaction: 72 + (seed % 21),
-  }
-}
+const EMPTY_STATS = { fans: 0, opinions: 0, comments: 0, satisfaction: 0, source: 'live' }
 
 export default function ClubHomePage() {
   const NICKNAME = getCurrentUser()?.nickname || '팬'
@@ -42,6 +28,8 @@ export default function ClubHomePage() {
   // 홈 인기 콘텐츠(인기 의견/카테고리/키워드)를 Supabase 로 계산, 아니면 Mock — homeRepo.
   const [home, setHome] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState(EMPTY_STATS)   // 실 집계(RPC club_home_stats)
+  const [surveys, setSurveys] = useState([])         // 진행 중 실제 설문
 
   // 경기/순위 — League Provider(matchRepo→leagueProvider, 5분 캐시·Mock 폴백).
   const [match, setMatch] = useState(null)
@@ -64,6 +52,8 @@ export default function ClubHomePage() {
       setHome(c)
       setLoading(false)
     })
+    getClubStats(team.id).then(s => { if (active) setStats(s) })
+    listSurveys(team.id).then(list => { if (active) setSurveys((list || []).filter(s => s.status === 'published').slice(0, 3)) })
     return () => { active = false }
   }, [team])
 
@@ -78,7 +68,6 @@ export default function ClubHomePage() {
     )
   }
 
-  const stats = clubStats(team.id)
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
 
   // 경기/순위 파생값 (League Provider)
@@ -143,9 +132,13 @@ export default function ClubHomePage() {
           {/* Left 2/3 */}
           <div className="ch-col-main">
 
-            {/* 경기 · 시즌 성적 (League Provider) */}
+            {/* 경기 · 시즌 성적 (League Provider) — 실제 공급원 연결 전에는 준비 중 표시(가짜 데이터 금지) */}
             <Panel title={t('home.matchTitle')} action={t('home.viewAll')}
               onAction={() => navigate(`/club/${team.id}/matches`)}>
+              {!isLeagueApiConfigured ? (
+                <p className="ch-match-empty">{t('home.matchProviderPending')}</p>
+              ) : (
+              <>
               <div className="ch-match">
                 {nextMatch && (
                   <div className="ch-match-row">
@@ -189,24 +182,34 @@ export default function ClubHomePage() {
                   ))}
                 </ul>
               )}
+              </>
+              )}
             </Panel>
 
             <Panel title={t('home.latestSurvey')} action={t('home.viewAll')}
               onAction={() => navigate(`/club/${team.id}/survey`)}>
-              <div className="ch-survey-feature">
-                <span className="ch-tag">진행 중 · D-5</span>
-                <h3>2026 시즌 홈 경기장 시설 만족도 조사</h3>
-                <p>올 시즌 홈 경기 관람 환경에 대한 솔직한 의견을 들려주세요. 결과는 구단에 전달됩니다.</p>
-                <div className="ch-survey-meta">
-                  <div className="ch-progress"><span style={{ width: '64%' }} /></div>
-                  <span className="ch-survey-count">1,842명 참여</span>
+              {surveys[0] ? (
+                <div className="ch-survey-feature">
+                  <span className="ch-tag">{t('survey.statusOpen')}{surveys[0].dday ? ` · D-${surveys[0].dday}` : ''}</span>
+                  <h3>{surveys[0].title}</h3>
+                  {surveys[0].desc && <p>{surveys[0].desc}</p>}
+                  <div className="ch-survey-meta">
+                    <span className="ch-survey-count">{t('survey.participants', { count: (surveys[0].participants || 0).toLocaleString() })}</span>
+                  </div>
+                  <button className="ch-btn-primary" onClick={() => navigate(`/club/${team.id}/survey/${surveys[0].id}`)}>{t('home.joinSurvey')}</button>
                 </div>
-                <button className="ch-btn-primary" onClick={() => navigate(`/club/${team.id}/survey`)}>{t('home.joinSurvey')}</button>
-              </div>
+              ) : (
+                <p className="ch-match-empty">{t('home.surveyEmpty')}</p>
+              )}
             </Panel>
 
             <Panel title={t('home.popularOpinions')} action={t('home.viewMore')}
               onAction={() => navigate(`/club/${team.id}/opinions`)}>
+              {home?.source === 'error' ? (
+                <p className="ch-match-empty">{t('home.loadError')}</p>
+              ) : (home?.popularOpinions || []).length === 0 ? (
+                <p className="ch-match-empty">{t('home.opinionsEmpty')}</p>
+              ) : (
               <ul className="ch-opinions">
                 {(home?.popularOpinions || []).map(o => (
                   <li
@@ -231,6 +234,7 @@ export default function ClubHomePage() {
                   </li>
                 ))}
               </ul>
+              )}
             </Panel>
           </div>
 
@@ -238,8 +242,11 @@ export default function ClubHomePage() {
           <aside className="ch-col-side">
 
             <Panel title={t('home.ongoingSurvey')}>
+              {surveys.length === 0 ? (
+                <p className="ch-match-empty">{t('home.surveyEmpty')}</p>
+              ) : (
               <ul className="ch-side-list">
-                {ONGOING_SURVEYS.map(s => (
+                {surveys.map(s => (
                   <li
                     key={s.id}
                     className="ch-side-survey is-link"
@@ -250,15 +257,19 @@ export default function ClubHomePage() {
                   >
                     <div>
                       <p className="ch-side-survey-title">{s.title}</p>
-                      <p className="ch-side-survey-count">{s.count.toLocaleString()}명 참여</p>
+                      <p className="ch-side-survey-count">{t('survey.participants', { count: (s.participants || 0).toLocaleString() })}</p>
                     </div>
-                    <span className="ch-deadline">{s.deadline}</span>
+                    <span className="ch-deadline">{s.dday === 0 ? 'D-DAY' : `D-${s.dday}`}</span>
                   </li>
                 ))}
               </ul>
+              )}
             </Panel>
 
             <Panel title={t('home.popularCategories')}>
+              {(home?.popularCategories || []).length === 0 ? (
+                <p className="ch-match-empty">{t('home.categoriesEmpty')}</p>
+              ) : (
               <div className="ch-cats">
                 {(home?.popularCategories || []).map(c => (
                   <button
@@ -272,9 +283,13 @@ export default function ClubHomePage() {
                   </button>
                 ))}
               </div>
+              )}
             </Panel>
 
             <Panel title={t('home.trendingTopics')}>
+              {(home?.trendingKeywords || []).length === 0 ? (
+                <p className="ch-match-empty">{t('home.topicsEmpty')}</p>
+              ) : (
               <ul className="ch-topics">
                 {(home?.trendingKeywords || []).map((topic, i) => (
                   <li key={topic.tag}>
@@ -290,6 +305,7 @@ export default function ClubHomePage() {
                   </li>
                 ))}
               </ul>
+              )}
             </Panel>
           </aside>
         </div>
