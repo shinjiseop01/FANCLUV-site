@@ -107,6 +107,12 @@ npx supabase secrets set \
 ```
 > `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` 는 자동 주입.
 > Client Secret 을 활성화하지 않았다면 `KAKAO_CLIENT_SECRET` 은 생략 가능.
+>
+> ⚠️ **보안(필수)**: 콜백은 로그인 후 돌아갈 앱 origin 을 **allowlist** 로 검증한다.
+> `SITE_URL`(정식 origin)을 **반드시** 설정해야 커스텀 OAuth(Kakao/Naver)가 동작한다.
+> 미설정 시 세션 유출 방지를 위해 안전 폴백(SITE_URL)로 강제되어 로그인이 실패한다.
+> 프리뷰 등 추가 origin 을 허용하려면 `ALLOWED_ORIGINS=https://a.com,https://b.com`
+> (쉼표구분) 을 함께 설정한다. (`kakao-callback`/`naver-callback` 공통)
 
 ### 3-3. 프론트에 Kakao REST API 키 노출 (authorize 이동용, 공개값)
 Vercel → Settings → Environment Variables (로컬은 `.env`):
