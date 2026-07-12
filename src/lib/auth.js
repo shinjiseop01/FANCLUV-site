@@ -429,6 +429,12 @@ export async function login({ email, password }) {
     }
     const user = await loadCurrentSupabaseUser()
     if (!user) return { ok: false, error: '탈퇴했거나 사용할 수 없는 계정입니다.' }
+    // 관리자 로그인은 보안 이벤트로 감사 기록(fire-and-forget, 실패해도 로그인 흐름 방해 안 함).
+    if (ADMIN_ROLES.includes(user.role)) {
+      supabase.rpc('log_security_event', { p_event: 'auth.admin_login', p_severity: 'info', p_detail: { email } }).then(({ error }) => {
+        if (error) logger.warn('관리자 로그인 감사 기록 실패', { error })
+      })
+    }
     return { ok: true, user }
   }
   return mockLogin({ email, password })
