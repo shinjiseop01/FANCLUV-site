@@ -8,8 +8,12 @@ import { usePagination } from '../lib/usePagination.js'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
 import AdminNoteBox from './AdminNoteBox.jsx'
-import { adminListMembers, setMemberActive } from '../lib/admin/membersRepo.js'
+import { adminListMembers, setMemberActive, adminDeleteMember } from '../lib/admin/membersRepo.js'
 import { exportCsv } from '../lib/admin/csv.js'
+import { useAuth } from '../contexts/AuthContext.jsx'
+import { useToast } from '../contexts/ToastContext.jsx'
+import { canDeleteRole, isProtectedTargetRole, deleteErrorKey } from '../lib/admin/deletePolicy.js'
+import MemberDeleteModal from './MemberDeleteModal.jsx'
 
 // 필터: 전체 / 정상 / 비활성 / 이메일 인증 / 본인인증 여부
 const FILTERS = ['all', 'active', 'inactive', 'email_verified', 'email_unverified', 'identity_verified', 'identity_unverified']
@@ -43,13 +47,24 @@ function matchFilter(m, f) {
 
 export default function AdminMembers() {
   const { t, lang } = useLang()
+  const { user: me } = useAuth()
+  const toast = useToast()
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
   const [selectedId, setSelectedId] = useState(null)   // 회원 상세 패널 (운영자 전용)
+  const [deleteTarget, setDeleteTarget] = useState(null) // 삭제 확인 모달 대상
+  const [deleting, setDeleting] = useState(false)
+
+  // 앱 role → DB role (팬은 app 'fan' == db 'user'). 관리자 콘솔 사용자는 admin/superadmin/staff.
+  const actorRole = me?.role === 'fan' ? 'user' : (me?.role || 'user')
 
   // 실 데이터(Supabase RPC admin_list_members) 또는 Mock 폴백으로 회원 목록 로드.
+  async function refetch() {
+    const list = await adminListMembers()
+    setMembers(list); setLoading(false)
+  }
   useEffect(() => {
     let active = true
     adminListMembers().then(list => { if (active) { setMembers(list); setLoading(false) } })
@@ -84,9 +99,32 @@ export default function AdminMembers() {
     setMemberActive(id, nextActive)
   }
 
-  function remove(id) {
-    setMembers(list => list.filter(m => m.id !== id))
-    if (selectedId === id) setSelectedId(null)
+  // 회원 목록 role 은 소스별로 다를 수 있다(Mock=앱 'fan', Supabase=DB 'user'). DB role 로 정규화.
+  const dbRole = r => (r === 'fan' ? 'user' : r)
+
+  // 삭제 가능 여부(권한 매트릭스 + 자기 자신 + superadmin 보호). 서버가 다시 권위 검증한다.
+  function deletableReason(m) {
+    if (m.id === me?.id) return 'self'
+    if (isProtectedTargetRole(dbRole(m.role))) return 'protected'
+    if (!canDeleteRole(actorRole, dbRole(m.role))) return 'no_permission'
+    return null // 삭제 가능
+  }
+
+  // 실제 삭제: 서버(Edge Function) 요청 → 성공 시에만 서버 목록 refetch(로컬 state 삭제 금지).
+  async function confirmDelete(reason) {
+    if (!deleteTarget || deleting) return
+    setDeleting(true)
+    const res = await adminDeleteMember(deleteTarget.id, { reason, mode: 'hard_delete' })
+    setDeleting(false)
+    if (res.ok) {
+      if (selectedId === deleteTarget.id) setSelectedId(null)
+      setDeleteTarget(null)
+      await refetch() // 서버 재조회 → 삭제 대상 즉시 미노출, total 감소(pagination 자동 clamp)
+      toast.success(t('admin.del.success'))
+    } else {
+      toast.error(t(deleteErrorKey(res.code)))
+      // 실패 시 목록에서 제거하지 않음. 모달은 유지해 재시도 가능.
+    }
   }
 
   function downloadCsv() {
@@ -196,7 +234,19 @@ export default function AdminMembers() {
                         <button className="adm-btn-sm" onClick={() => toggleActive(m.id)}>
                           {m.status === 'active' ? t('admin.mem.deactivate') : t('admin.mem.activate')}
                         </button>
-                        <button className="adm-btn-sm danger" onClick={() => remove(m.id)}>{t('admin.delete')}</button>
+                        {(() => {
+                          const blocked = deletableReason(m)
+                          return (
+                            <button
+                              className="adm-btn-sm danger"
+                              disabled={!!blocked}
+                              title={blocked ? t(`admin.del.blocked.${blocked}`) : ''}
+                              onClick={() => !blocked && setDeleteTarget(m)}
+                            >
+                              {t('admin.delete')}
+                            </button>
+                          )
+                        })()}
                       </div>
                     </td>
                   </tr>
@@ -250,6 +300,14 @@ export default function AdminMembers() {
           <AdminNoteBox entityType="member" entityId={selected.id} />
         </section>
       )}
+
+      <MemberDeleteModal
+        open={!!deleteTarget}
+        member={deleteTarget}
+        submitting={deleting}
+        onClose={() => { if (!deleting) setDeleteTarget(null) }}
+        onConfirm={confirmDelete}
+      />
     </div>
   )
 }

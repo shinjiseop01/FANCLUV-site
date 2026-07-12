@@ -510,6 +510,15 @@
 }
 
 /* ───────────── 시스템 상태 (AdminSystemStatus) ───────────── */
+/* 회원 삭제 모달 */
+.mdel-modal { max-width: 460px; }
+.mdel-warn { background: color-mix(in srgb, #DC2626 8%, var(--canvas)); border: 1px solid color-mix(in srgb, #DC2626 30%, var(--border)); color: #DC2626; border-radius: 10px; padding: 12px 14px; margin: 12px 0; font-size: 14px; }
+.mdel-warn-extra { margin-top: 6px; font-weight: 600; }
+.mdel-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; font-size: 13px; color: var(--muted); }
+.mdel-field textarea, .mdel-field input { width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--canvas); color: var(--text); font-size: 14px; font-family: inherit; }
+.mdel-field textarea:focus, .mdel-field input:focus { outline: 2px solid var(--brand, #4f46e5); outline-offset: 1px; }
+.mdel-confirm:disabled { opacity: .5; cursor: not-allowed; }
+
 .sys-ops-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 22px; }
 .sys-ops-metric { background: var(--canvas); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
 .sys-ops-label { font-size: 12px; color: var(--muted); }

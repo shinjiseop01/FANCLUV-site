@@ -6,6 +6,7 @@
 // Mock 모드: 기존 adminData 의 MOCK_MEMBERS 를 반환(개발 데모).
 import { supabase, isSupabaseConfigured } from '../supabase.js'
 import { isAdmin } from '../auth.js'
+import { invokeFunction } from '../edgeFunctions.js'
 import { MOCK_MEMBERS } from '../../admin/adminData.js'
 
 function mapRow(r) {
@@ -45,4 +46,22 @@ export async function setMemberActive(id, active) {
     return { ok: !error && (data?.ok ?? true) }
   }
   return { ok: true }
+}
+
+// 회원 삭제 — 반드시 서버(admin-delete-user Edge Function)에서 처리. 프론트는 service_role 미사용.
+// 권한/자기삭제/마지막 superadmin 판정은 서버가 DB 재조회로 수행한다. 반환: { ok, code?, mode? }.
+export async function adminDeleteMember(userId, { reason, mode = 'hard_delete' } = {}) {
+  if (!isAdmin()) return { ok: false, code: 'forbidden' }
+  if (!isSupabaseConfigured) {
+    // Mock 모드: 서버가 없으므로 실제 삭제 불가 — 명시적으로 미지원 반환(로컬 state 삭제 금지).
+    return { ok: false, code: 'not_configured' }
+  }
+  const { data, error } = await invokeFunction('admin-delete-user', { body: { user_id: userId, reason, mode } })
+  if (error) {
+    // 함수가 4xx/5xx 로 { ok:false, code } 본문을 준다 → status 응답 body 에서 code 추출.
+    let code = 'deletion_failed'
+    try { const b = await error?.context?.json?.(); if (b?.code) code = b.code } catch { /* noop */ }
+    return { ok: false, code }
+  }
+  return data || { ok: false, code: 'deletion_failed' }
 }
