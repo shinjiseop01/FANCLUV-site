@@ -14,6 +14,7 @@ import { isAdmin } from '../auth.js'
 import { pushMockNotification, notifyAdmins } from '../notificationsRepo.js'
 import { getTeamNews } from '../news/teamNewsProvider.js'
 import { getStandings } from '../../services/league/leagueProvider.js'
+import { shouldNotifyRecovery } from '../opsRecovery.js'
 
 export const FAILURE_THRESHOLD = 3   // 연속 3회 실패 → 관리자 알림
 export const SLOW_MS = 1500          // 응답 지연 기준
@@ -26,6 +27,8 @@ export const SERVICES = [
   { key: 'db',       labelKey: 'admin.sys.svc.db',       kind: 'server' },
   { key: 'auth',     labelKey: 'admin.sys.svc.auth',     kind: 'server' },
   { key: 'edge',     labelKey: 'admin.sys.svc.edge',     kind: 'server' },
+  { key: 'storage',  labelKey: 'admin.sys.svc.storage',  kind: 'server' },
+  { key: 'realtime', labelKey: 'admin.sys.svc.realtime', kind: 'server' },
   { key: 'teamNews', labelKey: 'admin.sys.svc.teamNews', kind: 'news' },
   { key: 'league',   labelKey: 'admin.sys.svc.league',   kind: 'league' },
   { key: 'openai',   labelKey: 'admin.sys.svc.openai',   kind: 'server' },
@@ -217,6 +220,8 @@ async function recordResult(key, res) {
       await createAlert(key)
       await supabase.from('integration_health').update({ alerted_at: now }).eq('service', key)
     }
+    // 자동 복구: 장애 알림이 나간 상태에서 정상 복귀 → 복구 알림(1회).
+    if (shouldNotifyRecovery(cur?.alerted_at, status)) await createRecovery(key)
     return
   }
 
@@ -255,6 +260,19 @@ async function createAlert(key) {
     pushMockNotification({ type: 'notice', title, body, isImportant: true, audience: 'admin' })
   }
   logger.warn(body, { context: { service: name } })
+}
+
+// 장애 → 정상 복귀 시 복구 알림.
+async function createRecovery(key) {
+  const title = '서비스 복구'
+  const body = `${labelText(key)} 연결이 정상으로 복구되었습니다.`
+  if (isSupabaseConfigured) {
+    const res = await notifyAdmins({ type: 'notice', title, body })
+    if (!res.ok) logger.warn('복구 알림 생성 실패', { error: res.error })
+  } else {
+    pushMockNotification({ type: 'notice', title, body, isImportant: false, audience: 'admin' })
+  }
+  logger.info(body, { context: { service: SERVICE_MAP[key]?.key || key } })
 }
 
 // 알림 문구용 서비스 표시명(영문 키 기반 — locale 미접근).

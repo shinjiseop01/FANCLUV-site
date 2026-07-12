@@ -9,6 +9,7 @@ import { usePagination } from '../lib/usePagination.js'
 import {
   SERVICES, listServices, listLogs, testService, testAll, FAILURE_THRESHOLD,
 } from '../lib/admin/integrationHealthRepo.js'
+import { getOpsSummary } from '../lib/admin/opsDashboardRepo.js'
 
 // 상태 코드 → 아이콘/클래스
 const STATUS = {
@@ -41,10 +42,11 @@ export default function AdminSystemStatus() {
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState(null)   // key or 'all'
   const [results, setResults] = useState({})      // key -> { ok, ms, error }
+  const [ops, setOps] = useState(null)            // 운영 요약(활성 사용자/장애/오류/캐시)
 
   async function refresh() {
-    const [svcs, lg] = await Promise.all([listServices(), listLogs()])
-    setRows(svcs); setLogs(lg); setLoading(false)
+    const [svcs, lg, summary] = await Promise.all([listServices(), listLogs(), getOpsSummary()])
+    setRows(svcs); setLogs(lg); setOps(summary); setLoading(false)
   }
   useEffect(() => { refresh() }, [])
 
@@ -83,6 +85,32 @@ export default function AdminSystemStatus() {
         <div className="ns-banner" role="alert">
           <Icon name="alert" size={18} />
           <span>{t('admin.sys.alertBanner', { services: failing.map(f => labelOf(f.key)).join(', '), n: FAILURE_THRESHOLD })}</span>
+        </div>
+      )}
+
+      {ops && (
+        <div className="sys-ops-summary" aria-label={t('admin.sys.opsSummary')}>
+          <div className="sys-ops-metric">
+            <span className="sys-ops-label">{t('admin.sys.activeUsers')}</span>
+            <strong className="sys-ops-value">{ops.activeUsers?.count ?? 0}</strong>
+            <span className="sys-ops-unit">/ {ops.activeUsers?.windowMin}m</span>
+          </div>
+          <div className="sys-ops-metric">
+            <span className="sys-ops-label">{t('admin.sys.incidents')}</span>
+            <strong className={`sys-ops-value ${ops.incidents?.length ? 'is-bad' : ''}`}>{ops.incidents?.length ?? 0}</strong>
+          </div>
+          <div className="sys-ops-metric">
+            <span className="sys-ops-label">{t('admin.sys.recentErrors')}</span>
+            <strong className={`sys-ops-value ${ops.recentErrors?.length ? 'is-bad' : ''}`}>{ops.recentErrors?.length ?? 0}</strong>
+          </div>
+          <div className="sys-ops-metric">
+            <span className="sys-ops-label">{t('admin.sys.slowApi')}</span>
+            <strong className="sys-ops-value">{ops.slowApi?.length ?? 0}</strong>
+          </div>
+          <div className="sys-ops-metric">
+            <span className="sys-ops-label">{t('admin.sys.cacheHit')}</span>
+            <strong className="sys-ops-value">{ops.cache?.hitRate != null ? `${Math.round(ops.cache.hitRate * 100)}%` : '—'}</strong>
+          </div>
         </div>
       )}
 

@@ -510,6 +510,12 @@
 }
 
 /* ───────────── 시스템 상태 (AdminSystemStatus) ───────────── */
+.sys-ops-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 22px; }
+.sys-ops-metric { background: var(--canvas); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.sys-ops-label { font-size: 12px; color: var(--muted); }
+.sys-ops-value { font-size: 24px; font-weight: 700; color: var(--text); }
+.sys-ops-value.is-bad { color: var(--danger, #e5484d); }
+.sys-ops-unit { font-size: 11px; color: var(--muted); }
 .sys-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-bottom: 26px; }
 .sys-card { background: var(--canvas); border: 1px solid var(--border); border-radius: 14px; padding: 16px; border-left-width: 3px; }
 .sys-card.sys-ok { border-left-color: #16A34A; }

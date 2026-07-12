@@ -75,6 +75,34 @@ Deno.serve(async (req) => {
   // ── Edge Functions (이 함수가 응답 = alive) ──
   if (want('edge')) services.edge = svc(true, 0, null)
 
+  // ── Supabase Storage (버킷 목록 조회로 alive 확인) ──
+  if (want('storage')) {
+    const [buckets, ms, err] = await timed(async () => {
+      const { data, error } = await admin.storage.listBuckets()
+      if (error) throw error
+      return data
+    })
+    // 버킷이 하나도 없어도 서비스 자체는 alive(설정 문제와 구분).
+    services.storage = err ? svc(false, ms, err) : svc(true, ms, null)
+  }
+
+  // ── Supabase Realtime (서버측 alive 확인: REST 헬스 엔드포인트) ──
+  // 실제 WS 구독은 클라이언트에서 점검(브라우저 실경로). 여기서는 서비스 응답 여부만 본다.
+  if (want('realtime')) {
+    const [status, ms] = await timed(async () => {
+      const r = await fetch(`${SUPABASE_URL}/realtime/v1/api/broadcast`, {
+        method: 'POST',
+        headers: { apikey: ANON_KEY, Authorization: `Bearer ${SERVICE_ROLE}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [] }),
+      })
+      // 인증된 요청에 서비스가 응답(2xx/4xx)하면 alive. 5xx/네트워크 오류만 down.
+      return r.status
+    })
+    const code = typeof status === 'number' ? status : 0
+    const alive = code > 0 && code < 500
+    services.realtime = alive ? svc(true, ms, null) : svc(false, ms, code ? `http_${code}` : 'network_error')
+  }
+
   // ── OpenAI API (키 있으면 models 엔드포인트 경량 확인 — 무료 GET, 카테고리화) ──
   // "Secret 존재"와 "실제 키 유효"를 구분한다. 키 값은 로그/응답에 절대 노출하지 않는다.
   if (want('openai')) {

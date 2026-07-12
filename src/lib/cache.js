@@ -6,11 +6,20 @@
 
 const DEFAULT_TTL = 30_000 // 30초
 const store = new Map() // key -> { at, promise }
+const stats = { hits: 0, misses: 0 } // 운영 대시보드용 Cache Hit Rate 계측
+
+// 캐시 히트/미스 통계 조회. hitRate 는 0~1(호출 없으면 null).
+export function getCacheStats() {
+  const total = stats.hits + stats.misses
+  return { hits: stats.hits, misses: stats.misses, total, hitRate: total ? stats.hits / total : null, size: store.size }
+}
+export function resetCacheStats() { stats.hits = 0; stats.misses = 0 }
 
 // key 로 캐시된 결과를 반환하거나, 없으면 fetcher() 를 실행해 캐시 후 반환한다.
 export function withCache(key, fetcher, ttlMs = DEFAULT_TTL) {
   const hit = store.get(key)
-  if (hit && Date.now() - hit.at < ttlMs) return hit.promise
+  if (hit && Date.now() - hit.at < ttlMs) { stats.hits++; return hit.promise }
+  stats.misses++
 
   const promise = Promise.resolve().then(fetcher)
   store.set(key, { at: Date.now(), promise })
