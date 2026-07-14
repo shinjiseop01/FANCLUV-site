@@ -62,3 +62,9 @@ test('error code → i18n 키 매핑(미지 코드는 errFailed)', () => {
   assert.equal(deleteErrorKey('forbidden'), 'admin.del.errForbidden')
   assert.equal(deleteErrorKey('weird_unknown'), 'admin.del.errFailed')
 })
+
+test('동시성 응답 code 매핑(already_in_progress / previous_attempt_failed)', () => {
+  assert.equal(deleteErrorKey('already_in_progress'), 'admin.del.errInProgress')
+  assert.equal(deleteErrorKey('previous_attempt_failed'), 'admin.del.errPrevFailed')
+  assert.equal(deleteErrorKey('already_deleted'), 'admin.del.errAlready')
+})
