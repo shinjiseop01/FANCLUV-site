@@ -792,6 +792,8 @@ export default {
   'admin.del.errInvalidTarget': '삭제할 수 없는 역할입니다.',
   'admin.del.errNotFound': '대상 회원을 찾을 수 없습니다.',
   'admin.del.errAlready': '이미 삭제된 회원입니다.',
+  'admin.del.errInProgress': '다른 요청에서 삭제를 처리 중입니다. 잠시 후 목록을 확인하세요.',
+  'admin.del.errPrevFailed': '이전 삭제 시도가 실패한 회원입니다. 잠시 후 다시 시도하세요.',
   'admin.del.errInvalid': '잘못된 요청입니다.',
   'admin.del.errReasonShort': '삭제 사유를 3자 이상 입력하세요.',
   'admin.del.errReasonLong': '삭제 사유가 너무 깁니다.',

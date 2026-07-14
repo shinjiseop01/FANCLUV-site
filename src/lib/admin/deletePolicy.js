@@ -59,6 +59,8 @@ export const DELETE_ERROR_KEY = {
   invalid_target_role: 'admin.del.errInvalidTarget',
   target_not_found: 'admin.del.errNotFound',
   already_deleted: 'admin.del.errAlready',
+  already_in_progress: 'admin.del.errInProgress',
+  previous_attempt_failed: 'admin.del.errPrevFailed',
   invalid_uuid: 'admin.del.errInvalid',
   reason_too_short: 'admin.del.errReasonShort',
   reason_too_long: 'admin.del.errReasonLong',

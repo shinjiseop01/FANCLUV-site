@@ -96,11 +96,20 @@ Deno.serve(async (req) => {
     return json({ ok: false, code: 'forbidden' }, 403)
   }
 
-  // 8) 실행
-  const auditBase = {
-    actor_id: user.id, actor_role: actorRole, target_type: 'member', target_id: targetId,
-    detail: { target_role: targetRole, target_email_masked: maskEmail(target.email), reason, mode, request_id: requestId },
-  }
+  // 8) 원자적 선점 — 대상당 정확히 1개 요청만 claimed. 감사로그는 complete RPC 에서 exactly-once.
+  const { data: claimRows } = await admin.rpc('claim_admin_user_deletion', {
+    p_target: targetId, p_actor: user.id, p_actor_role: actorRole, p_mode: mode, p_reason: reason, p_request_id: requestId,
+  })
+  const claim = Array.isArray(claimRows) ? claimRows[0] : claimRows
+  const claimResult = claim?.result
+  const operationId = claim?.operation_id
+  if (claimResult === 'already_processing') return json({ ok: false, code: 'already_in_progress', request_id: requestId })
+  if (claimResult === 'already_completed') return json({ ok: true, code: 'already_deleted', request_id: requestId })
+  if (claimResult === 'previous_attempt_failed') return json({ ok: false, code: 'previous_attempt_failed', request_id: requestId })
+  if (claimResult !== 'claimed' || !operationId) return json({ ok: false, code: 'deletion_failed' }, 500)
+
+  // claimed 요청만 실제 삭제 수행.
+  const detail = { target_role: targetRole, target_email_masked: maskEmail(target.email), reason }
   try {
     // PII 스크럽(부분 실패 대비 먼저). identity/DI/CI/provider 연결 제거.
     await admin.from('profiles').update({
@@ -111,7 +120,7 @@ Deno.serve(async (req) => {
     }).eq('id', targetId)
 
     if (mode === 'anonymize') {
-      await admin.from('audit_logs').insert({ ...auditBase, action: 'member.anonymize' })
+      await admin.rpc('complete_admin_user_deletion', { p_operation_id: operationId, p_detail: detail })
       return json({ ok: true, mode, target_id: targetId, request_id: requestId })
     }
 
@@ -121,16 +130,20 @@ Deno.serve(async (req) => {
     }
     const { error: delErr } = await admin.auth.admin.deleteUser(targetId)
     if (delErr) {
-      // 동시 요청/재시도로 이미 삭제됐으면 idempotent 하게 처리(5xx 방지).
       const { data: still } = await admin.auth.admin.getUserById(targetId).catch(() => ({ data: null }))
-      if (!still?.user) return json({ ok: true, code: 'already_deleted', request_id: requestId })
-      await admin.from('audit_logs').insert({ ...auditBase, action: 'member.delete_failed', detail: { ...auditBase.detail, error: delErr.message } })
+      if (!still?.user) {
+        // 이미 없음(정리 완료로 간주) → 완료 전이. 감사 1건은 complete RPC 가 보장.
+        await admin.rpc('complete_admin_user_deletion', { p_operation_id: operationId, p_detail: detail })
+        return json({ ok: true, code: 'already_deleted', mode, target_id: targetId, request_id: requestId })
+      }
+      await admin.rpc('fail_admin_user_deletion', { p_operation_id: operationId, p_error_code: 'auth_delete_failed' })
       return json({ ok: false, code: 'deletion_failed' }, 500)
     }
-    await admin.from('audit_logs').insert({ ...auditBase, action: 'member.delete' })
+    // 성공 → complete RPC(processing→completed 전이 성공한 요청만 audit member.delete 1건)
+    await admin.rpc('complete_admin_user_deletion', { p_operation_id: operationId, p_detail: detail })
     return json({ ok: true, mode, target_id: targetId, request_id: requestId })
-  } catch (e) {
-    await admin.from('audit_logs').insert({ ...auditBase, action: 'member.delete_failed', detail: { ...auditBase.detail, error: String((e as Error)?.message || e).slice(0, 200) } }).catch(() => {})
+  } catch {
+    await admin.rpc('fail_admin_user_deletion', { p_operation_id: operationId, p_error_code: 'exception' }).catch(() => {})
     return json({ ok: false, code: 'deletion_failed' }, 500)
   }
 })

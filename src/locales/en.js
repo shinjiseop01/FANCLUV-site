@@ -792,6 +792,8 @@ export default {
   'admin.del.errInvalidTarget': 'This role cannot be deleted.',
   'admin.del.errNotFound': 'Target member not found.',
   'admin.del.errAlready': 'This member is already deleted.',
+  'admin.del.errInProgress': 'Another request is processing this deletion. Please check the list shortly.',
+  'admin.del.errPrevFailed': 'A previous deletion attempt failed for this member. Please try again shortly.',
   'admin.del.errInvalid': 'Invalid request.',
   'admin.del.errReasonShort': 'Enter a reason with at least 3 characters.',
   'admin.del.errReasonLong': 'The reason is too long.',

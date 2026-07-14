@@ -117,13 +117,20 @@ export default function AdminMembers() {
     const res = await adminDeleteMember(deleteTarget.id, { reason, mode: 'hard_delete' })
     setDeleting(false)
     if (res.ok) {
+      // 삭제 성공 또는 이미 삭제됨 → 서버 재조회(로컬 state 임의 제거 금지).
       if (selectedId === deleteTarget.id) setSelectedId(null)
       setDeleteTarget(null)
-      await refetch() // 서버 재조회 → 삭제 대상 즉시 미노출, total 감소(pagination 자동 clamp)
-      toast.success(t('admin.del.success'))
+      await refetch() // 삭제 대상 즉시 미노출, total 감소(pagination 자동 clamp)
+      if (res.code === 'already_deleted') toast.show(t('admin.del.errAlready'), { type: 'info' })
+      else toast.success(t('admin.del.success'))
+    } else if (res.code === 'already_in_progress') {
+      // 다른 요청이 처리 중 — 목록에서 제거하지 않고 최신 상태만 재조회.
+      setDeleteTarget(null)
+      await refetch()
+      toast.warn(t('admin.del.errInProgress'))
     } else {
+      // 실패 — 목록 유지, 모달 유지(재시도 가능).
       toast.error(t(deleteErrorKey(res.code)))
-      // 실패 시 목록에서 제거하지 않음. 모달은 유지해 재시도 가능.
     }
   }
 

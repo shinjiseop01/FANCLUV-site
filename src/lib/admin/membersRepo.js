@@ -65,3 +65,11 @@ export async function adminDeleteMember(userId, { reason, mode = 'hard_delete' }
   }
   return data || { ok: false, code: 'deletion_failed' }
 }
+
+// 운영 관측: 삭제 작업 상태(failed/stuck 식별용). 관리자만(RPC 내부 is_admin 게이트). PII 없음.
+export async function adminListDeletionOperations(limit = 50) {
+  if (!isAdmin() || !isSupabaseConfigured) return []
+  const { data, error } = await supabase.rpc('admin_deletion_operations', { p_limit: limit })
+  if (error) return []
+  return data || []
+}
