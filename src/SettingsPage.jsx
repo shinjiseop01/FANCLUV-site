@@ -9,7 +9,7 @@ import {
   logout, getCurrentUser, deleteAccount, identityInfo, isIdentityVerificationEnabled,
   changeAgeGroup, changeGender, changeNickname, nicknameChangeInfo, setSelectedTeam, updateAvatar,
 } from './lib/auth.js'
-import { IDENTITY_AGENCY_LABELS } from './lib/identity/identityProvider.js'
+import { IDENTITY_AGENCY_LABELS } from './lib/identity/identityAdapter.js'
 import { getTeam, teamName, TeamEmblem, menuPath, TEAMS } from './teams.jsx'
 import { getCurrentDevice } from './lib/deviceInfo.js'
 import { getPrefs, setPref, loadServerPrefs } from './lib/notifyPrefs.js'

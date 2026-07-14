@@ -1,17 +1,36 @@
 /* FANCLUV — 본인인증 화면 (signup 카드 스타일 재사용 + 전용 요소) */
 
-.vi-shield {
+/* 본인인증 상태 배지 (아이콘/색상/설명/다음행동) */
+.vi-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 4px 0 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--ink, #111827) 5%, var(--mix-base, #fff));
+}
+.vi-status-ico {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  margin: 4px auto 18px;
-  border-radius: 18px;
-  color: var(--team-deep, #1D4ED8);
-  background: color-mix(in srgb, var(--team, #2563EB) 12%, var(--mix-base, #fff));
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: color-mix(in srgb, currentColor 14%, var(--mix-base, #fff));
 }
-.vi-shield svg { width: 34px; height: 34px; }
+.vi-status-body { display: grid; gap: 3px; min-width: 0; }
+.vi-status-label { font-size: 14px; font-weight: 700; color: var(--ink, #111827); }
+.vi-status-desc { font-size: 12.5px; line-height: 1.5; color: var(--muted, #6B7280); }
+
+/* tone: 상태 의미색 */
+.vi-status-muted { color: var(--muted, #6B7280); }
+.vi-status-info { color: var(--team-deep, #1D4ED8); border-color: color-mix(in srgb, var(--team, #2563EB) 30%, transparent); background: color-mix(in srgb, var(--team, #2563EB) 8%, var(--mix-base, #fff)); }
+.vi-status-ok { color: var(--ok, #059669); border-color: color-mix(in srgb, var(--ok, #059669) 30%, transparent); background: color-mix(in srgb, var(--ok, #059669) 8%, var(--mix-base, #fff)); }
+.vi-status-warn { color: var(--warn, #B45309); border-color: color-mix(in srgb, var(--warn, #D97706) 30%, transparent); background: color-mix(in srgb, var(--warn, #D97706) 8%, var(--mix-base, #fff)); }
+.vi-status-bad { color: var(--danger, #DC2626); border-color: color-mix(in srgb, var(--danger, #DC2626) 30%, transparent); background: color-mix(in srgb, var(--danger, #DC2626) 8%, var(--mix-base, #fff)); }
 
 .vi-points {
   list-style: none;

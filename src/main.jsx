@@ -63,6 +63,7 @@ const AdminActionTracker = lazy(() => import('./admin/AdminActionTracker.jsx'))
 const AdminCustomers = lazy(() => import('./admin/AdminCustomers.jsx'))
 const AdminLeagueApi = lazy(() => import('./admin/AdminLeagueApi.jsx'))
 const AdminSystemStatus = lazy(() => import('./admin/AdminSystemStatus.jsx'))
+const AdminIdentity = lazy(() => import('./admin/AdminIdentity.jsx'))
 const AdminSettings = lazy(() => import('./admin/AdminSettings.jsx'))
 const AccessDenied = lazy(() => import('./admin/AccessDenied.jsx'))
 // 구단(고객) Executive Dashboard
@@ -184,6 +185,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="customers" element={<AdminCustomers />} />
           <Route path="league" element={<AdminLeagueApi />} />
           <Route path="system" element={<AdminSystemStatus />} />
+          <Route path="identity" element={<AdminIdentity />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
 

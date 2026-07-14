@@ -104,3 +104,13 @@ export const IDENTITY_ADAPTERS = {
 export function getIdentityAdapter(id) {
   return IDENTITY_ADAPTERS[String(id || '').toLowerCase()] || IDENTITY_ADAPTERS.mock
 }
+
+// 표시용 인증기관 라벨.
+export const IDENTITY_AGENCY_LABELS = { mock: 'Mock', pass: 'PASS', nice: 'NICE', kcb: 'KCB' }
+
+// 현재 환경에 설정된 인증 provider id(VITE_IDENTITY_PROVIDER, 미설정 시 mock).
+export function currentAdapterId() {
+  const v = String(import.meta.env.VITE_IDENTITY_PROVIDER || 'mock').toLowerCase()
+  return IDENTITY_ADAPTERS[v] ? v : 'mock'
+}
+

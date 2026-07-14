@@ -773,3 +773,25 @@
 .adm-logout-btn { margin-top: 14px; }
 .adm-btn-ghost.danger { color: #DC2626; border-color: color-mix(in srgb, #DC2626 30%, var(--border)); }
 .adm-btn-ghost.danger:hover { background: color-mix(in srgb, #DC2626 10%, transparent); }
+
+/* ── 본인인증 관측 패널 (AdminIdentity) ── */
+.idn-notice { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 10px 14px; font-size: 12.5px; font-weight: 600; color: var(--muted); background: color-mix(in srgb, var(--muted) 8%, transparent); border: 1px solid var(--border); border-radius: 10px; }
+.idn-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.idn-metric { background: var(--canvas); border: 1px solid var(--border); border-radius: 12px; padding: 12px 15px; display: flex; flex-direction: column; gap: 3px; }
+.idn-metric-label { font-size: 12px; color: var(--muted); }
+.idn-metric-value { font-size: 22px; font-weight: 800; }
+.idn-metric-value.is-ok { color: #16A34A; }
+.idn-metric-value.is-bad { color: var(--danger, #DC2626); }
+.idn-uid { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
+.idn-time { white-space: nowrap; font-size: 12.5px; color: var(--muted); }
+.idn-num { text-align: right; font-variant-numeric: tabular-nums; }
+.idn-num.is-bad { color: var(--danger, #DC2626); font-weight: 700; }
+.idn-bool { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600; }
+.idn-bool-on { color: #16A34A; }
+.idn-bool-off { color: var(--muted); }
+.idn-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.idn-badge-muted { background: color-mix(in srgb, var(--muted) 14%, transparent); color: var(--muted); }
+.idn-badge-info { background: rgba(37,99,235,0.12); color: #2563EB; }
+.idn-badge-ok { background: rgba(22,163,74,0.12); color: #16A34A; }
+.idn-badge-warn { background: rgba(234,179,8,0.14); color: #B7791F; }
+.idn-badge-bad { background: rgba(220,38,38,0.12); color: #DC2626; }

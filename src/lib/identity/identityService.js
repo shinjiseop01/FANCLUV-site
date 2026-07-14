@@ -70,6 +70,21 @@ export class IdentityService {
   async linkProvider() { return { ok: false, code: 'handled_in_complete' } }
   async mergeAccount() { return { ok: false, code: 'requires_admin_server', note: 'auth.users 병합/삭제는 관리자 서버 경로에서 처리' } }
   async validateIdentity(payload, expectedState) { return this.adapter.verifyCallback(payload, { expectedState }) }
+
+  // 화면용 전체 인증 흐름. Mock 은 로컬 서명 콜백으로 전 과정 시뮬(0057 RPC 로 저장/연결),
+  // 실 업체(pass/nice/kcb)는 계약 전이라 provider_unconfigured(계약 후 Edge 팝업 흐름 연결).
+  async verifyInteractive({ seed, providerUserId } = {}) {
+    if (this.adapter.agency === 'mock') {
+      return runMockVerification({ personSeed: seed, providerUserId })
+    }
+    return { ok: false, code: 'provider_unconfigured' }
+  }
+
+  // 최신 세션 상태(원문 없음). 프로필 verified 와 함께 화면 상태 계산에 사용.
+  async currentStatus() {
+    const rows = await this.myStatus(1)
+    return rows[0]?.status || null
+  }
 }
 
 // mock 전체 흐름 헬퍼(테스트/데모): Mock 서버 콜백 발급 → 검증 → 서버 RPC 연결.

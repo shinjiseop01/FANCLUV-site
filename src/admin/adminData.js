@@ -22,6 +22,7 @@ export const ADMIN_MENU = [
   { key: 'customers', path: '/admin/customers', labelKey: 'admin.menu.customers', roles: null },
   { key: 'league',    path: '/admin/league',  labelKey: 'admin.menu.league',    roles: null },
   { key: 'systemStatus', path: '/admin/system', labelKey: 'admin.menu.systemStatus', roles: null },
+  { key: 'identity',  path: '/admin/identity', labelKey: 'admin.menu.identity',  roles: null },
   { key: 'settings',  path: '/admin/settings', labelKey: 'admin.menu.settings',  roles: null },
 ]
 
