@@ -13,7 +13,7 @@ import Icon from './components/Icon.jsx'
 import './ClubHomePage.css'
 
 
-const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
+const MENU = ['홈', '설문', '펄스', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
 // id 는 설문 상세 라우트(/survey/:surveyId)와 연결 — Mock 팬 설문 id 사용.
 const EMPTY_STATS = { fans: 0, opinions: 0, comments: 0, satisfaction: 0, source: 'live' }

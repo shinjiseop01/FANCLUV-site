@@ -28,12 +28,13 @@ export function teamName(team, lang) {
 
 // Main menu items + their routes, shared by every page's top nav so that
 // every menu entry navigates consistently from any page.
-export const MENU_ITEMS = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
+export const MENU_ITEMS = ['홈', '설문', '펄스', '팬 의견', '팀 뉴스', '경기센터', 'AI 인사이트', '팬 랭킹', '내 활동']
 
 export function menuPath(item, teamId) {
   switch (item) {
     case '홈': return `/club/${teamId}`
     case '설문': return `/club/${teamId}/survey`
+    case '펄스': return `/club/${teamId}/pulse`
     case '팬 의견': return `/club/${teamId}/opinions`
     case '팀 뉴스': return `/club/${teamId}/news`
     case '경기센터': return `/club/${teamId}/matches`

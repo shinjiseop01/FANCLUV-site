@@ -41,6 +41,7 @@ const CreateOpinionPage = lazy(() => import('./CreateOpinionPage.jsx'))
 const MyActivityPage = lazy(() => import('./MyActivityPage.jsx'))
 const MatchCenterPage = lazy(() => import('./MatchCenterPage.jsx'))
 const TeamNewsPage = lazy(() => import('./TeamNewsPage.jsx'))
+const FanPulsePage = lazy(() => import('./FanPulsePage.jsx'))
 const AIInsightsPage = lazy(() => import('./AIInsightsPage.jsx'))
 const FanRankingPage = lazy(() => import('./FanRankingPage.jsx'))
 const SettingsPage = lazy(() => import('./SettingsPage.jsx'))
@@ -64,6 +65,7 @@ const AdminCustomers = lazy(() => import('./admin/AdminCustomers.jsx'))
 const AdminLeagueApi = lazy(() => import('./admin/AdminLeagueApi.jsx'))
 const AdminSystemStatus = lazy(() => import('./admin/AdminSystemStatus.jsx'))
 const AdminIdentity = lazy(() => import('./admin/AdminIdentity.jsx'))
+const AdminPulse = lazy(() => import('./admin/AdminPulse.jsx'))
 const AdminSettings = lazy(() => import('./admin/AdminSettings.jsx'))
 const AccessDenied = lazy(() => import('./admin/AccessDenied.jsx'))
 // 구단(고객) Executive Dashboard
@@ -157,6 +159,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/matches" element={<RequireAuth><MatchCenterPage /></RequireAuth>} />
         <Route path="/club/:teamId/news" element={<RequireAuth><TeamNewsPage /></RequireAuth>} />
         <Route path="/club/:teamId/news/:newsId" element={<RequireAuth><TeamNewsPage /></RequireAuth>} />
+        <Route path="/club/:teamId/pulse" element={<RequireAuth><FanPulsePage /></RequireAuth>} />
         <Route path="/club/:teamId/insights" element={<RequireAuth><AIInsightsPage /></RequireAuth>} />
         <Route path="/club/:teamId/ranking" element={<RequireAuth><FanRankingPage /></RequireAuth>} />
         <Route path="/club/:teamId/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
@@ -186,6 +189,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="league" element={<AdminLeagueApi />} />
           <Route path="system" element={<AdminSystemStatus />} />
           <Route path="identity" element={<AdminIdentity />} />
+          <Route path="pulse" element={<AdminPulse />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
 

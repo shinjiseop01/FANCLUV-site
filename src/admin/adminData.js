@@ -12,6 +12,7 @@ export const ADMIN_MENU = [
   { key: 'members',   path: '/admin/members',  labelKey: 'admin.menu.members',   roles: null },
   { key: 'opinions',  path: '/admin/opinions', labelKey: 'admin.menu.opinions',  roles: null },
   { key: 'surveys',   path: '/admin/surveys',  labelKey: 'admin.menu.surveys',   roles: null },
+  { key: 'pulse',     path: '/admin/pulse',    labelKey: 'admin.menu.pulse',     roles: null },
   { key: 'news',      path: '/admin/news',     labelKey: 'admin.menu.news',      roles: null },
   { key: 'newsSources', path: '/admin/news-sources', labelKey: 'admin.menu.newsSources', roles: null },
   { key: 'notices',   path: '/admin/notices',  labelKey: 'admin.menu.notices',   roles: null },

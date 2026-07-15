@@ -18,16 +18,40 @@ let mockTopics = []
 let mockVotes = []   // {topic_id, di, option_id}
 
 // ── 팬 API ──
-export async function listActivePulses(teamId = null) {
+// 팬 목록: active + closed(공개)만. status='active'|'closed' 로 좁힐 수 있음.
+export async function listPulses({ teamId = null, status = null } = {}) {
   if (isSupabaseConfigured) {
-    let q = supabase.from('pulse_topics').select('*').eq('status', 'active').eq('visibility', 'public')
-      .order('created_at', { ascending: false })
+    let q = supabase.from('pulse_topics').select('*').eq('visibility', 'public').order('created_at', { ascending: false })
+    if (status === 'active' || status === 'closed') q = q.eq('status', status)
+    else q = q.in('status', ['active', 'closed'])
     if (teamId) q = q.or(`team_id.eq.${teamId},team_id.is.null`)
     const { data, error } = await q
     if (error) return []
     return data || []
   }
-  return mockTopics.filter(t => t.status === 'active' && t.visibility === 'public' && (!teamId || !t.team_id || t.team_id === teamId))
+  return mockTopics.filter(t => t.visibility === 'public'
+    && (status ? t.status === status : ['active', 'closed'].includes(t.status))
+    && (!teamId || !t.team_id || t.team_id === teamId))
+}
+export async function listActivePulses(teamId = null) { return listPulses({ teamId, status: 'active' }) }
+
+export async function getPulse(id) {
+  if (isSupabaseConfigured) {
+    const { data, error } = await supabase.from('pulse_topics').select('*').eq('id', id).maybeSingle()
+    if (error) return null
+    return data
+  }
+  return mockTopics.find(t => t.id === id) || null
+}
+
+// 내 투표 여부(RLS: 본인 것만). 반환 { voted, optionId }
+export async function getMyVote(topicId) {
+  if (isSupabaseConfigured) {
+    const { data } = await supabase.from('pulse_votes').select('option_id').eq('topic_id', topicId).maybeSingle()
+    return { voted: !!data, optionId: data?.option_id || null }
+  }
+  const v = mockVotes.find(x => x.topic_id === topicId && x.di === 'mockdi')
+  return { voted: !!v, optionId: v?.option_id || null }
 }
 
 export async function vote(topicId, optionId) {
