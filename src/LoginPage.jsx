@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { login } from './lib/auth.js'
+import { isValidEmail } from './lib/authForm.js'
 import { postAuthPath } from './lib/authRoute.js'
 import { isSupabaseConfigured, isProdMisconfigured } from './lib/supabase.js'
 import { useAuth } from './contexts/AuthContext.jsx'
@@ -18,6 +19,11 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  // "로그인 상태 유지": 체크 → 영구 세션(localStorage), 해제(기본) → 세션 로그인
+  // (sessionStorage, 브라우저 종료 시 자동 로그아웃). OAuth 버튼에도 동일 적용.
+  const [keep, setKeep] = useState(false)
+  // 이메일 형식 오류 인라인 안내(입력을 마친 뒤에만 표시).
+  const [emailErr, setEmailErr] = useState(false)
   // 소셜 로그인 안내(에러/성공) — 로그인 폼 상단 Alert 로 표시
   const [notice, setNotice] = useState(null) // { kind: 'error' | 'success', text }
 
@@ -68,9 +74,10 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     if (!email.trim()) { setError(t('login.errEmail')); return }
+    if (!isValidEmail(email)) { setEmailErr(true); setError(t('signup.errEmailFormat')); return }
     if (!password.trim()) { setError(t('login.errPw')); return }
     setLoading(true)
-    const result = await login({ email: email.trim(), password })
+    const result = await login({ email: email.trim(), password, keep })
     setLoading(false)
     // 이메일 미인증 계정은 login()에서 차단되어 여기 도달하지 않는다.
     if (result.ok) routeAfterAuth(result.user)
@@ -165,12 +172,17 @@ export default function LoginPage() {
               <label className="field-label">{t('login.email')}</label>
               <input
                 type="email"
-                className="field-input"
+                className={`field-input${emailErr ? ' invalid' : ''}`}
                 placeholder={t('login.emailPh')}
                 value={email}
-                onChange={e => { setEmail(e.target.value); setError('') }}
+                onChange={e => { setEmail(e.target.value); setError(''); if (emailErr) setEmailErr(false) }}
+                onBlur={() => setEmailErr(email.trim().length > 0 && !isValidEmail(email))}
                 autoComplete="email"
+                aria-invalid={emailErr}
               />
+              {emailErr && (
+                <p className="field-hint error" role="alert">{t('signup.errEmailFormat')}</p>
+              )}
             </div>
 
             <div className="field-group">
@@ -195,6 +207,15 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <label className="keep-signed-in">
+              <input
+                type="checkbox"
+                checked={keep}
+                onChange={e => setKeep(e.target.checked)}
+              />
+              <span>{t('login.keepSignedIn')}</span>
+            </label>
+
             {error && (
               <div className="error-msg" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>
             )}
@@ -213,7 +234,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <SocialAuth onSuccess={handleSocialSuccess} onError={setError} />
+          <SocialAuth onSuccess={handleSocialSuccess} onError={setError} keep={keep} />
 
           <div className="form-footer">
             <Link to="/find-id" className="form-link">{t('login.findId')}</Link>

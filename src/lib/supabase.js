@@ -10,6 +10,7 @@
 //   VITE_SUPABASE_ANON_KEY=eyJhbGciOi...   (anon/public key — 클라이언트 공개용, 노출 안전)
 import { createClient } from '@supabase/supabase-js'
 import { logger } from './logger.js'
+import { pickStores } from './authForm.js'
 
 const url = import.meta.env.VITE_SUPABASE_URL
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -42,6 +43,51 @@ if (isProdMisconfigured && !globalThis.__fancluvEnvWarned) {
   )
 }
 
+// ── 로그인 유지(keep-signed-in) 정책 ───────────────────────────────────────
+// "로그인 상태 유지" 체크 여부에 따라 세션 토큰을 어디에 저장할지 결정한다.
+//   • keep = true  → localStorage  : 브라우저를 닫아도 세션 유지(영구 세션)
+//   • keep = false → sessionStorage : 브라우저(탭) 종료 시 자동 로그아웃(세션 로그인)
+// 이메일 로그인 체크박스와 OAuth(Google/Kakao/Naver) 모두 동일 정책을 따른다.
+// keep 플래그 자체는 OAuth 리다이렉트(페이지 이동)를 넘어 살아남아야 하므로
+// 항상 localStorage 에 둔다.
+export const KEEP_KEY = 'fancluv_keep_signed_in'
+
+const hasWindow = typeof window !== 'undefined'
+const ls = () => (hasWindow ? window.localStorage : null)
+const ss = () => (hasWindow ? window.sessionStorage : null)
+
+export function setKeepSignedIn(keep) {
+  const store = ls()
+  if (!store) return
+  if (keep) store.setItem(KEEP_KEY, '1')
+  else store.removeItem(KEEP_KEY)
+}
+
+export function getKeepSignedIn() {
+  const store = ls()
+  return Boolean(store && store.getItem(KEEP_KEY) === '1')
+}
+
+// Supabase Auth 에 주입하는 storage 어댑터.
+// getItem 은 "현재 활성 저장소"에서만 읽어 세션/영구 의미를 강제하고,
+// setItem 은 활성 저장소에 쓰면서 반대편 저장소의 잔재를 제거해 이중 세션을 막는다.
+// removeItem(로그아웃) 은 양쪽을 모두 지워 어떤 토큰도 남지 않게 한다.
+export const hybridStorage = {
+  getItem(key) {
+    const { active } = pickStores(getKeepSignedIn(), ls(), ss())
+    return (active && active.getItem(key)) ?? null
+  },
+  setItem(key, value) {
+    const { active, other } = pickStores(getKeepSignedIn(), ls(), ss())
+    if (other) other.removeItem(key)
+    if (active) active.setItem(key, value)
+  },
+  removeItem(key) {
+    ls()?.removeItem(key)
+    ss()?.removeItem(key)
+  },
+}
+
 // 설정되지 않았으면 client는 null (Mock 폴백 사용).
 export const supabase = isSupabaseConfigured
   ? createClient(url, anonKey, {
@@ -49,6 +95,7 @@ export const supabase = isSupabaseConfigured
         persistSession: true,      // 세션 유지(새로고침 후에도 로그인 유지)
         autoRefreshToken: true,
         detectSessionInUrl: true,  // OAuth 리다이렉트 콜백 처리(Google 등)
+        storage: hybridStorage,    // keep 여부에 따라 local/session 저장소 라우팅
       },
     })
   : null

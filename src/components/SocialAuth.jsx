@@ -29,7 +29,9 @@ const LOGOS = {
   ),
 }
 
-export default function SocialAuth({ onSuccess, onError, onStart }) {
+// keep: "로그인 상태 유지" 여부(기본 false=세션 로그인). 이메일 로그인과 동일 정책을
+//   OAuth(Google/Kakao/Naver)에도 적용한다 — socialLogin 이 리다이렉트 전에 반영.
+export default function SocialAuth({ onSuccess, onError, onStart, keep = false }) {
   const { t } = useLang()
   const [busy, setBusy] = useState(null) // provider id currently authenticating
 
@@ -38,7 +40,7 @@ export default function SocialAuth({ onSuccess, onError, onStart }) {
     onError?.('')
     onStart?.()
     setBusy(providerId)
-    const res = await socialLogin(providerId)
+    const res = await socialLogin(providerId, keep)
     // OAuth 리다이렉트(예: Supabase Google)는 브라우저가 이동하므로 여기서 처리하지 않는다.
     if (res.redirecting) return
     setBusy(null)

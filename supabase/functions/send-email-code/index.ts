@@ -1,8 +1,11 @@
 // FANCLUV — 이메일 인증번호 발송/검증 (Supabase Edge Function, Deno).
 //
-// action:'send'   → 6자리 코드 생성 → email_codes 저장(10분 만료) → 이메일 발송
-//                   (RESEND_API_KEY 없으면 devCode 를 응답으로 돌려 화면 폴백)
-// action:'verify' → email_codes 에서 코드/만료 확인 후 삭제
+// action:'send'    → 6자리 코드 생성 → email_codes 저장(10분 만료) → 이메일 발송
+//                    (RESEND_API_KEY 없으면 devCode 를 응답으로 돌려 화면 폴백)
+// action:'verify'  → email_codes 에서 코드/만료 확인 → verified_at 표식(레코드 유지, 코드 무효화)
+// action:'confirm' → 회원가입 직후: 최근 코드 검증(verified_at) 확인 → 해당 userId 의
+//                    auth 이메일을 서버측 확정(email_confirm) → 레코드 삭제. (0065)
+//                    Supabase Confirm email 이 켜져 있어도 재확인 메일 없이 가입 완료.
 //
 // 배포(브라우저가 로그인 전에도 호출 → JWT 없음):
 //   supabase functions deploy send-email-code --no-verify-jwt
@@ -22,6 +25,9 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
 const CODE_TTL_MIN = 10
+// confirm(회원가입 직후 이메일 확정)이 유효한 "최근 코드 검증" 인정 시간.
+// 코드 검증 → signUp → confirm 은 보통 수초 내 일어나므로 넉넉히 15분.
+const CONFIRM_WINDOW_MIN = 15
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
@@ -33,17 +39,47 @@ Deno.serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } })
 
-  const { action, email, code } = await req.json().catch(() => ({}))
+  const { action, email, code, userId } = await req.json().catch(() => ({}))
   const addr = (email || '').trim().toLowerCase()
   if (!addr) return json({ ok: false, error: 'no_email' })
 
-  // ── 검증 ──
+  // ── 검증 ── 코드/만료 확인 성공 → verified_at 표식(레코드 유지). 코드는 무효화(일회성).
+  //   레코드를 남기는 이유: 직후 confirm 액션이 "이 이메일은 코드로 인증됨"을 확인해
+  //   auth 사용자 이메일을 서버측 확정하기 위함(이중 인증 제거, 0065).
   if (action === 'verify') {
     const { data: row } = await admin.from('email_codes').select('*').eq('email', addr).maybeSingle()
     if (!row) return json({ ok: false, error: 'not_found' })
     if (new Date(row.expires_at).getTime() < Date.now()) return json({ ok: false, error: 'expired' })
     if (String(code || '').trim() !== row.code) return json({ ok: false, error: 'mismatch' })
-    await admin.from('email_codes').delete().eq('email', addr) // 일회성
+    // 코드를 무효화(replay 방지)하되 verified_at 표식은 남긴다.
+    await admin.from('email_codes')
+      .update({ code: '', verified_at: new Date().toISOString() })
+      .eq('email', addr)
+    return json({ ok: true })
+  }
+
+  // ── 확정 ── 회원가입 직후: 최근 코드 검증(verified_at) 을 확인하고, 그 이메일을
+  //   소유한 userId 의 auth 이메일을 서버측 확정(email_confirm)한다. → Supabase 의
+  //   재확인 메일 없이 가입 완료. 보안: verified_at 이 최근이 아니면(또는 없으면) 거부.
+  if (action === 'confirm') {
+    const uid = String(userId || '').trim()
+    if (!uid) return json({ ok: false, error: 'no_user' })
+    const { data: row } = await admin.from('email_codes').select('*').eq('email', addr).maybeSingle()
+    if (!row || !row.verified_at) return json({ ok: false, error: 'not_verified' })
+    if (Date.now() - new Date(row.verified_at).getTime() > CONFIRM_WINDOW_MIN * 60000)
+      return json({ ok: false, error: 'stale' })
+    // userId ↔ email 소유 일치 확인(임의 계정 확정 방지).
+    const { data: got, error: getErr } = await admin.auth.admin.getUserById(uid)
+    if (getErr || !got?.user) return json({ ok: false, error: 'user_not_found' })
+    if ((got.user.email || '').trim().toLowerCase() !== addr) return json({ ok: false, error: 'email_mismatch' })
+    if (!got.user.email_confirmed_at) {
+      const { error: updErr } = await admin.auth.admin.updateUserById(uid, { email_confirm: true })
+      if (updErr) {
+        console.error('email_confirm failed:', JSON.stringify(updErr))
+        return json({ ok: false, error: 'confirm_failed' })
+      }
+    }
+    await admin.from('email_codes').delete().eq('email', addr) // 일회성 소진
     return json({ ok: true })
   }
 

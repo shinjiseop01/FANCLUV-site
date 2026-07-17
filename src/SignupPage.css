@@ -69,6 +69,69 @@
   line-height: 1.6;
 }
 
+/* 진행 단계 인디케이터: ① 이메일 → ② 인증 → ③ 프로필 → ④ 완료 */
+.su-steps {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+  margin: 0 0 28px;
+  padding: 0;
+}
+.su-step {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+/* 단계 사이 연결선 */
+.su-step::before {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: -50%;
+  width: 100%;
+  height: 2px;
+  background: var(--border, rgba(255,255,255,0.12));
+  z-index: 0;
+}
+.su-step:first-child::before { display: none; }
+.su-step.done::before { background: #2EA06E; }
+.su-step-dot {
+  position: relative;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--dark-input, #1A1A1A);
+  border: 1.5px solid var(--border, rgba(255,255,255,0.16));
+  color: var(--text-muted);
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.su-step.active .su-step-dot {
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.14);
+}
+.su-step.done .su-step-dot {
+  background: #2EA06E;
+  border-color: #2EA06E;
+  color: #fff;
+}
+.su-step-label { font-weight: 500; }
+.su-step.active .su-step-label { color: var(--gold); font-weight: 700; }
+.su-step.done .su-step-label { color: var(--text-sub); }
+
 /* Fields */
 .su-field {
   margin-bottom: 18px;
@@ -104,6 +167,23 @@
   box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.12);
 }
 .su-input:disabled { opacity: 0.7; cursor: default; }
+.su-input.invalid {
+  border-color: #DC2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+/* 인라인 링크형 버튼(인증 실패 시 재전송 유도) */
+.su-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--gold);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.su-link-btn:disabled { opacity: 0.5; cursor: default; text-decoration: none; }
 
 /* Optional / required markers */
 .su-optional { color: var(--text-muted); font-weight: 500; font-size: 12px; }

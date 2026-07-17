@@ -278,6 +278,36 @@ html, body, #root {
   box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.12);
 }
 
+/* 이메일 형식 오류 — 인라인 강조(붉은 테두리 + 안내) */
+.field-input.invalid {
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px rgba(224, 82, 82, 0.12);
+}
+.field-hint.error {
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--error);
+}
+
+/* "로그인 상태 유지" 체크박스 */
+.keep-signed-in {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 13.5px;
+  color: var(--text-muted, #9A9A9A);
+  cursor: pointer;
+  user-select: none;
+}
+.keep-signed-in input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+
 /* Password toggle */
 .pw-wrap {
   position: relative;

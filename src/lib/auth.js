@@ -9,7 +9,7 @@
 // getCurrentUser()/isAuthenticated()/isAdmin() 는 화면 여러 곳에서 "동기"로
 // 호출된다. Supabase 세션은 비동기이므로, AuthContext 가 세션/프로필을 로드해
 // 아래 동기 캐시(cachedUser)에 반영하고, 그 값을 동기로 반환한다.
-import { supabase, isSupabaseConfigured, isProdMisconfigured } from './supabase.js'
+import { supabase, isSupabaseConfigured, isProdMisconfigured, setKeepSignedIn, getKeepSignedIn } from './supabase.js'
 import { invokeFunction } from './edgeFunctions.js'
 import { logger } from './logger.js'
 import { getProvider, SUPABASE_PROVIDER_CONFIG } from './oauth.js'
@@ -178,7 +178,36 @@ function publicUser(u) {
   const { password, identityCi, identityDi, ...rest } = u
   return rest
 }
-function setSession(email) { localStorage.setItem(SESSION_KEY, email) }
+// (Mock) 세션 저장소도 "로그인 상태 유지" 정책을 따른다.
+//   • keep = true  → localStorage  (브라우저 종료 후에도 유지)
+//   • keep = false → sessionStorage (브라우저/탭 종료 시 자동 로그아웃)
+// setSession 은 활성 저장소에 쓰고 반대편 잔재를 지운다. readMockSession 은 활성
+// 저장소에서만 읽어 세션 로그인 시 브라우저 종료 → 자동 로그아웃을 강제한다.
+function setSession(email) {
+  const keep = getKeepSignedIn()
+  const active = keep ? localStorage : sessionStorage
+  const other = keep ? sessionStorage : localStorage
+  try { other.removeItem(SESSION_KEY) } catch { /* noop */ }
+  active.setItem(SESSION_KEY, email)
+}
+function readMockSession() {
+  const active = getKeepSignedIn() ? localStorage : sessionStorage
+  try { return active.getItem(SESSION_KEY) } catch { return null }
+}
+
+// OAuth 커스텀 로그인이 리다이렉트 전 sessionStorage 에 남기는 state nonce 키.
+// 로그아웃 시 자동 로그인/OAuth 흔적을 남기지 않도록 함께 제거한다.
+const OAUTH_STATE_KEYS = ['kakao_oauth_state', 'naver_oauth_state']
+function clearAuthArtifacts() {
+  // 세션/영구 양쪽 저장소의 로그인 흔적 + keep 플래그 + OAuth state 를 전부 제거.
+  try { localStorage.removeItem(SESSION_KEY) } catch { /* noop */ }
+  try { sessionStorage.removeItem(SESSION_KEY) } catch { /* noop */ }
+  for (const k of OAUTH_STATE_KEYS) {
+    try { sessionStorage.removeItem(k) } catch { /* noop */ }
+    try { localStorage.removeItem(k) } catch { /* noop */ }
+  }
+  setKeepSignedIn(false) // 다음 로그인은 기본값(세션 로그인)으로 시작
+}
 
 function ensureSeed() {
   const users = readUsers()
@@ -259,9 +288,9 @@ function mockLogin({ email, password }) {
   setSession(email)
   return { ok: true, user: publicUser(user) }
 }
-function mockLogout() { localStorage.removeItem(SESSION_KEY) }
+function mockLogout() { clearAuthArtifacts() }
 function mockGetCurrentUser() {
-  const email = localStorage.getItem(SESSION_KEY)
+  const email = readMockSession()
   if (!email) return null
   return publicUser(readUsers().find(u => u.email.toLowerCase() === email.toLowerCase()))
 }
@@ -273,7 +302,7 @@ function mockPatchUser(email, patch) {
   return { ok: true, user: publicUser(users[idx]) }
 }
 function mockPatchSessionUser(patch) {
-  const email = localStorage.getItem(SESSION_KEY)
+  const email = readMockSession()
   if (!email) return { ok: false, error: '로그인이 필요합니다.' }
   return mockPatchUser(email, patch)
 }
@@ -327,8 +356,22 @@ export async function signup({ nickname, email, password, gender = null, ageGrou
       options: { data: { nickname: name, gender, age_group: ageGroup, provider: 'email' } },
     })
     if (error) return { ok: false, error: translateAuthError(error) }
-    // 이메일 확인 설정이 켜져 있으면 세션이 없다(메일 확인 후 로그인).
-    const needsConfirm = !data.session
+    // 회원가입 완료 흐름(0065):
+    //   • 기본(권장): Auth 의 mailer_autoconfirm=ON → signUp 이 즉시 세션 발급.
+    //     이메일 인증은 화면의 커스텀 인증번호(send-email-code)가 담당한다. 재확인 메일
+    //     없음 → "메일을 확인하세요" 재노출 없음, 이메일 발송 rate limit 무관.
+    //   • 방어: 만약 Confirm email(mailer_autoconfirm=OFF)이 켜져 있어 세션이 없으면,
+    //     이미 코드로 인증된 이메일을 send-email-code 'confirm' 으로 서버측 확정한 뒤
+    //     로그인해 세션을 확보한다(재확인 메일 dead-end 제거).
+    // confirm 은 어느 경우든 호출해 email_codes 의 검증 표식 행을 소진(삭제)한다 → 잔재 없음.
+    let needsConfirm = !data.session
+    if (data.user?.id) {
+      const confirmed = await confirmSignupEmail(email, data.user.id)
+      if (needsConfirm && confirmed) {
+        const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
+        if (!signInErr) { await loadCurrentSupabaseUser(); needsConfirm = false }
+      }
+    }
     if (data.session) await loadCurrentSupabaseUser()
     sendWelcomeEmail(email, name)  // 환영 이메일(비차단, 실패해도 가입은 성공)
     return { ok: true, needsConfirm, user: cachedUser }
@@ -413,14 +456,18 @@ export async function deleteAccount() {
     await supabase.auth.signOut()
     return { ok: true }
   }
-  const email = localStorage.getItem(SESSION_KEY)
+  const email = readMockSession()
   if (email) writeUsers(readUsers().filter(u => u.email.toLowerCase() !== email.toLowerCase()))
   mockLogout()
   return { ok: true }
 }
 
 // ── 로그인 ──
-export async function login({ email, password }) {
+// keep: "로그인 상태 유지" 체크 여부. true=영구 세션(localStorage),
+//       false(기본)=세션 로그인(sessionStorage, 브라우저 종료 시 자동 로그아웃).
+//       세션 저장 위치 결정을 위해 실제 로그인(signIn) 이전에 플래그를 설정한다.
+export async function login({ email, password, keep = false }) {
+  setKeepSignedIn(keep)
   if (isSupabaseConfigured) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
@@ -440,15 +487,24 @@ export async function login({ email, password }) {
   return mockLogin({ email, password })
 }
 
-// ── 로그아웃 ──
+// ── 로그아웃 ── 모든 토큰/세션/OAuth 흔적/자동 로그인 플래그를 제거한다.
 export async function logout() {
   cachedUser = null // 가드가 즉시 반영되도록 동기 초기화
-  if (isSupabaseConfigured) { await supabase.auth.signOut(); return }
+  if (isSupabaseConfigured) {
+    // signOut 이 hybridStorage.removeItem 으로 활성 세션 토큰을 지우고,
+    // clearAuthArtifacts 가 남은 저장소/OAuth state/keep 플래그까지 정리한다.
+    try { await supabase.auth.signOut() } catch { /* noop */ }
+    clearAuthArtifacts()
+    return
+  }
   mockLogout()
 }
 
 // ── 소셜 로그인 (Google = Supabase OAuth / Kakao·NAVER = 인터페이스 유지) ──
-export async function socialLogin(providerId) {
+export async function socialLogin(providerId, keep = false) {
+  // OAuth 도 이메일 로그인과 동일 정책: keep=false 면 세션 로그인(브라우저 종료 시
+  // 자동 로그아웃). keep 플래그는 리다이렉트를 넘어 살아남도록 localStorage 에 둔다.
+  setKeepSignedIn(keep)
   if (isSupabaseConfigured) {
     const cfg = SUPABASE_PROVIDER_CONFIG[providerId]
     if (!cfg) return { ok: false, error: '지원하지 않는 로그인 방식입니다.' }
@@ -581,7 +637,7 @@ export function identityInfo(user = getCurrentUser()) {
 
 // Mock 모드: localStorage 에 본인인증 결과 저장(+ 동일 CI 중복가입 방지).
 function mockClaimIdentity({ agency, ci, di }) {
-  const email = localStorage.getItem(SESSION_KEY)
+  const email = readMockSession()
   if (!email) return { ok: false, error: '로그인이 필요합니다.' }
   const users = readUsers()
   const meIdx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase())
@@ -668,6 +724,19 @@ export async function confirmEmailCode(email, code) {
   })
   if (error || !data?.ok) return { ok: false, error: '인증번호가 올바르지 않거나 만료되었습니다.' }
   return { ok: true }
+}
+
+// 회원가입 직후 서버측 이메일 확정. 화면에서 커스텀 인증번호로 이미 이메일을
+// 인증(verify)했음을 send-email-code 가 verified_at 표식으로 알고 있으므로, 그 표식과
+// userId↔email 소유 일치를 확인해 auth 사용자 이메일을 확정한다. 실패해도(예: 코드
+// 미검증) false 만 돌려주고, signup() 은 기존 "메일 확인" 폴백으로 자연스럽게 진행된다.
+async function confirmSignupEmail(email, userId) {
+  try {
+    const { data, error } = await invokeFunction('send-email-code', {
+      body: { action: 'confirm', email: (email || '').trim(), userId },
+    })
+    return !error && data?.ok === true
+  } catch { return false }
 }
 
 // ── 이메일 미제공 소셜 계정: 나중에 이메일 등록/연결 ──
@@ -769,7 +838,7 @@ export async function changePassword(currentPassword, newPassword) {
     if (error) return { ok: false, error: translateAuthError(error) }
     return { ok: true }
   }
-  const email = localStorage.getItem(SESSION_KEY)
+  const email = readMockSession()
   if (!email) return { ok: false, error: '로그인이 필요합니다.' }
   const users = readUsers()
   const idx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase())
@@ -786,7 +855,7 @@ export async function setSelectedTeam(teamId) {
     await patchSupabaseProfile({ selected_team: teamId })
     return
   }
-  const email = localStorage.getItem(SESSION_KEY)
+  const email = readMockSession()
   if (!email) return
   const users = readUsers()
   const idx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase())
