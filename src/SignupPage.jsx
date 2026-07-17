@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signup, issueEmailCode, confirmEmailCode, needsOnboarding, requiresIdentityVerification, isIdentityVerificationEnabled } from './lib/auth.js'
 import { isValidEmail, signupProgress, resendButtonState, RESEND_COOLDOWN_SEC } from './lib/authForm.js'
@@ -37,6 +37,7 @@ export default function SignupPage() {
   const [verifying, setVerifying] = useState(false)    // 인증번호 확인 중
   const [resendCooldown, setResendCooldown] = useState(0) // 재전송 쿨다운(초) — 연속 클릭 방지
   const [emailTouched, setEmailTouched] = useState(false) // blur 후에만 형식 오류 표시
+  const completingRef = useRef(false) // 가입 완료 중복 제출 방지(동기 lock)
 
   const emailValid = isValidEmail(email)              // RFC 수준 형식
   const emailDomainOk = isAllowedEmailDomain(email)   // 공개 회원가입 허용 도메인
@@ -135,6 +136,8 @@ export default function SignupPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    // 동기식 lock — 더블클릭/재렌더로 인한 중복 complete-signup 호출 방지.
+    if (completingRef.current) return
     setError('')
 
     if (!nickname.trim()) { setError(t('signup.errNickname')); return }
@@ -148,17 +151,23 @@ export default function SignupPage() {
     if (password.length < 4) { setError(t('signup.errPwLen')); return }
     if (password !== passwordConfirm) { setError(t('signup.errPwMatch')); return }
 
+    completingRef.current = true
     setLoading(true)
-    // 가입 완료 요청은 complete-signup Edge 만 호출한다(send/verify 재호출 없음).
-    const result = await signup({
-      nickname: nickname.trim(), email: email.trim(), password,
-      gender: gender || null, ageGroup,
-    })
-    setLoading(false)
-    if (!result.ok) { setError(result.error); return }
-    // 서버에서 email_confirm:true 로 확정 생성 + 세션 확보 완료 → "확인 메일" 재요구 없이
-    // 바로 다음 단계로. (본인인증 업체 설정 시 본인인증, 아니면 팀 선택.)
-    navigate(isIdentityVerificationEnabled() ? '/verify-identity' : '/team-select')
+    try {
+      // 가입 완료 요청은 complete-signup Edge 만 호출한다(send/verify 재호출 없음).
+      const result = await signup({
+        nickname: nickname.trim(), email: email.trim(), password,
+        gender: gender || null, ageGroup,
+      })
+      if (!result.ok) { setError(result.error); return }
+      // 서버에서 email_confirm:true 로 확정 생성 + 세션 확보 완료 → "확인 메일" 재요구 없이
+      // 바로 다음 단계로. (본인인증 업체 설정 시 본인인증, 아니면 팀 선택.)
+      navigate(isIdentityVerificationEnabled() ? '/verify-identity' : '/team-select')
+    } finally {
+      // 성공 시 navigate 로 언마운트되지만, 실패 시 재시도할 수 있게 lock 해제.
+      completingRef.current = false
+      setLoading(false)
+    }
   }
 
   // 회원가입 진행 단계(① 이메일 → ② 인증 → ③ 프로필 → ④ 완료) — 상단 스텝 인디케이터.
@@ -284,9 +293,10 @@ export default function SignupPage() {
             )}
 
             {emailVerified && (
-              <p className="su-verified">
-                <Icon name="check" size={14} className="fc-inline-ico" />{t('signup.emailVerified')}
-                <button type="button" className="su-link-btn" onClick={changeEmail} style={{ marginLeft: 8 }}>
+              <p className="su-verified" role="status" aria-live="polite">
+                <Icon name="check" size={14} className="fc-inline-ico" aria-hidden="true" />
+                <span className="su-verified-text">{t('signup.emailVerified')}</span>
+                <button type="button" className="su-link-btn" onClick={changeEmail}>
                   {t('signup.changeEmail')}
                 </button>
               </p>

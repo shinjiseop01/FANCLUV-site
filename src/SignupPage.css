@@ -231,7 +231,20 @@
   animation: su-spin 0.7s linear infinite;
 }
 @keyframes su-spin { to { transform: rotate(360deg); } }
-.su-verified { margin-top: 10px; font-size: 13px; font-weight: 700; color: #4ADE80; }
+/* 인증 완료 표시: 체크 아이콘과 문구를 같은 행에 정렬(세로 스택 방지). */
+.su-verified {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4ADE80;
+}
+.su-verified .fc-inline-ico { margin-right: 0; }        /* 간격은 gap 으로 통일 */
+.su-verified .su-verified-text { flex: 0 1 auto; min-width: 0; } /* 긴 문구는 자연 줄바꿈 */
 
 /* Chips (gender / age group) */
 .su-chips { display: flex; flex-wrap: wrap; gap: 8px; }

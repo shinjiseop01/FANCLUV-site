@@ -81,6 +81,16 @@ Deno.serve(async (req) => {
   if (password.length < MIN_PASSWORD) return json({ ok: false, error: 'weak_password' })
   if (!nickname) return json({ ok: false, error: 'nickname_required' })
 
+  // 이미 가입이 완료된 이메일이면(직전 요청 성공 후 재시도/응답 유실 포함) 멱등 성공.
+  // OTP 는 성공 시 소진(삭제)되므로, 계정 존재 = 이 가입이 이미 완료됨.
+  async function alreadyCompleted() {
+    const { data: prof } = await admin.from('profiles').select('id').ilike('email', addr).limit(1)
+    if (prof && prof.length) { await admin.from('email_codes').delete().eq('email', addr); return prof[0].id }
+    return null
+  }
+  const doneId0 = await alreadyCompleted()
+  if (doneId0) return json({ ok: true, code: 'already_completed', userId: doneId0 })
+
   // 2) 서버측 OTP 인증 완료 증명 — email_codes.verified_at(최근)
   const { data: row } = await admin.from('email_codes').select('*').eq('email', addr).maybeSingle()
   if (!row || !row.verified_at) return json({ ok: false, error: 'not_verified' })
@@ -95,12 +105,13 @@ Deno.serve(async (req) => {
     user_metadata: { nickname, gender, age_group: ageGroup, provider: 'email' },
   })
   if (createErr || !created?.user) {
-    const msg = (createErr?.message || '').toLowerCase()
-    if (msg.includes('already') || msg.includes('registered') || msg.includes('exists') || msg.includes('duplicate'))
-      return json({ ok: false, error: 'already_registered' })
-    // 문구가 달라도, 실제로 해당 이메일 사용자가 이미 존재하면 중복으로 취급(동시 가입 Race).
-    const { data: prof } = await admin.from('profiles').select('id').ilike('email', addr).limit(1)
-    if (prof && prof.length) return json({ ok: false, error: 'already_registered' })
+    // 이미 해당 이메일 계정이 존재하면(더블클릭/동시요청 포함) 멱등 성공으로 처리한다.
+    // 승자의 profiles 커밋이 아직 안 보일 수 있어 짧게 재확인(최대 ~600ms).
+    for (let i = 0; i < 4; i++) {
+      const doneId = await alreadyCompleted()
+      if (doneId) return json({ ok: true, code: 'already_completed', userId: doneId })
+      if (i < 3) await new Promise(r => setTimeout(r, 150))
+    }
     console.error('createUser failed') // 비밀번호/원문 로그 금지(중복 아닌 일시 실패는 재시도 안전)
     return json({ ok: false, error: 'create_failed' })
   }
@@ -109,5 +120,5 @@ Deno.serve(async (req) => {
   await admin.from('email_codes').delete().eq('email', addr)
 
   // profiles 는 handle_new_user 트리거가 동일 트랜잭션에서 생성(orphan 없음).
-  return json({ ok: true, userId: created.user.id })
+  return json({ ok: true, code: 'signup_completed', userId: created.user.id })
 })
