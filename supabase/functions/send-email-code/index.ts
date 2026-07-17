@@ -34,6 +34,27 @@ const MAX_ATTEMPTS = 5 // OTP 검증 실패 허용 횟수(초과 시 잠금 → 
 // 프로덕션 project ref — 테스트 전용 액션은 이 ref 에서 절대 실행하지 않는다.
 const PROD_REF = 'cuuzbddxnzhhlrqmmebz'
 
+// 공개 회원가입 허용 도메인 — src/lib/emailDomains.js 와 동일(드리프트 테스트로 강제).
+const ALLOWED_EMAIL_DOMAINS = [
+  'gmail.com', 'googlemail.com',
+  'naver.com',
+  'daum.net', 'hanmail.net', 'kakao.com',
+  'yahoo.com', 'yahoo.co.kr',
+  'msn.com', 'outlook.com', 'hotmail.com',
+  'zum.com',
+  'nate.com',
+  'icloud.com',
+]
+const ALLOWED_DOMAIN_SET = new Set(ALLOWED_EMAIL_DOMAINS)
+function isAllowedDomain(addr: string): boolean {
+  const at = addr.lastIndexOf('@')
+  if (at < 0) return false
+  const domain = addr.slice(at + 1)
+  if (domain.startsWith('xn--') || domain.includes('.xn--')) return false
+  if (!/^[a-z0-9.-]+$/.test(domain)) return false
+  return ALLOWED_DOMAIN_SET.has(domain)
+}
+
 // 이메일 형식(서버측) — 도달성 아닌 형식 검증. local@domain.tld 구조 + 라벨/TLD.
 function isValidEmail(s: string): boolean {
   if (!s || s.length > 254) return false
@@ -92,6 +113,8 @@ Deno.serve(async (req) => {
   // ── 발송 ── 형식 검증 → 발송 공급자 필수 → 발송 성공해야 코드 저장. 코드는 반환하지 않는다.
   if (action === 'send') {
     if (!isValidEmail(addr)) return json({ ok: false, error: 'invalid_email' })
+    // 공개 회원가입 허용 도메인만(프론트 우회 차단). 발송 자체를 거부.
+    if (!isAllowedDomain(addr)) return json({ ok: false, error: 'domain_not_allowed' })
     // 발송 공급자 미설정 → 인증 진행 불가(Mock/devCode 폴백 금지).
     if (!RESEND_API_KEY) {
       console.error('email send blocked: provider unconfigured')
@@ -141,23 +164,24 @@ Deno.serve(async (req) => {
 
   // ── 검증 ── 입력 OTP 해시 비교. 만료/소진/시도초과 확인, 실패 시 attempt_count 증가.
   if (action === 'verify') {
+    const nowIso = new Date().toISOString()
+    const inputHash = await hmac(SERVICE_ROLE, `${addr}:${String(code || '').trim()}`)
+    // 원자적 소비: 아직 소비되지 않고(consumed_at IS NULL) 만료 전이며 코드가 일치하는
+    // 행만 단 한 번 verified/consumed 로 전이한다. 동시 verify 다수 중 정확히 1건만 성공.
+    const { data: won } = await admin.from('email_codes')
+      .update({ verified_at: nowIso, consumed_at: nowIso, code_hash: null })
+      .eq('email', addr).eq('code_hash', inputHash).is('consumed_at', null).gt('expires_at', nowIso)
+      .select()
+    if (won && won.length === 1) return json({ ok: true })
+    // 실패 원인 분류(경쟁에서 진 요청 포함).
     const { data: row } = await admin.from('email_codes').select('*').eq('email', addr).maybeSingle()
     if (!row) return json({ ok: false, error: 'not_found' })
-    // 소진(검증 완료) 확인을 먼저 — 성공 시 code_hash 를 지우므로 not_found 로 오분류되지 않게.
     if (row.consumed_at) return json({ ok: false, error: 'consumed' })
-    if (!row.code_hash) return json({ ok: false, error: 'not_found' })
     if (new Date(row.expires_at).getTime() < Date.now()) return json({ ok: false, error: 'expired' })
     if ((row.attempt_count ?? 0) >= MAX_ATTEMPTS) return json({ ok: false, error: 'too_many_attempts' })
-    const inputHash = await hmac(SERVICE_ROLE, `${addr}:${String(code || '').trim()}`)
-    if (inputHash !== row.code_hash) {
-      await admin.from('email_codes').update({ attempt_count: (row.attempt_count ?? 0) + 1 }).eq('email', addr)
-      return json({ ok: false, error: 'mismatch' })
-    }
-    // 성공: 이메일 소유 증명(verified_at) + OTP 소진(consumed_at, code_hash 제거) → 재사용 불가.
-    await admin.from('email_codes')
-      .update({ verified_at: new Date().toISOString(), consumed_at: new Date().toISOString(), code_hash: null })
-      .eq('email', addr)
-    return json({ ok: true })
+    // 진짜 코드 불일치 → 시도 횟수 증가.
+    await admin.from('email_codes').update({ attempt_count: (row.attempt_count ?? 0) + 1 }).eq('email', addr)
+    return json({ ok: false, error: 'mismatch' })
   }
 
   // ── 확정 ── 가입 직후: 최근 verified_at + userId↔email 일치 → auth 이메일 서버측 확정.

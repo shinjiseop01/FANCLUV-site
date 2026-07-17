@@ -242,7 +242,9 @@ export default {
   'nickname.err.reserved': '사용할 수 없는 닉네임입니다.',
   'nickname.err.banned': '부적절한 표현이 포함된 닉네임입니다.',
   'signup.errEmail': '이메일을 입력해주세요.',
-  'signup.errEmailFormat': '올바른 이메일 형식을 입력해주세요.',
+  'signup.errEmailFormat': '올바른 이메일 주소를 입력해 주세요.',
+  'signup.errEmailDomain': '가입할 수 없는 이메일 도메인입니다. Gmail, Naver, Daum, Kakao 등 지원하는 이메일을 사용해 주세요.',
+  'signup.changeEmail': '이메일 변경',
   'signup.errPw': '비밀번호를 입력해주세요.',
   'signup.errPwLen': '비밀번호는 4자 이상이어야 합니다.',
   'signup.errPwMatch': '비밀번호가 일치하지 않습니다.',
@@ -274,7 +276,6 @@ export default {
   'signup.codePh': '인증번호 6자리',
   'signup.confirmCode': '인증 확인',
   'signup.emailVerified': '이메일 인증 완료',
-  'signup.confirmEmailSent': '확인 메일을 보냈습니다. 메일의 링크를 눌러 인증을 완료한 뒤 로그인해 주세요.',
   // 온보딩 (소셜 로그인 신규 사용자 프로필 설정)
   'onboard.title': '프로필 설정',
   'onboard.subtitle': 'FANCLUV 시작 전, 기본 프로필을 설정해 주세요.',

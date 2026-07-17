@@ -351,30 +351,21 @@ export async function signup({ nickname, email, password, gender = null, ageGrou
   // 닉네임 중복 방지 (회원가입/온보딩/프로필수정 공통 규칙)
   if (await isNicknameTaken(name)) return { ok: false, error: '이미 사용 중인 닉네임입니다.', code: 'nickname_taken' }
   if (isSupabaseConfigured) {
-    const { data, error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { nickname: name, gender, age_group: ageGroup, provider: 'email' } },
+    // 서버 권위 회원가입: OTP 인증(verified_at)을 서버가 확인하고 admin.createUser 로
+    // email_confirm:true 확정 생성한다(complete-signup Edge). Supabase Confirm Email
+    // 설정과 무관하게 세션을 확보하므로 "확인 메일" 재요구/이중 인증이 없다.
+    const { data, error } = await invokeFunction('complete-signup', {
+      body: { email, password, nickname: name, gender, ageGroup },
     })
-    if (error) return { ok: false, error: translateAuthError(error) }
-    // 회원가입 완료 흐름(0065):
-    //   • 기본(권장): Auth 의 mailer_autoconfirm=ON → signUp 이 즉시 세션 발급.
-    //     이메일 인증은 화면의 커스텀 인증번호(send-email-code)가 담당한다. 재확인 메일
-    //     없음 → "메일을 확인하세요" 재노출 없음, 이메일 발송 rate limit 무관.
-    //   • 방어: 만약 Confirm email(mailer_autoconfirm=OFF)이 켜져 있어 세션이 없으면,
-    //     이미 코드로 인증된 이메일을 send-email-code 'confirm' 으로 서버측 확정한 뒤
-    //     로그인해 세션을 확보한다(재확인 메일 dead-end 제거).
-    // confirm 은 어느 경우든 호출해 email_codes 의 검증 표식 행을 소진(삭제)한다 → 잔재 없음.
-    let needsConfirm = !data.session
-    if (data.user?.id) {
-      const confirmed = await confirmSignupEmail(email, data.user.id)
-      if (needsConfirm && confirmed) {
-        const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
-        if (!signInErr) { await loadCurrentSupabaseUser(); needsConfirm = false }
-      }
+    if (error || !data?.ok) {
+      return { ok: false, error: completeSignupErrMsg(data?.error), code: data?.error || 'complete_failed' }
     }
-    if (data.session) await loadCurrentSupabaseUser()
+    // email_confirm:true 라 즉시 로그인 가능 → 세션 확보(재확인 메일 dead-end 없음).
+    const { error: siErr } = await supabase.auth.signInWithPassword({ email, password })
+    if (siErr) return { ok: false, error: '회원가입은 완료됐지만 자동 로그인에 실패했습니다. 로그인해 주세요.', code: 'signin_after_signup' }
+    const user = await loadCurrentSupabaseUser()
     sendWelcomeEmail(email, name)  // 환영 이메일(비차단, 실패해도 가입은 성공)
-    return { ok: true, needsConfirm, user: cachedUser }
+    return { ok: true, user } // needsConfirm 없음 — 항상 즉시 다음 단계
   }
   const res = mockSignup({ nickname: name, email, password, gender, ageGroup })
   if (res.ok) sendWelcomeEmail(email, name)  // Mock: 콘솔 로그 폴백
@@ -718,10 +709,14 @@ export async function issueEmailCode(email) {
   if (exists && exists.length) return { ok: false, code: 'duplicate', error: '이미 가입된 이메일입니다.' }
   const { data, error } = await invokeFunction('send-email-code', { body: { action: 'send', email: q } })
   if (error || !data?.ok) {
-    // 내부 사유(email_provider_unconfigured/email_send_failed/invalid_email 등)는 서버 로그에만
-    // 남긴다(시크릿·공급자 응답 미노출). 사용자에겐 안전 문구만.
+    // 내부 사유(email_provider_unconfigured/email_send_failed/invalid_email/domain_not_allowed 등)는
+    // 서버 로그에만 남긴다(시크릿·공급자 응답 미노출). 사용자에겐 안전 문구만.
     const reason = data?.error || error?.message || 'unknown'
     logger.error('[email-code] 발송 실패', { context: { reason } })
+    if (reason === 'domain_not_allowed')
+      return { ok: false, code: 'domain_not_allowed', error: '해당 이메일 도메인으로는 가입할 수 없습니다. 다른 이메일 주소를 사용해 주세요.' }
+    if (reason === 'invalid_email')
+      return { ok: false, code: 'invalid_email', error: '올바른 이메일 주소를 입력해 주세요.' }
     return { ok: false, code: data?.error || 'send_failed', error: EMAIL_SEND_FAIL_MSG }
   }
   return { ok: true, sent: true } // 코드 미반환
@@ -744,17 +739,17 @@ export async function confirmEmailCode(email, code) {
   return { ok: true }
 }
 
-// 회원가입 직후 서버측 이메일 확정. 화면에서 커스텀 인증번호로 이미 이메일을
-// 인증(verify)했음을 send-email-code 가 verified_at 표식으로 알고 있으므로, 그 표식과
-// userId↔email 소유 일치를 확인해 auth 사용자 이메일을 확정한다. 실패해도(예: 코드
-// 미검증) false 만 돌려주고, signup() 은 기존 "메일 확인" 폴백으로 자연스럽게 진행된다.
-async function confirmSignupEmail(email, userId) {
-  try {
-    const { data, error } = await invokeFunction('send-email-code', {
-      body: { action: 'confirm', email: (email || '').trim(), userId },
-    })
-    return !error && data?.ok === true
-  } catch { return false }
+// complete-signup Edge 의 오류 코드를 사용자 안전 문구로 매핑(내부 코드/응답 미노출).
+function completeSignupErrMsg(code) {
+  switch (code) {
+    case 'domain_not_allowed': return '해당 이메일 도메인으로는 가입할 수 없습니다. 다른 이메일 주소를 사용해 주세요.'
+    case 'invalid_email': return '올바른 이메일 주소를 입력해 주세요.'
+    case 'not_verified':
+    case 'stale': return '이메일 인증을 먼저 완료해 주세요.'
+    case 'already_registered': return '이미 가입된 이메일입니다.'
+    case 'weak_password': return '비밀번호는 4자 이상이어야 합니다.'
+    default: return '회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+  }
 }
 
 // ── 이메일 미제공 소셜 계정: 나중에 이메일 등록/연결 ──

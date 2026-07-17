@@ -242,7 +242,9 @@ export default {
   'nickname.err.reserved': 'This nickname is not available.',
   'nickname.err.banned': 'This nickname contains inappropriate language.',
   'signup.errEmail': 'Please enter your email.',
-  'signup.errEmailFormat': 'Please enter a valid email format.',
+  'signup.errEmailFormat': 'Please enter a valid email address.',
+  'signup.errEmailDomain': 'This email domain is not allowed. Please use a supported provider such as Gmail, Naver, Daum, or Kakao.',
+  'signup.changeEmail': 'Change email',
   'signup.errPw': 'Please enter a password.',
   'signup.errPwLen': 'Password must be at least 4 characters.',
   'signup.errPwMatch': 'Passwords do not match.',
@@ -274,7 +276,6 @@ export default {
   'signup.codePh': '6-digit code',
   'signup.confirmCode': 'Verify',
   'signup.emailVerified': 'Email verified',
-  'signup.confirmEmailSent': 'A confirmation email has been sent. Click the link in the email to verify, then log in.',
   // Onboarding (social login new-user profile setup)
   'onboard.title': 'Set up your profile',
   'onboard.subtitle': 'Set your basic profile before you start FANCLUV.',
