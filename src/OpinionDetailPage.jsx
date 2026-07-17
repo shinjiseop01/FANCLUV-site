@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import QuickPollCard from './components/QuickPollCard.jsx'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import { useToast } from './contexts/ToastContext.jsx'
@@ -402,7 +403,8 @@ export default function OpinionDetailPage() {
         </div>
       )}
 
-      {/* 댓글 삭제 확인 모달 (ReportModal 과 동일 스타일 재사용) */}
+      <QuickPollCard contextType="opinion" contextId={opinionId} teamId={teamId} />
+          {/* 댓글 삭제 확인 모달 (ReportModal 과 동일 스타일 재사용) */}
       {deleteId && (
         <div className="rpt-overlay" role="dialog" aria-modal="true" onClick={() => setDeleteId(null)}>
           <div className="rpt-modal" onClick={e => e.stopPropagation()}>

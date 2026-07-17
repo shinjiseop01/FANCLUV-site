@@ -1,0 +1,43 @@
+/* FANCLUV — Quick Poll 임베드 카드 */
+.qp-card { border: 1px solid var(--border, #E5E7EB); border-radius: 14px; padding: 14px 16px; background: var(--canvas, #fff); margin: 12px 0; }
+.qp-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.qp-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--team, #2563EB); }
+.qp-remain { font-size: 11.5px; color: var(--warn, #B45309); font-weight: 600; }
+.qp-question { font-size: 15px; font-weight: 700; color: var(--ink, #111827); line-height: 1.4; margin-bottom: 10px; }
+.qp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.qp-options { border: 0; margin: 0; padding: 0; display: grid; gap: 7px; }
+.qp-option { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 12px 14px; border: 1.5px solid var(--border, #E5E7EB); border-radius: 11px; background: var(--canvas, #fff); font-size: 14.5px; font-weight: 600; color: var(--ink, #111827); cursor: pointer; }
+.qp-option:hover, .qp-option:focus-visible { border-color: var(--team, #2563EB); background: color-mix(in srgb, var(--team, #2563EB) 6%, var(--canvas, #fff)); outline: none; }
+.qp-radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border, #E5E7EB); flex: 0 0 auto; }
+.qp-option:hover .qp-radio { border-color: var(--team, #2563EB); }
+
+.qp-results { display: grid; gap: 10px; }
+.qp-bar-row { display: grid; gap: 4px; }
+.qp-bar-row.is-mine span:first-child { color: var(--team-deep, #1D4ED8); font-weight: 700; }
+.qp-bar-head { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; color: var(--ink, #111827); }
+.qp-mine { color: var(--team, #2563EB); margin-left: 3px; vertical-align: -1px; }
+.qp-pct { font-weight: 700; }
+.qp-n { font-weight: 400; color: var(--muted, #6B7280); font-size: 12px; }
+.qp-bar-track { height: 9px; background: color-mix(in srgb, var(--muted, #6B7280) 14%, transparent); border-radius: 999px; overflow: hidden; }
+.qp-bar-fill { height: 100%; background: var(--team, #2563EB); border-radius: 999px; transition: width .4s ease; }
+.qp-total { font-size: 12px; color: var(--muted, #6B7280); }
+
+.qp-notice { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted, #6B7280); background: color-mix(in srgb, var(--ink, #111827) 5%, transparent); border-radius: 9px; padding: 9px 11px; }
+.qp-voted { font-size: 12px; color: var(--muted, #6B7280); margin-top: 8px; }
+.qp-card-error { display: flex; align-items: center; gap: 8px; color: #DC2626; font-size: 13px; }
+.qp-retry { margin-left: auto; background: #DC2626; color: #fff; border: none; border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 12.5px; }
+
+.qp-skeleton { display: grid; gap: 8px; }
+.qp-sk-line { height: 14px; border-radius: 6px; background: color-mix(in srgb, var(--muted, #6B7280) 14%, transparent); }
+.qp-sk-short { width: 60%; }
+
+.qp-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+.qp-modal { background: var(--canvas, #fff); border-radius: 16px; padding: 20px; max-width: 320px; width: 100%; }
+.qp-modal h4 { font-size: 16px; font-weight: 800; color: var(--ink, #111827); margin-bottom: 8px; }
+.qp-modal p { font-size: 14px; color: var(--ink, #111827); margin-bottom: 6px; }
+.qp-warn { font-size: 12.5px; color: var(--warn, #B45309); }
+.qp-modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+.qp-btn-primary { flex: 1; padding: 11px; border: none; border-radius: 10px; background: var(--team, #2563EB); color: #fff; font-weight: 700; cursor: pointer; }
+.qp-btn-primary:disabled { opacity: .6; cursor: default; }
+.qp-btn-ghost { flex: 1; padding: 11px; border: 1px solid var(--border, #E5E7EB); border-radius: 10px; background: none; color: var(--muted, #6B7280); font-weight: 600; cursor: pointer; }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import QuickPollCard from './components/QuickPollCard.jsx'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser } from './lib/auth.js'
@@ -110,6 +111,7 @@ export default function ClubHomePage() {
 
       {/* ── Main ── */}
       <main className="ch-main">
+        <QuickPollCard contextType="home" teamId={team.id} />
         {loading ? <div className="ch-skel"><SkeletonList count={4} lines={3} /></div> : <>
 
         <section className="ch-welcome">
