@@ -6,10 +6,10 @@ import { getCurrentUser, verifyEmail, logout } from './lib/auth.js'
 import './SignupPage.css'
 import './RecoveryPages.css'
 
-// Mock email verification. Reached after signup ("we sent a mail") or after a
-// login attempt on an unverified account ("verification required"). Pressing
-// the button flips isEmailVerified in the mock store, then continues to team
-// selection (or the user's club if already chosen).
+// Email verification notice. Reached after signup or a login attempt on an
+// unverified account. There is NO in-app "complete verification" bypass — the
+// user must click the link in the real verification email. This page only lets
+// them re-send that email (server-side); it never flips the verified flag.
 export default function VerifyEmailPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -17,7 +17,9 @@ export default function VerifyEmailPage() {
   const reason = location.state?.reason === 'login' ? 'login' : 'signup'
 
   const user = getCurrentUser()
-  const [done, setDone] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resent, setResent] = useState(false)
+  const [err, setErr] = useState('')
 
   if (!user) {
     // No session → nothing to verify; send back to login.
@@ -25,14 +27,13 @@ export default function VerifyEmailPage() {
     return null
   }
 
-  function handleVerify() {
-    verifyEmail(user.email)
-    setDone(true)
-  }
-
-  function goNext() {
-    const team = getCurrentUser()?.selectedTeam
-    navigate(team ? `/club/${team}` : '/team-select', { replace: true })
+  async function handleResend() {
+    if (resending) return
+    setResending(true); setErr(''); setResent(false)
+    const res = await verifyEmail(user.email) // 실제 확인 메일 재전송(우회 아님)
+    setResending(false)
+    if (res.ok) setResent(true)
+    else setErr(res.error || t('verify.resendFail'))
   }
 
   function backToLogin() {
@@ -45,34 +46,30 @@ export default function VerifyEmailPage() {
       <div className="signup-card">
         <div className="signup-brand">FANCLUV</div>
 
-        {done ? (
-          <div className="rec-result" role="status">
-            <span className="rec-result-icon" aria-hidden="true"><Icon name="successCircle" size={26} /></span>
-            <p className="rec-result-label">{t('verify.doneLabel')}</p>
-            <p className="rec-result-value">{user.email}</p>
-            <div className="rec-result-actions">
-              <button type="button" className="su-btn rec-btn-link" onClick={goNext}>{t('verify.goTeam')}</button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="signup-header">
-              <span className="ve-badge" aria-hidden="true"><Icon name="mail" size={22} /></span>
-              <h1 className="signup-title">{reason === 'login' ? t('verify.needTitle') : t('verify.sentTitle')}</h1>
-              <p className="signup-subtitle">{t('verify.toEmail', { email: user.email })}</p>
-            </div>
+        <div className="signup-header">
+          <span className="ve-badge" aria-hidden="true"><Icon name="mail" size={22} /></span>
+          <h1 className="signup-title">{reason === 'login' ? t('verify.needTitle') : t('verify.sentTitle')}</h1>
+          <p className="signup-subtitle">{t('verify.toEmail', { email: user.email })}</p>
+        </div>
 
-            <p className="ve-note">{t('verify.mvpNote')}</p>
+        <p className="ve-note">{t('verify.linkNote')}</p>
 
-            <button type="button" className="su-btn" onClick={handleVerify}>{t('verify.completeBtn')}</button>
+        <button type="button" className="su-btn" onClick={handleResend} disabled={resending}>
+          {resending ? t('verify.resending') : t('verify.resendBtn')}
+        </button>
 
-            <p className="signup-login-row">
-              <Link to="/" className="signup-login-link" onClick={e => { e.preventDefault(); backToLogin() }}>
-                {t('find.backToLogin')}
-              </Link>
-            </p>
-          </>
+        {resent && (
+          <p className="su-verified" role="status"><Icon name="check" size={14} className="fc-inline-ico" />{t('verify.resent')}</p>
         )}
+        {err && (
+          <p className="su-code-msg error" role="alert">{err}</p>
+        )}
+
+        <p className="signup-login-row">
+          <Link to="/" className="signup-login-link" onClick={e => { e.preventDefault(); backToLogin() }}>
+            {t('find.backToLogin')}
+          </Link>
+        </p>
       </div>
 
       <Link to="/" className="signup-home-link" onClick={e => { e.preventDefault(); backToLogin() }}>

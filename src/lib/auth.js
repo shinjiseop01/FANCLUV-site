@@ -575,18 +575,17 @@ export function requiresEmailVerification(user) {
   return !user.isEmailVerified
 }
 
-// ── 이메일 인증 ──
-// Supabase: 가입 시 확인 메일 발송(설정에 따름). 여기선 재발송을 시도한다.
+// ── 이메일 인증(확인 메일 재전송) ──
+// 실제 인증은 사용자가 받은 메일의 링크로만 완료된다(앱 내 우회 완료 없음).
+// Supabase: 확인 메일 재발송을 시도. Mock(백엔드 미설정): 재전송 불가 → 실패 반환
+//   (임의로 isEmailVerified 를 true 로 바꾸는 우회 처리 제거).
 export async function verifyEmail(email) {
   if (isSupabaseConfigured) {
-    // 실제 인증은 메일 링크로 완료됨. 편의상 확인 메일 재발송을 시도.
-    try { await supabase.auth.resend({ type: 'signup', email }) } catch { /* noop */ }
+    const { error } = await supabase.auth.resend({ type: 'signup', email })
+    if (error) return { ok: false, error: '인증 메일을 다시 보내지 못했습니다. 잠시 후 다시 시도해 주세요.' }
     return { ok: true }
   }
-  return mockPatchUser(email, {
-    isEmailVerified: true, emailVerifiedAt: new Date().toISOString(),
-    verificationMethod: 'email', verificationStatus: VERIFICATION.EMAIL_VERIFIED,
-  })
+  return { ok: false, error: '이메일 인증을 완료할 수 없습니다.' }
 }
 
 // 휴대폰 본인인증 — 구조만 준비(다음 단계).
@@ -691,38 +690,57 @@ export async function completeIdentityVerification(result) {
   return mockClaimIdentity({ agency, ci, di })
 }
 
-// 이메일 인증번호 발급.
-// Supabase: Edge Function `send-email-code`(action:'send')로 코드 발송(이메일). 이메일 provider
-//   미설정 시 devCode 를 돌려받아 화면에 표시(Mock fallback). Mock: 클라이언트 코드 생성.
-export async function issueEmailCode(email) {
-  const q = (email || '').trim()
-  if (!q) return { ok: false, error: '이메일을 입력해 주세요.' }
-  if (isSupabaseConfigured) {
-    const { data: exists } = await supabase.from('profiles').select('id').ilike('email', q).limit(1)
-    if (exists && exists.length) return { ok: false, error: '이미 가입된 이메일입니다.' }
-    const { data, error } = await invokeFunction('send-email-code', { body: { action: 'send', email: q } })
-    if (error || !data?.ok) {
-      // 실제 원인(Edge Function/Resend 에러, 401 등)을 UI·콘솔에 그대로 노출 — silent fail 금지.
-      const status = error?.context?.status ?? error?.status ?? null
-      const detail = data?.error || error?.message || '알 수 없는 오류'
-      logger.error('send-email-code 발송 실패', { error, context: { status, detail, email: q } })
-      const suffix = status ? ` (HTTP ${status})` : ''
-      return { ok: false, error: `인증번호 발송 실패: ${detail}${suffix}` }
-    }
-    return { ok: true, code: data.devCode || null, sent: true } // devCode: 이메일 미설정 시 폴백
+// 사용자에게 보이는 안전 문구(내부 사유·공급자 응답·코드값은 절대 노출하지 않는다).
+const EMAIL_SEND_FAIL_MSG = '인증번호를 전송하지 못했습니다. 이메일 주소를 확인한 후 다시 시도해 주세요.'
+// 검증 실패 사유별 안전 문구.
+function verifyErrMsg(reason) {
+  switch (reason) {
+    case 'expired': return '인증번호가 만료되었습니다. 다시 요청해 주세요.'
+    case 'too_many_attempts': return '인증 시도가 많습니다. 인증번호를 다시 요청해 주세요.'
+    case 'consumed': return '이미 사용된 인증번호입니다. 다시 요청해 주세요.'
+    default: return '인증번호가 올바르지 않습니다.'
   }
-  const dup = readUsers().some(u => u.email.toLowerCase() === q.toLowerCase())
-  if (dup) return { ok: false, error: '이미 가입된 이메일입니다.' }
-  return { ok: true, code: String(Math.floor(100000 + Math.random() * 900000)), sent: false }
 }
 
-// 이메일 인증번호 확인. Supabase: Edge Function 으로 검증. Mock: 화면이 보관한 코드와 비교.
+// 이메일 인증번호 발급 — 실제 이메일 발송 성공이 전제.
+// 서버(send-email-code Edge)가 이메일 형식 검증 → 발송 공급자(RESEND) 발송 성공 → OTP 해시
+// 저장까지 마쳐야 ok. 코드값은 절대 반환하지 않는다(화면/로그 노출 금지). 공급자 미설정/발송
+// 실패 시 인증 진행 불가(Mock·로컬 코드 폴백 없음). Mock 모드(백엔드 미설정)도 발송 불가로 차단.
+export async function issueEmailCode(email) {
+  const q = (email || '').trim()
+  if (!q) return { ok: false, code: 'empty', error: '이메일을 입력해 주세요.' }
+  if (!isSupabaseConfigured) {
+    // 백엔드(발송 공급자) 미설정 → 인증번호를 보낼 수 없다. 로컬 코드 발급/우회 금지.
+    logger.error('[email-code] 발송 불가: 공급자 미설정(mock mode)')
+    return { ok: false, code: 'provider_unconfigured', error: EMAIL_SEND_FAIL_MSG }
+  }
+  const { data: exists } = await supabase.from('profiles').select('id').ilike('email', q).limit(1)
+  if (exists && exists.length) return { ok: false, code: 'duplicate', error: '이미 가입된 이메일입니다.' }
+  const { data, error } = await invokeFunction('send-email-code', { body: { action: 'send', email: q } })
+  if (error || !data?.ok) {
+    // 내부 사유(email_provider_unconfigured/email_send_failed/invalid_email 등)는 서버 로그에만
+    // 남긴다(시크릿·공급자 응답 미노출). 사용자에겐 안전 문구만.
+    const reason = data?.error || error?.message || 'unknown'
+    logger.error('[email-code] 발송 실패', { context: { reason } })
+    return { ok: false, code: data?.error || 'send_failed', error: EMAIL_SEND_FAIL_MSG }
+  }
+  return { ok: true, sent: true } // 코드 미반환
+}
+
+// 이메일 인증번호 확인 — 서버(Edge)에서 입력값을 해시해 비교한다. 클라이언트 로컬 비교/우회 없음.
+// Mock 모드(백엔드 미설정)는 검증 자체가 불가하므로 성공 처리하지 않는다(임의 코드 성공 금지).
 export async function confirmEmailCode(email, code) {
-  if (!isSupabaseConfigured) return { ok: true } // Mock 은 SignupPage 에서 로컬 비교
+  const q = (email || '').trim()
+  if (!isSupabaseConfigured) {
+    return { ok: false, code: 'provider_unconfigured', error: '이메일 인증을 완료할 수 없습니다.' }
+  }
   const { data, error } = await invokeFunction('send-email-code', {
-    body: { action: 'verify', email: (email || '').trim(), code: (code || '').trim() },
+    body: { action: 'verify', email: q, code: (code || '').trim() },
   })
-  if (error || !data?.ok) return { ok: false, error: '인증번호가 올바르지 않거나 만료되었습니다.' }
+  if (error || !data?.ok) {
+    const reason = data?.error || 'mismatch'
+    return { ok: false, code: reason, error: verifyErrMsg(reason) }
+  }
   return { ok: true }
 }
 

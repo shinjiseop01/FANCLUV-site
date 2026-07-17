@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signup, issueEmailCode, confirmEmailCode, needsOnboarding, requiresIdentityVerification, isIdentityVerificationEnabled } from './lib/auth.js'
-import { isSupabaseConfigured } from './lib/supabase.js'
 import { isValidEmail, signupProgress, resendButtonState, RESEND_COOLDOWN_SEC } from './lib/authForm.js'
 import { logger } from './lib/logger.js'
 import { useLang } from './contexts/LanguageContext.jsx'
@@ -27,9 +26,8 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // 이메일 인증번호 (Mock 전용 — Supabase 모드에서는 확인 메일 링크를 사용)
+  // 이메일 인증번호 — 코드값은 서버에만 존재. 화면/state 에 코드를 보관하지 않는다.
   const [codeSent, setCodeSent] = useState(false)
-  const [sentCode, setSentCode] = useState('')
   const [codeInput, setCodeInput] = useState('')
   const [emailVerified, setEmailVerified] = useState(false)
   const [sending, setSending] = useState(false)       // 인증번호 발송 중
@@ -56,7 +54,6 @@ export default function SignupPage() {
     setError('')
     // 이메일이 바뀌면 인증 상태·쿨다운·오류 전부 초기화
     setCodeSent(false)
-    setSentCode('')
     setCodeInput('')
     setEmailVerified(false)
     setCodeMsg(null)
@@ -76,23 +73,22 @@ export default function SignupPage() {
     setCodeMsg({ kind: 'loading', text: t('signup.sendingCode') })
     logger.info('[signup] send-email-code 요청', { context: { email: q } })
     try {
+      // 서버가 이메일 발송 성공까지 마쳐야 ok. 코드값은 반환되지 않는다(화면 노출 금지).
       const res = await issueEmailCode(q)
       if (!res.ok) {
-        // 실제 Supabase/Resend 에러 메시지를 그대로 노출(silent fail 금지).
-        logger.error('[signup] 인증번호 발송 실패', { context: { error: res.error } })
+        // 내부 사유는 auth.js 가 서버 로그에만 남기고, 여기선 안전 문구만 표시.
         setCodeMsg({ kind: 'error', text: res.error || t('signup.errSendCode') })
         return
       }
-      setSentCode(res.code || '')   // code 있으면(dev/이메일 미설정) 화면 힌트, 없으면 실제 발송
-      setCodeSent(true)
+      setCodeSent(true)              // 발송 성공 → 인증번호 입력 단계 활성화
       setEmailVerified(false)
       setCodeInput('')
-      // 새 코드 발급 → 서버가 기존 코드를 덮어써(email 단일 upsert) 이전 번호는 무효.
+      // 서버가 기존 코드를 새 코드로 덮어써(email 단일 upsert) 이전 번호는 무효.
       // 60초 재전송 쿨다운 시작(Rate Limit).
       setResendCooldown(RESEND_COOLDOWN_SEC)
-      setCodeMsg({ kind: 'ok', text: res.code ? t('signup.codeHint', { code: res.code }) : t('signup.codeSentMail') })
+      setCodeMsg({ kind: 'ok', text: t('signup.codeSentMail') }) // 안전 문구(코드값 없음)
     } catch (e) {
-      // 예외가 uncaught 로 새어 무반응 되는 것을 방지 — 항상 UI+콘솔에 표시.
+      // 예외가 uncaught 로 새어 무반응 되는 것을 방지 — 안전 문구만 표시(원인은 서버 로그).
       logger.error('[signup] 인증번호 발송 예외', { error: e })
       setCodeMsg({ kind: 'error', text: t('signup.errSendCode') })
     } finally {
@@ -105,12 +101,9 @@ export default function SignupPage() {
     if (!codeInput.trim()) { setCodeError(t('signup.errCode')); return }
     setVerifying(true)
     try {
-      if (isSupabaseConfigured) {
-        const res = await confirmEmailCode(email.trim(), codeInput.trim())
-        if (!res.ok) { setCodeError(res.error || t('signup.errCode')); return }
-      } else if (codeInput.trim() !== sentCode) {
-        setCodeError(t('signup.errCode')); return
-      }
+      // 검증은 항상 서버(Edge)에서 해시 비교. 클라이언트 로컬 비교/우회 없음.
+      const res = await confirmEmailCode(email.trim(), codeInput.trim())
+      if (!res.ok) { setCodeError(res.error || t('signup.errCode')); return }
       setEmailVerified(true)
       setResendCooldown(0) // 인증 완료 → 재전송 쿨다운 해제
     } finally {

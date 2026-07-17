@@ -53,8 +53,8 @@ export default function ProfileEditPage() {
     const res = await issueEmailCode(q)
     setEmailBusy(false)
     if (!res.ok) { setEmailMsg({ kind: 'error', text: res.error || t('profile.email.sendFail') }); return }
-    setCodeSent(true)
-    setEmailMsg({ kind: 'ok', text: res.code ? t('profile.email.sentDev', { code: res.code }) : t('profile.email.sent') })
+    setCodeSent(true) // 발송 성공 → 입력 단계. 코드값은 서버에만 존재(화면 노출 금지).
+    setEmailMsg({ kind: 'ok', text: t('profile.email.sent') })
   }
 
   async function confirmEmail() {
