@@ -15,7 +15,7 @@ const KIND_ICON = {
   loading: 'loading',
 }
 
-export default function Alert({ kind = 'info', icon, boxed = false, children, className = '', role, ...rest }) {
+export default function Alert({ kind = 'info', icon, boxed = false, children, action = null, className = '', role, ...rest }) {
   const iconName = icon || KIND_ICON[kind] || 'info'
   const assertive = kind === 'error' || kind === 'warning'
   return (
@@ -27,6 +27,8 @@ export default function Alert({ kind = 'info', icon, boxed = false, children, cl
     >
       <Icon name={iconName} size={14} className={`fc-alert__icon${kind === 'loading' ? ' fc-alert__spin' : ''}`} aria-hidden="true" />
       <span className="fc-alert__text">{children}</span>
+      {/* 부가 액션(예: "이메일 변경") — 텍스트와 분리된 flex sibling(gap 으로 간격 확보). */}
+      {action && <span className="fc-alert__action">{action}</span>}
     </div>
   )
 }

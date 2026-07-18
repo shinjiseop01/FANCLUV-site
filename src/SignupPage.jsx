@@ -283,11 +283,16 @@ export default function SignupPage() {
             )}
 
             {emailVerified && (
-              <Alert kind="success" className="su-verified">
+              <Alert
+                kind="success"
+                className="su-verified"
+                action={
+                  <button type="button" className="su-link-btn" onClick={changeEmail}>
+                    {t('signup.changeEmail')}
+                  </button>
+                }
+              >
                 {t('signup.emailVerified')}
-                <button type="button" className="su-link-btn" onClick={changeEmail}>
-                  {t('signup.changeEmail')}
-                </button>
               </Alert>
             )}
           </div>

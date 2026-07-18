@@ -1,15 +1,18 @@
-/* FANCLUV — 공용 Alert 레이아웃. 아이콘+문구를 항상 같은 행에 정렬. */
+/* FANCLUV — 공용 Alert 레이아웃. 아이콘은 항상 첫 줄 왼쪽에 고정, 텍스트는 자기 영역 안에서만 줄바꿈. */
 .fc-alert {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  flex-wrap: nowrap;
+  align-items: flex-start;   /* 여러 줄일 때 아이콘이 가운데 걸치지 않고 첫 줄에 고정 */
   gap: var(--space-2, 8px);
   font-size: 13px;
   line-height: 1.5;
   font-weight: 500;
 }
-.fc-alert__icon { flex: 0 0 auto; }              /* 아이콘 shrink 금지 */
-.fc-alert__text { flex: 0 1 auto; min-width: 0; } /* 긴 문구는 자연 줄바꿈 */
+/* 아이콘: shrink 금지 + 첫 줄 텍스트에 광학적으로 정렬(라인박스 중앙). 크기 14px 고정. */
+.fc-alert__icon { flex: 0 0 auto; margin-top: calc((1.5em - 14px) / 2); }
+.fc-alert__text { flex: 1 1 auto; min-width: 0; }        /* 긴 문구는 이 영역 안에서만 줄바꿈 */
+.fc-alert__action { flex: 0 0 auto; }                     /* 부가 버튼은 줄바꿈/축소 없이 우측 */
 
 /* 색상(kind) — 프로젝트 토큰 우선, 없으면 폴백 */
 .fc-alert--success { color: #4ADE80; font-weight: 700; }
