@@ -243,7 +243,6 @@ export default {
   'nickname.err.banned': 'This nickname contains inappropriate language.',
   'signup.errEmail': 'Please enter your email.',
   'signup.errEmailFormat': 'Please enter a valid email address.',
-  'signup.errEmailDomain': 'This email domain is not allowed. Please use a supported provider such as Gmail, Naver, Daum, or Kakao.',
   'signup.changeEmail': 'Change email',
   'signup.errPw': 'Please enter a password.',
   'signup.errPwLen': 'Password must be at least 4 characters.',

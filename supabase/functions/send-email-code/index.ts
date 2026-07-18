@@ -34,28 +34,8 @@ const MAX_ATTEMPTS = 5 // OTP 검증 실패 허용 횟수(초과 시 잠금 → 
 // 프로덕션 project ref — 테스트 전용 액션은 이 ref 에서 절대 실행하지 않는다.
 const PROD_REF = 'cuuzbddxnzhhlrqmmebz'
 
-// 공개 회원가입 허용 도메인 — src/lib/emailDomains.js 와 동일(드리프트 테스트로 강제).
-const ALLOWED_EMAIL_DOMAINS = [
-  'gmail.com', 'googlemail.com',
-  'naver.com',
-  'daum.net', 'hanmail.net', 'kakao.com',
-  'yahoo.com', 'yahoo.co.kr',
-  'msn.com', 'outlook.com', 'hotmail.com',
-  'zum.com',
-  'nate.com',
-  'icloud.com',
-]
-const ALLOWED_DOMAIN_SET = new Set(ALLOWED_EMAIL_DOMAINS)
-function isAllowedDomain(addr: string): boolean {
-  const at = addr.lastIndexOf('@')
-  if (at < 0) return false
-  const domain = addr.slice(at + 1)
-  if (domain.startsWith('xn--') || domain.includes('.xn--')) return false
-  if (!/^[a-z0-9.-]+$/.test(domain)) return false
-  return ALLOWED_DOMAIN_SET.has(domain)
-}
-
 // 이메일 형식(서버측) — 도달성 아닌 형식 검증. local@domain.tld 구조 + 라벨/TLD.
+// (이메일 도메인 제한 정책은 제거됨 — 형식만 검사한다.)
 function isValidEmail(s: string): boolean {
   if (!s || s.length > 254) return false
   const at = s.lastIndexOf('@')
@@ -113,8 +93,13 @@ Deno.serve(async (req) => {
   // ── 발송 ── 형식 검증 → 발송 공급자 필수 → 발송 성공해야 코드 저장. 코드는 반환하지 않는다.
   if (action === 'send') {
     if (!isValidEmail(addr)) return json({ ok: false, error: 'invalid_email' })
-    // 공개 회원가입 허용 도메인만(프론트 우회 차단). 발송 자체를 거부.
-    if (!isAllowedDomain(addr)) return json({ ok: false, error: 'domain_not_allowed' })
+    // 스테이징 E2E 전용 게이트: TEST_HARNESS_KEY 설정 + test_ 접두사 + 비-프로덕션 일 때만
+    // 실제 메일 없이 코드를 저장하고 __test_code 로 반환한다(브라우저 E2E 가 OTP 취득).
+    // 프로덕션(PROD_REF)에서는 절대 동작하지 않으며, 검증 후 secret 을 제거한다.
+    if (TEST_HARNESS_KEY && !isProdProject && addr.startsWith('test_')) {
+      const codePlain = await issue()
+      return json({ ok: true, sent: true, __test_code: codePlain })
+    }
     // 발송 공급자 미설정 → 인증 진행 불가(Mock/devCode 폴백 금지).
     if (!RESEND_API_KEY) {
       console.error('email send blocked: provider unconfigured')

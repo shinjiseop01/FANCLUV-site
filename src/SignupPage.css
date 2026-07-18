@@ -217,34 +217,18 @@
   border: 1px dashed rgba(201, 168, 76, 0.35);
   border-radius: 8px; padding: 9px 12px; margin: 10px 0;
 }
-/* 인증번호 발송 상태(로딩/성공/실패) — 버튼 바로 아래 항상 표시 */
-.su-code-msg {
-  display: flex; align-items: center; gap: 7px;
-  font-size: 12.5px; border-radius: 8px; padding: 9px 12px; margin: 10px 0;
-}
-.su-code-msg.loading { color: var(--text-sub); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); }
-.su-code-msg.ok { color: #8FE3B0; background: rgba(14, 159, 110, 0.12); border: 1px solid rgba(14, 159, 110, 0.35); }
-.su-code-msg.error { color: #F5A3A3; background: rgba(220, 38, 38, 0.12); border: 1px solid rgba(220, 38, 38, 0.4); }
+/* 공용 Alert(fc-alert) 위치 보정 — 인증/발송 상태 안내 간격 */
+.su-alert { margin: 10px 0; }
+.nick-status { margin-top: 6px; }
 .su-spinner {
   width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0;
   border: 2px solid rgba(255,255,255,0.25); border-top-color: currentColor;
   animation: su-spin 0.7s linear infinite;
 }
 @keyframes su-spin { to { transform: rotate(360deg); } }
-/* 인증 완료 표시: 체크 아이콘과 문구를 같은 행에 정렬(세로 스택 방지). */
-.su-verified {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2, 8px);
-  margin-top: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #4ADE80;
-}
-.su-verified .fc-inline-ico { margin-right: 0; }        /* 간격은 gap 으로 통일 */
-.su-verified .su-verified-text { flex: 0 1 auto; min-width: 0; } /* 긴 문구는 자연 줄바꿈 */
+/* 인증 완료 표시 — 레이아웃/색상은 공용 Alert(fc-alert--success)가 담당.
+   여기선 위치 여백 + 부가 버튼(이메일 변경) 줄바꿈 허용만. */
+.su-verified { margin-top: 10px; flex-wrap: wrap; }
 
 /* Chips (gender / age group) */
 .su-chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -268,17 +252,8 @@
   font-weight: 700;
 }
 
-/* Error */
-.su-error {
-  background: rgba(224, 82, 82, 0.1);
-  border: 1px solid rgba(224, 82, 82, 0.3);
-  border-radius: 8px;
-  padding: 11px 14px;
-  font-size: 13px;
-  color: var(--error);
-  font-weight: 500;
-  margin-bottom: 18px;
-}
+/* Error — 박스/색상은 공용 Alert(fc-alert--boxed.fc-alert--error)가 담당. 여백만. */
+.su-error { margin-bottom: 18px; }
 
 /* CTA */
 .su-btn {

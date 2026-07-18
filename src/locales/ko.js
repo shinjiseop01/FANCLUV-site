@@ -243,7 +243,6 @@ export default {
   'nickname.err.banned': '부적절한 표현이 포함된 닉네임입니다.',
   'signup.errEmail': '이메일을 입력해주세요.',
   'signup.errEmailFormat': '올바른 이메일 주소를 입력해 주세요.',
-  'signup.errEmailDomain': '가입할 수 없는 이메일 도메인입니다. Gmail, Naver, Daum, Kakao 등 지원하는 이메일을 사용해 주세요.',
   'signup.changeEmail': '이메일 변경',
   'signup.errPw': '비밀번호를 입력해주세요.',
   'signup.errPwLen': '비밀번호는 4자 이상이어야 합니다.',

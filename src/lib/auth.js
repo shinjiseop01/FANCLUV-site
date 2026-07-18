@@ -709,12 +709,10 @@ export async function issueEmailCode(email) {
   if (exists && exists.length) return { ok: false, code: 'duplicate', error: '이미 가입된 이메일입니다.' }
   const { data, error } = await invokeFunction('send-email-code', { body: { action: 'send', email: q } })
   if (error || !data?.ok) {
-    // 내부 사유(email_provider_unconfigured/email_send_failed/invalid_email/domain_not_allowed 등)는
+    // 내부 사유(email_provider_unconfigured/email_send_failed/invalid_email 등)는
     // 서버 로그에만 남긴다(시크릿·공급자 응답 미노출). 사용자에겐 안전 문구만.
     const reason = data?.error || error?.message || 'unknown'
     logger.error('[email-code] 발송 실패', { context: { reason } })
-    if (reason === 'domain_not_allowed')
-      return { ok: false, code: 'domain_not_allowed', error: '해당 이메일 도메인으로는 가입할 수 없습니다. 다른 이메일 주소를 사용해 주세요.' }
     if (reason === 'invalid_email')
       return { ok: false, code: 'invalid_email', error: '올바른 이메일 주소를 입력해 주세요.' }
     return { ok: false, code: data?.error || 'send_failed', error: EMAIL_SEND_FAIL_MSG }
@@ -742,7 +740,6 @@ export async function confirmEmailCode(email, code) {
 // complete-signup Edge 의 오류 코드를 사용자 안전 문구로 매핑(내부 코드/응답 미노출).
 function completeSignupErrMsg(code) {
   switch (code) {
-    case 'domain_not_allowed': return '해당 이메일 도메인으로는 가입할 수 없습니다. 다른 이메일 주소를 사용해 주세요.'
     case 'invalid_email': return '올바른 이메일 주소를 입력해 주세요.'
     case 'not_verified':
     case 'stale': return '이메일 인증을 먼저 완료해 주세요.'

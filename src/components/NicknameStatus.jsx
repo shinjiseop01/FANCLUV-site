@@ -1,29 +1,22 @@
 import { useLang } from '../contexts/LanguageContext.jsx'
-import Icon from './Icon.jsx'
+import Alert from './Alert.jsx'
 
-// 닉네임 입력창 아래 상태/안내 문구.
+// 닉네임 입력창 아래 상태/안내 문구. 공용 Alert(flex row)로 아이콘·문구 한 행 정렬.
 // - empty     : 안내 문구(info)만 표시(예시 없음)
-// - invalid   : 형식 오류 메시지(빨강)
-// - checking  : 확인 중(중립)
-// - taken     : 이미 사용 중(빨강)
-// - available : 사용 가능(초록)
-// 상태 아이콘은 공용 Icon 사용(유니코드 글리프 제거).
-const TONE_ICON = { hint: 'info', err: 'warningTriangle', ok: 'check' }
-
+// - invalid   : 형식 오류(error)
+// - checking  : 확인 중(info)
+// - taken     : 이미 사용 중(error)
+// - available : 사용 가능(success)
 export default function NicknameStatus({ status }) {
   const { t } = useLang()
   const { state, code } = status || {}
 
   let text = t('nickname.hint')
-  let tone = 'hint'
-  if (state === 'invalid') { text = t(`nickname.err.${code}`); tone = 'err' }
-  else if (state === 'checking') { text = t('nickname.checking'); tone = 'hint' }
-  else if (state === 'taken') { text = t('nickname.taken'); tone = 'err' }
-  else if (state === 'available') { text = t('nickname.available'); tone = 'ok' }
+  let kind = 'info'
+  if (state === 'invalid') { text = t(`nickname.err.${code}`); kind = 'error' }
+  else if (state === 'checking') { text = t('nickname.checking'); kind = 'info' }
+  else if (state === 'taken') { text = t('nickname.taken'); kind = 'error' }
+  else if (state === 'available') { text = t('nickname.available'); kind = 'success' }
 
-  return (
-    <p className={`nick-status ${tone}`} role="status" aria-live="polite">
-      <Icon name={TONE_ICON[tone]} size={14} className="fc-inline-ico" />{text}
-    </p>
-  )
+  return <Alert kind={kind} className="nick-status">{text}</Alert>
 }

@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signup, issueEmailCode, confirmEmailCode, needsOnboarding, requiresIdentityVerification, isIdentityVerificationEnabled } from './lib/auth.js'
 import { isValidEmail, signupProgress, resendButtonState, RESEND_COOLDOWN_SEC } from './lib/authForm.js'
-import { isAllowedEmailDomain } from './lib/emailDomains.js'
 import { logger } from './lib/logger.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import Icon from './components/Icon.jsx'
+import Alert from './components/Alert.jsx'
 import { useNicknameCheck } from './lib/useNicknameCheck.js'
 import NicknameStatus from './components/NicknameStatus.jsx'
 import SocialAuth from './components/SocialAuth.jsx'
@@ -39,12 +39,8 @@ export default function SignupPage() {
   const [emailTouched, setEmailTouched] = useState(false) // blur 후에만 형식 오류 표시
   const completingRef = useRef(false) // 가입 완료 중복 제출 방지(동기 lock)
 
-  const emailValid = isValidEmail(email)              // RFC 수준 형식
-  const emailDomainOk = isAllowedEmailDomain(email)   // 공개 회원가입 허용 도메인
-  const emailAllowed = emailValid && emailDomainOk    // 전송/가입 가능 조건
-  // 인라인 오류: 형식 오류가 우선, 형식 OK인데 도메인 미허용이면 도메인 안내.
+  const emailValid = isValidEmail(email)              // RFC 수준 형식(도메인 제한 없음)
   const emailFormatError = emailTouched && email.trim().length > 0 && !emailValid
-  const emailDomainError = emailTouched && email.trim().length > 0 && emailValid && !emailDomainOk
 
   // 재전송 쿨다운 타이머(1초마다 감소). cleanup 으로 언마운트/재실행 시 정리.
   useEffect(() => {
@@ -83,7 +79,6 @@ export default function SignupPage() {
     const q = email.trim()
     // 형식/도메인 오류는 조용히 return 하지 않고 버튼 아래 즉시 안내.
     if (!isValidEmail(q)) { setEmailTouched(true); setCodeMsg({ kind: 'error', text: t('signup.errEmailFormat') }); return }
-    if (!isAllowedEmailDomain(q)) { setEmailTouched(true); setCodeMsg({ kind: 'error', text: t('signup.errEmailDomain') }); return }
     setSending(true)
     setCodeMsg({ kind: 'loading', text: t('signup.sendingCode') })
     logger.info('[signup] send-email-code 요청', { context: { email: q } })
@@ -143,7 +138,6 @@ export default function SignupPage() {
     if (!nickname.trim()) { setError(t('signup.errNickname')); return }
     if (!email.trim()) { setError(t('signup.errEmail')); return }
     if (!isValidEmail(email)) { setEmailTouched(true); setError(t('signup.errEmailFormat')); return }
-    if (!isAllowedEmailDomain(email)) { setEmailTouched(true); setError(t('signup.errEmailDomain')); return }
     // 서버 권위 흐름: OTP 인증 완료가 전제(서버가 verified_at 로 재확인).
     if (!emailVerified) { setError(t('signup.errEmailVerify')); return }
     if (!ageGroup) { setError(t('signup.errAge')); return }
@@ -229,38 +223,34 @@ export default function SignupPage() {
             <div className="su-inline">
               <input
                 type="email"
-                className={`su-input${(emailFormatError || emailDomainError) ? ' invalid' : ''}`}
+                className={`su-input${emailFormatError ? ' invalid' : ''}`}
                 placeholder={t('signup.emailPh')}
                 value={email}
                 onChange={e => onEmailChange(e.target.value)}
                 onBlur={() => setEmailTouched(true)}
                 autoComplete="email"
                 disabled={emailVerified}
-                aria-invalid={emailFormatError || emailDomainError}
+                aria-invalid={emailFormatError}
               />
-              {/* 인증 완료 후에는 재전송 UI 를 숨기고, 이메일 변경 버튼만 노출(Section 13). */}
+              {/* 인증 완료 후에는 재전송 UI 를 숨기고, 이메일 변경 버튼만 노출. */}
               {!emailVerified && (
                 <button type="button" className="su-side-btn" onClick={handleSendCode}
-                  disabled={resendState.disabled || !emailAllowed}>
+                  disabled={resendState.disabled || !emailValid}>
                   {resendLabel}
                 </button>
               )}
             </div>
 
-            {/* 이메일 형식/도메인 오류 인라인 안내(회원가입 버튼도 비활성화됨) */}
+            {/* 이메일 형식 오류 인라인 안내(회원가입 버튼도 비활성화됨) */}
             {emailFormatError && (
-              <p className="su-code-msg error" role="alert">{t('signup.errEmailFormat')}</p>
-            )}
-            {emailDomainError && (
-              <p className="su-code-msg error" role="alert">{t('signup.errEmailDomain')}</p>
+              <Alert kind="error" boxed className="su-alert">{t('signup.errEmailFormat')}</Alert>
             )}
 
             {/* 발송 상태(로딩/성공/실패)를 버튼 바로 아래 항상 표시 — 무반응 방지 */}
             {codeMsg && (
-              <p className={`su-code-msg ${codeMsg.kind}`} role={codeMsg.kind === 'error' ? 'alert' : 'status'}>
-                {codeMsg.kind === 'loading' && <span className="su-spinner" aria-hidden="true" />}
+              <Alert kind={codeMsg.kind === 'ok' ? 'success' : codeMsg.kind === 'loading' ? 'loading' : 'error'} boxed className="su-alert">
                 {codeMsg.text}
-              </p>
+              </Alert>
             )}
 
             {codeSent && !emailVerified && (
@@ -282,24 +272,23 @@ export default function SignupPage() {
                 </div>
                 {/* 인증 실패 → 빨간 안내 + 재시도 유도(코드 재입력 또는 재전송) */}
                 {codeError && (
-                  <p className="su-code-msg error" role="alert">
+                  <Alert kind="error" boxed className="su-alert">
                     {codeError}{' '}
                     <button type="button" className="su-link-btn" onClick={handleSendCode} disabled={resendState.disabled}>
                       {resendState.key === 'cooldown' ? t('signup.resendIn', { s: resendCooldown }) : t('signup.resendCode')}
                     </button>
-                  </p>
+                  </Alert>
                 )}
               </>
             )}
 
             {emailVerified && (
-              <p className="su-verified" role="status" aria-live="polite">
-                <Icon name="check" size={14} className="fc-inline-ico" aria-hidden="true" />
-                <span className="su-verified-text">{t('signup.emailVerified')}</span>
+              <Alert kind="success" className="su-verified">
+                {t('signup.emailVerified')}
                 <button type="button" className="su-link-btn" onClick={changeEmail}>
                   {t('signup.changeEmail')}
                 </button>
-              </p>
+              </Alert>
             )}
           </div>
 
@@ -356,10 +345,10 @@ export default function SignupPage() {
           </div>
 
           {error && (
-            <div className="su-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>
+            <Alert kind="error" boxed className="su-error">{error}</Alert>
           )}
 
-          <button type="submit" className="su-btn" disabled={loading || nickCheck.state !== 'available' || !emailAllowed || !emailVerified}>
+          <button type="submit" className="su-btn" disabled={loading || nickCheck.state !== 'available' || !emailValid || !emailVerified}>
             {loading ? (
               <span className="su-btn-loading"><span className="su-spinner" />{t('signup.loading')}</span>
             ) : (

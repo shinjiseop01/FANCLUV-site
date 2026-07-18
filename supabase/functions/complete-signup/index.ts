@@ -27,19 +27,6 @@ const json = (b: unknown, s = 200) =>
 const VERIFY_WINDOW_MIN = 15 // OTP 인증(verified_at) 유효 시간
 const MIN_PASSWORD = 4
 
-// 공개 회원가입 허용 도메인 — src/lib/emailDomains.js 와 동일(드리프트 테스트로 강제).
-const ALLOWED_EMAIL_DOMAINS = [
-  'gmail.com', 'googlemail.com',
-  'naver.com',
-  'daum.net', 'hanmail.net', 'kakao.com',
-  'yahoo.com', 'yahoo.co.kr',
-  'msn.com', 'outlook.com', 'hotmail.com',
-  'zum.com',
-  'nate.com',
-  'icloud.com',
-]
-const ALLOWED = new Set(ALLOWED_EMAIL_DOMAINS)
-
 function isValidEmail(s: string): boolean {
   if (!s || s.length > 254) return false
   const at = s.lastIndexOf('@')
@@ -51,14 +38,6 @@ function isValidEmail(s: string): boolean {
   if (labels.length < 2) return false
   if (!labels.every(l => /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(l))) return false
   return /^[A-Za-z]{2,}$/.test(labels[labels.length - 1])
-}
-function isAllowedDomain(addr: string): boolean {
-  const at = addr.lastIndexOf('@')
-  if (at < 0) return false
-  const domain = addr.slice(at + 1)
-  if (domain.startsWith('xn--') || domain.includes('.xn--')) return false
-  if (!/^[a-z0-9.-]+$/.test(domain)) return false
-  return ALLOWED.has(domain)
 }
 
 Deno.serve(async (req) => {
@@ -75,9 +54,8 @@ Deno.serve(async (req) => {
   const gender = body.gender ?? null
   const ageGroup = body.ageGroup ?? null
 
-  // 1) 이메일 형식 + 허용 도메인(프론트 우회 차단)
+  // 1) 이메일 형식(도메인 제한 없음)
   if (!isValidEmail(addr)) return json({ ok: false, error: 'invalid_email' })
-  if (!isAllowedDomain(addr)) return json({ ok: false, error: 'domain_not_allowed' })
   if (password.length < MIN_PASSWORD) return json({ ok: false, error: 'weak_password' })
   if (!nickname) return json({ ok: false, error: 'nickname_required' })
 
