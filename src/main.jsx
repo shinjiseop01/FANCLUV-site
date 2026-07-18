@@ -10,6 +10,11 @@ import { ToastProvider } from './contexts/ToastContext.jsx'
 import { registerServiceWorker } from './lib/registerSW.js'
 import { initAnalytics, analytics } from './services/analytics/index.js'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+
+// 배포 검증(스테일 번들 진단) — 현재 로드된 번들의 커밋 SHA 를 콘솔에 1회만 기록.
+// UX 비침투(콘솔 전용). vite define(__BUILD_SHA__)로 빌드 시 주입.
+/* global __BUILD_SHA__ */
+try { console.info(`[FANCLUV] build ${typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : 'dev'}`) } catch { /* noop */ }
 import { SkeletonList } from './components/Skeleton.jsx'
 import './index.css'
 import './theme.css'
