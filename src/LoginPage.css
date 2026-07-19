@@ -351,6 +351,9 @@ html, body, #root {
   margin-bottom: 16px;
 }
 
+/* 공용 Alert(fc-alert)를 로그인 화면에서 쓸 때의 여백(에러/소셜 안내/설정 미완료). */
+.login-alert { margin-bottom: 16px; }
+
 /* Social login notice (error/success) — small alert above the form */
 .auth-alert {
   border-radius: 8px;

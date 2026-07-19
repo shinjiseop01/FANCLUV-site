@@ -6,7 +6,7 @@ import { postAuthPath } from './lib/authRoute.js'
 import { isSupabaseConfigured, isProdMisconfigured } from './lib/supabase.js'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { useLang } from './contexts/LanguageContext.jsx'
-import Icon from './components/Icon.jsx'
+import Alert from './components/Alert.jsx'
 import SocialAuth from './components/SocialAuth.jsx'
 import './LoginPage.css'
 
@@ -93,9 +93,7 @@ export default function LoginPage() {
             <div className="form-header">
               <h2 className="form-title">FANCLUV</h2>
             </div>
-            <div className="auth-alert error" role="alert" style={{ marginTop: 16 }}>
-              {t('login.setupIncomplete')}
-            </div>
+            <Alert kind="error" boxed className="login-alert" style={{ marginTop: 16 }}>{t('login.setupIncomplete')}</Alert>
           </div>
         </div>
       </div>
@@ -162,9 +160,7 @@ export default function LoginPage() {
           </div>
 
           {notice && (
-            <div className={`auth-alert ${notice.kind}`} role="alert">
-              <Icon name={notice.kind === 'success' ? 'successCircle' : 'warningTriangle'} size={14} className="fc-inline-ico" /> {notice.text}
-            </div>
+            <Alert kind={notice.kind === 'success' ? 'success' : 'error'} boxed className="login-alert">{notice.text}</Alert>
           )}
 
           <form onSubmit={handleSubmit} noValidate>
@@ -217,7 +213,7 @@ export default function LoginPage() {
             </label>
 
             {error && (
-              <div className="error-msg" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>
+              <Alert kind="error" boxed className="login-alert">{error}</Alert>
             )}
 
             <button type="submit" className="login-btn" disabled={loading}>

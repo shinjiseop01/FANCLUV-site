@@ -12,6 +12,7 @@
 /* 아이콘: shrink 금지 + 첫 줄 텍스트에 광학적으로 정렬(라인박스 중앙). 크기 14px 고정. */
 .fc-alert__icon { flex: 0 0 auto; margin-top: calc((1.5em - 14px) / 2); }
 .fc-alert__text { flex: 1 1 auto; min-width: 0; }        /* 긴 문구는 이 영역 안에서만 줄바꿈 */
+.fc-alert__line { display: block; }                       /* 의도된 2줄 문구를 줄 단위 블록으로 */
 .fc-alert__action { flex: 0 0 auto; }                     /* 부가 버튼은 줄바꿈/축소 없이 우측 */
 
 /* 색상(kind) — 프로젝트 토큰 우선, 없으면 폴백 */

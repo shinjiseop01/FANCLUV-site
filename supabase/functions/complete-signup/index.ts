@@ -59,44 +59,54 @@ Deno.serve(async (req) => {
   if (password.length < MIN_PASSWORD) return json({ ok: false, error: 'weak_password' })
   if (!nickname) return json({ ok: false, error: 'nickname_required' })
 
-  // 이미 가입이 완료된 이메일이면(직전 요청 성공 후 재시도/응답 유실 포함) 멱등 성공.
-  // OTP 는 성공 시 소진(삭제)되므로, 계정 존재 = 이 가입이 이미 완료됨.
-  async function alreadyCompleted() {
+  const meta = { nickname, gender, age_group: ageGroup, provider: 'email' }
+
+  // 이메일로 기존 auth user id 조회. profiles.id = auth.users.id(트리거 생성). 없으면 제한 스캔 폴백.
+  async function findUserIdByEmail(): Promise<string | null> {
     const { data: prof } = await admin.from('profiles').select('id').ilike('email', addr).limit(1)
-    if (prof && prof.length) { await admin.from('email_codes').delete().eq('email', addr); return prof[0].id }
-    return null
+    if (prof && prof.length) return prof[0].id
+    const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 })
+    const u = (list?.users || []).find(x => (x.email || '').toLowerCase() === addr)
+    return u?.id ?? null
   }
-  const doneId0 = await alreadyCompleted()
-  if (doneId0) return json({ ok: true, code: 'already_completed', userId: doneId0 })
 
-  // 2) 서버측 OTP 인증 완료 증명 — email_codes.verified_at(최근)
-  const { data: row } = await admin.from('email_codes').select('*').eq('email', addr).maybeSingle()
-  if (!row || !row.verified_at) return json({ ok: false, error: 'not_verified' })
-  if (Date.now() - new Date(row.verified_at).getTime() > VERIFY_WINDOW_MIN * 60000)
-    return json({ ok: false, error: 'stale' })
+  // 2) 서버측 OTP 인증 완료 증명 — email_codes.verified_at(최근). 이메일 소유권의 근거.
+  const { data: row } = await admin.from('email_codes').select('verified_at').eq('email', addr).maybeSingle()
+  const verified = !!(row && row.verified_at &&
+    (Date.now() - new Date(row.verified_at).getTime() <= VERIFY_WINDOW_MIN * 60000))
 
-  // 3) 사용자 생성(원자적 이메일 유일성 → 동시 가입 Race 시 1명만 성공)
-  const { data: created, error: createErr } = await admin.auth.admin.createUser({
-    email: addr,
-    password,
-    email_confirm: true, // 서버 신뢰 경로로 이메일 확정 — Confirm Email 재요구 없음
-    user_metadata: { nickname, gender, age_group: ageGroup, provider: 'email' },
-  })
-  if (createErr || !created?.user) {
-    // 이미 해당 이메일 계정이 존재하면(더블클릭/동시요청 포함) 멱등 성공으로 처리한다.
-    // 승자의 profiles 커밋이 아직 안 보일 수 있어 짧게 재확인(최대 ~600ms).
-    for (let i = 0; i < 4; i++) {
-      const doneId = await alreadyCompleted()
-      if (doneId) return json({ ok: true, code: 'already_completed', userId: doneId })
-      if (i < 3) await new Promise(r => setTimeout(r, 150))
+  if (!verified) {
+    // OTP 미검증 재시도: "계정 존재"만으로 완료로 단정하지 않는다.
+    // 우리가 방금(최근) 생성한 확정 계정일 때만 멱등 성공(응답 유실 재시도 복구).
+    const uid = await findUserIdByEmail()
+    if (uid) {
+      const { data: got } = await admin.auth.admin.getUserById(uid)
+      const u = got?.user
+      const recent = u && (Date.now() - new Date(u.created_at).getTime() <= VERIFY_WINDOW_MIN * 60000)
+      if (u && u.email_confirmed_at && recent) return json({ ok: true, code: 'already_completed', userId: uid })
     }
-    console.error('createUser failed') // 비밀번호/원문 로그 금지(중복 아닌 일시 실패는 재시도 안전)
-    return json({ ok: false, error: 'create_failed' })
+    return json({ ok: false, error: 'not_verified' })
   }
 
-  // 5) OTP 소진(재사용 불가) — 실패해도 가입은 성공이므로 best-effort.
-  await admin.from('email_codes').delete().eq('email', addr)
+  // 3) 사용자 생성(원자적 이메일 유일성). 이미 존재하면 — OTP 로 소유가 증명됐으므로 —
+  //    입력 비밀번호로 credential 을 설정(email_confirm)해 "실제 로그인 가능" 상태로 복구한다.
+  //    (기존 불완전/OAuth 계정이 로그인 불가로 남는 문제 해결. service_role 로 직접 signIn 하지 않음.)
+  const { data: created, error: createErr } = await admin.auth.admin.createUser({
+    email: addr, password, email_confirm: true, user_metadata: meta,
+  })
+  let userId: string | null = created?.user?.id ?? null
+  let recovered = false
+  if (createErr || !userId) {
+    const uid = await findUserIdByEmail()
+    if (!uid) { console.error('createUser failed and no existing user found'); return json({ ok: false, error: 'create_failed' }) }
+    const { error: updErr } = await admin.auth.admin.updateUserById(uid, { password, email_confirm: true, user_metadata: meta })
+    if (updErr) { console.error('account recovery updateUser failed'); return json({ ok: false, error: 'create_failed' }) }
+    // 트리거는 update 시 갱신 안 되므로 프로필 필수값을 직접 반영(닉네임 unique 충돌은 무시 — 로그인은 이미 가능).
+    await admin.from('profiles').update({ nickname, gender, age_group: ageGroup, is_email_verified: true }).eq('id', uid)
+    userId = uid; recovered = true
+  }
 
-  // profiles 는 handle_new_user 트리거가 동일 트랜잭션에서 생성(orphan 없음).
-  return json({ ok: true, code: 'signup_completed', userId: created.user.id })
+  // OTP 소진(재사용 불가) — best-effort.
+  await admin.from('email_codes').delete().eq('email', addr)
+  return json({ ok: true, code: recovered ? 'account_recovered' : 'signup_completed', userId })
 })

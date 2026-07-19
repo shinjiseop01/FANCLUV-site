@@ -360,9 +360,11 @@ export async function signup({ nickname, email, password, gender = null, ageGrou
     if (error || !data?.ok) {
       return { ok: false, error: completeSignupErrMsg(data?.error), code: data?.error || 'complete_failed' }
     }
-    // email_confirm:true 라 즉시 로그인 가능 → 세션 확보(재확인 메일 dead-end 없음).
+    // complete-signup 이 비밀번호 credential 을 설정(신규 생성 또는 기존 계정 복구)했으므로
+    // 입력한 동일 email/password 로 즉시 로그인 가능. 실제 로그인은 anon 클라이언트로 검증한다.
     const { error: siErr } = await supabase.auth.signInWithPassword({ email, password })
-    if (siErr) return { ok: false, error: '회원가입은 완료됐지만 자동 로그인에 실패했습니다. 로그인해 주세요.', code: 'signin_after_signup' }
+    // 계정·비밀번호는 정상 생성됐으나(자동)로그인만 실패한 드문 경우 → 2줄 안내(로그인 페이지 유도).
+    if (siErr) return { ok: false, error: '회원가입은 완료되었습니다.\n로그인 페이지에서 다시 로그인해 주세요.', code: 'signin_after_signup' }
     const user = await loadCurrentSupabaseUser()
     sendWelcomeEmail(email, name)  // 환영 이메일(비차단, 실패해도 가입은 성공)
     return { ok: true, user } // needsConfirm 없음 — 항상 즉시 다음 단계

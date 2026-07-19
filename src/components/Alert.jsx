@@ -18,6 +18,10 @@ const KIND_ICON = {
 export default function Alert({ kind = 'info', icon, boxed = false, children, action = null, className = '', role, ...rest }) {
   const iconName = icon || KIND_ICON[kind] || 'info'
   const assertive = kind === 'error' || kind === 'warning'
+  // 문구에 개행(\n)이 있으면 의도된 줄 단위로 분리 렌더(임의 위치 개행 방지).
+  const content = typeof children === 'string' && children.includes('\n')
+    ? children.split('\n').map((ln, i) => <span key={i} className="fc-alert__line">{ln}</span>)
+    : children
   return (
     <div
       className={`fc-alert fc-alert--${kind}${boxed ? ' fc-alert--boxed' : ''}${className ? ' ' + className : ''}`}
@@ -26,7 +30,7 @@ export default function Alert({ kind = 'info', icon, boxed = false, children, ac
       {...rest}
     >
       <Icon name={iconName} size={14} className={`fc-alert__icon${kind === 'loading' ? ' fc-alert__spin' : ''}`} aria-hidden="true" />
-      <span className="fc-alert__text">{children}</span>
+      <span className="fc-alert__text">{content}</span>
       {/* 부가 액션(예: "이메일 변경") — 텍스트와 분리된 flex sibling(gap 으로 간격 확보). */}
       {action && <span className="fc-alert__action">{action}</span>}
     </div>
