@@ -93,7 +93,7 @@ export default function ClubExecutiveDashboard() {
             aria-label="theme" title={resolved === 'dark' ? t('set.themeLight') : t('set.themeDark')}>
             <Icon name={resolved === 'dark' ? 'moon' : 'sun'} size={17} />
           </button>
-          <button className="exec-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
+          <button className="exec-logout" onClick={() => { logout(); navigate('/', { replace: true }) }}>{t('common.logout')}</button>
         </div>
       </header>
 

@@ -56,7 +56,7 @@ export default function AdminSettings() {
           <div><dt>{t('admin.set.email')}</dt><dd>{user?.email}</dd></div>
           <div><dt>{t('admin.set.role')}</dt><dd><span className="adm-badge active">{role}</span></dd></div>
         </dl>
-        <button className="adm-btn-ghost danger adm-logout-btn" onClick={() => { logout(); navigate('/') }}>
+        <button className="adm-btn-ghost danger adm-logout-btn" onClick={() => { logout(); navigate('/', { replace: true }) }}>
           {t('common.logout')}
         </button>
       </section>

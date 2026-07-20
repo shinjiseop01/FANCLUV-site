@@ -67,7 +67,7 @@ export default function AdminLayout() {
           <div className="adm-topbar-actions">
             <span className="adm-user">{user?.nickname}</span>
             <NotificationBell />
-            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
+            <button className="ch-logout" onClick={() => { logout(); navigate('/', { replace: true }) }}>{t('common.logout')}</button>
           </div>
         </header>
         <main className="adm-content">

@@ -107,7 +107,7 @@ export default function SettingsPage() {
 
   const themeStyle = { '--team': team.color, '--team-deep': team.colorDeep }
   function flash(msg, type = 'info') { toast[type === 'error' ? 'error' : 'info'](msg) }
-  function handleLogout() { logout(); navigate('/') }
+  function handleLogout() { logout(); navigate('/', { replace: true }) }
 
   // ── 프로필 수정 열기/닫기 ──
   function openEdit() {

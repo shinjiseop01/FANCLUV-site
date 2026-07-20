@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { login } from './lib/auth.js'
 import { isValidEmail } from './lib/authForm.js'
@@ -54,9 +54,20 @@ export default function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Supabase 모드: OAuth 리다이렉트 복귀 등으로 세션이 생기면 환영 메시지 후 자동 진입.
+  // 환영 메시지는 "이번에 새로 세션이 생긴 경우(무→유 전이)"에만 표시한다.
+  // 로그아웃 직후 stale 한 sessionUser 로 리마운트되어 환영이 재표시/잔존하는 것을 막고,
+  // 세션이 없어지면(로그아웃) 로그인 성공 안내를 즉시 제거한다.
+  const prevUserRef = useRef(sessionUser)
   useEffect(() => {
-    if (!isSupabaseConfigured || !sessionUser) return
+    if (!isSupabaseConfigured) return
+    const hadUser = !!prevUserRef.current
+    prevUserRef.current = sessionUser
+    if (!sessionUser) {
+      // 로그아웃/무세션 → 로그인 성공(환영) 안내 잔존 제거
+      setNotice(prev => (prev?.kind === 'success' ? null : prev))
+      return
+    }
+    if (hadUser) return // 마운트 시 이미 세션이 있던(stale) 경우엔 환영 재표시 금지
     setNotice({ kind: 'success', text: t('login.welcome') })
     const id = setTimeout(() => routeAfterAuth(sessionUser), 1000)
     return () => clearTimeout(id)

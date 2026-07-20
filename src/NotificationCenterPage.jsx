@@ -103,7 +103,7 @@ export default function NotificationCenterPage() {
           <div className="ch-actions">
             <span className="ch-user">{NICKNAME}{t('common.honorific')}</span>
             <NotificationBell />
-            <button className="ch-logout" onClick={() => { logout(); navigate('/') }}>{t('common.logout')}</button>
+            <button className="ch-logout" onClick={() => { logout(); navigate('/', { replace: true }) }}>{t('common.logout')}</button>
           </div>
         </div>
         <nav className="ch-nav" aria-label="메인 메뉴">
