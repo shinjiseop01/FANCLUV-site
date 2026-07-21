@@ -7,6 +7,7 @@ import IdentityNotice from './components/IdentityNotice.jsx'
 import { logout, getCurrentUser, requiresIdentityVerification } from './lib/auth.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { createOpinion, updateOpinion, getOpinionDetail } from './lib/opinionsRepo.js'
+import AiWritingAssist from './components/ai/AiWritingAssist.jsx'
 import './ClubHomePage.css'
 import './CreateOpinionPage.css'
 
@@ -25,6 +26,8 @@ export default function CreateOpinionPage() {
   const [rating, setRating] = useState(0)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
+  // AI 작성 지원 사용 메타(내부 분석용). 최종 게시글은 아래 body/title(사용자 확정본)만 저장.
+  const [aiMeta, setAiMeta] = useState({ aiAssisted: false, aiOperation: null, aiRequestId: null })
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
   // 본인인증 미완료 계정은 의견을 작성할 수 없다(작성 폼 대신 안내 노출).
@@ -65,7 +68,7 @@ export default function CreateOpinionPage() {
     if (!title.trim()) { setError(t('create.errTitle')); return }
     if (!body.trim()) { setError(t('create.errBody')); return }
 
-    const payload = { category, rating, title: title.trim(), body: body.trim() }
+    const payload = { category, rating, title: title.trim(), body: body.trim(), ...aiMeta }
     const res = isEdit
       ? await updateOpinion(team.id, opinionId, payload)
       : await createOpinion(team.id, { ...payload, hasPhoto: false })
@@ -178,6 +181,17 @@ export default function CreateOpinionPage() {
                   placeholder={t('create.bodyPh')}
                   value={body} onChange={e => { setBody(e.target.value); setError('') }} rows={6} />
               </div>
+
+              {/* AI 작성 지원 — 사용자가 원문을 입력한 뒤 정리/개선. 자동 게시 없음. */}
+              <AiWritingAssist
+                teamId={team.id}
+                value={body}
+                onApplyBody={(text) => { setBody(text); setError('') }}
+                onApplyTitle={(tt) => { setTitle(tt); setError('') }}
+                onAiMeta={setAiMeta}
+                disabled={gated}
+              />
+
               {/* 사진 첨부는 실제 업로드 연동(Storage) 후 제공 예정 — 베타에서는 노출하지 않음 */}
 
               {error && <div className="cw-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>}

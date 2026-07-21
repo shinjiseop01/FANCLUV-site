@@ -1,0 +1,108 @@
+/* FANCLUV — AI 작성 지원 패널. 기존 디자인 토큰(--team/--ink/--muted/--border/--canvas)만 사용.
+   라이트·다크 모두 토큰 기반이라 별도 다크 규칙 없이 동작. 가로 overflow 0. */
+.aiw {
+  border: 1px solid color-mix(in srgb, var(--team, #2563EB) 30%, var(--border, #E5E7EB));
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 14px 0;
+  background: color-mix(in srgb, var(--team, #2563EB) 4%, var(--canvas, #fff));
+}
+.aiw-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.aiw-title { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; color: var(--team-deep, #1D4ED8); }
+.aiw-spark { font-size: 14px; }
+.aiw-guide { margin: 6px 0 10px; font-size: 12.5px; line-height: 1.55; color: var(--muted, #6B7280); }
+
+.aiw-ops { display: flex; flex-wrap: wrap; gap: 7px; border: 0; padding: 0; margin: 0; }
+.aiw-op {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px; border: 1.5px solid var(--border, #E5E7EB); border-radius: 10px;
+  background: var(--canvas, #fff); color: var(--ink, #111827);
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: border-color .15s, background .15s;
+}
+.aiw-op-ic { font-size: 13px; line-height: 1; }
+.aiw-op:hover:not(:disabled), .aiw-op:focus-visible:not(:disabled) {
+  border-color: var(--team, #2563EB);
+  background: color-mix(in srgb, var(--team, #2563EB) 8%, var(--canvas, #fff));
+  outline: none;
+}
+.aiw-op:disabled { opacity: .55; cursor: not-allowed; }
+
+.aiw-hint, .aiw-loading { font-size: 12.5px; color: var(--muted, #6B7280); }
+.aiw-hint { margin-top: 8px; }
+.aiw-live { min-height: 0; }
+.aiw-loading { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; }
+.aiw-loading::before {
+  content: ''; width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--team, #2563EB) 30%, transparent);
+  border-top-color: var(--team, #2563EB); animation: aiw-spin .7s linear infinite;
+}
+.aiw-spin {
+  width: 12px; height: 12px; border-radius: 50%; margin-left: 2px;
+  border: 2px solid rgba(255,255,255,.4); border-top-color: currentColor;
+  display: inline-block; animation: aiw-spin .7s linear infinite;
+}
+@keyframes aiw-spin { to { transform: rotate(360deg); } }
+
+.aiw-error {
+  display: flex; align-items: center; gap: 8px; margin-top: 10px;
+  font-size: 13px; color: #B91C1C;
+  background: color-mix(in srgb, #DC2626 10%, transparent);
+  border: 1px solid color-mix(in srgb, #DC2626 30%, transparent);
+  border-radius: 9px; padding: 9px 11px;
+}
+.aiw-error-x { margin-left: auto; background: none; border: none; color: inherit; font-size: 17px; line-height: 1; cursor: pointer; }
+
+.aiw-preview {
+  margin-top: 12px; border: 1px solid var(--border, #E5E7EB); border-radius: 12px;
+  padding: 12px; background: var(--canvas, #fff); outline: none;
+}
+.aiw-preview:focus-visible { border-color: var(--team, #2563EB); box-shadow: 0 0 0 3px color-mix(in srgb, var(--team, #2563EB) 18%, transparent); }
+.aiw-preview-badge {
+  display: inline-block; font-size: 11px; font-weight: 700; color: var(--team-deep, #1D4ED8);
+  background: color-mix(in srgb, var(--team, #2563EB) 12%, transparent);
+  border-radius: 999px; padding: 3px 9px; margin-bottom: 10px;
+}
+.aiw-sub { font-size: 12.5px; color: var(--muted, #6B7280); margin-bottom: 8px; }
+
+.aiw-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.aiw-col { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.aiw-col-label { font-size: 11.5px; font-weight: 700; color: var(--muted, #6B7280); }
+.aiw-col-box {
+  font-size: 13.5px; line-height: 1.6; color: var(--ink, #111827); white-space: pre-wrap; word-break: break-word;
+  border: 1px solid var(--border, #E5E7EB); border-radius: 9px; padding: 10px; max-height: 220px; overflow: auto;
+}
+.aiw-col-orig { background: color-mix(in srgb, var(--muted, #6B7280) 7%, transparent); }
+.aiw-col-result { background: color-mix(in srgb, var(--team, #2563EB) 7%, transparent); border-color: color-mix(in srgb, var(--team, #2563EB) 30%, var(--border, #E5E7EB)); }
+
+.aiw-titles { }
+.aiw-title-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.aiw-title-item {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--border, #E5E7EB); border-radius: 10px; padding: 9px 11px; background: var(--canvas, #fff);
+}
+.aiw-title-text { flex: 1 1 auto; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--ink, #111827); word-break: break-word; }
+
+.aiw-warnings { margin: 10px 0 0; padding-left: 16px; font-size: 12px; color: var(--warn, #B45309); line-height: 1.5; }
+
+.aiw-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.aiw-apply {
+  padding: 9px 16px; border: none; border-radius: 9px; cursor: pointer; font-family: inherit;
+  font-size: 13.5px; font-weight: 700; color: #fff; background: var(--team, #2563EB);
+}
+.aiw-apply:hover { filter: brightness(1.06); }
+.aiw-ghost {
+  padding: 9px 14px; border: 1.5px solid var(--border, #E5E7EB); border-radius: 9px; cursor: pointer;
+  font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--ink, #111827); background: var(--canvas, #fff);
+}
+.aiw-ghost:hover { border-color: var(--team, #2563EB); }
+.aiw-ghost.sm, .aiw-mini { font-size: 12.5px; padding: 6px 11px; }
+.aiw-mini { flex: 0 0 auto; border: 1.5px solid var(--team, #2563EB); border-radius: 8px; background: var(--canvas, #fff); color: var(--team-deep, #1D4ED8); font-weight: 700; cursor: pointer; font-family: inherit; }
+.aiw-mini:hover { background: color-mix(in srgb, var(--team, #2563EB) 10%, var(--canvas, #fff)); }
+.aiw-undo { display: flex; gap: 8px; margin-top: 10px; }
+
+/* 반응형 — 좁은 화면에서 비교는 세로 스택. 320px 까지 overflow 0. */
+@media (max-width: 560px) {
+  .aiw-compare { grid-template-columns: 1fr; }
+  .aiw-op { flex: 1 1 auto; justify-content: center; }
+}
