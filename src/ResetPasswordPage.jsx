@@ -36,7 +36,7 @@ export default function ResetPasswordPage() {
     e.preventDefault()
     setError('')
     if (!next) { setError(t('resetPw.errNew')); return }
-    if (next.length < 4) { setError(t('resetPw.errLen')); return }
+    if (next.length < 8) { setError(t('resetPw.errLen')); return }
     if (next !== confirm) { setError(t('resetPw.errMatch')); return }
     setLoading(true)
     const res = await completePasswordReset(next)

@@ -993,7 +993,7 @@ export async function requestPasswordReset(email) {
 //    새 비밀번호를 저장한다. (현재 비밀번호 없이 — 복구 세션이 인증을 대신함)
 //    성공 후 recovery 세션을 signOut으로 명시적 종료.
 export async function completePasswordReset(newPassword) {
-  if (!newPassword || newPassword.length < 4) return { ok: false, error: '비밀번호는 4자 이상이어야 합니다.' }
+  if (!newPassword || newPassword.length < 8) return { ok: false, error: '비밀번호는 8자 이상이어야 합니다.' }
   if (isSupabaseConfigured) {
     // 복구 링크가 심어준 세션이 있어야 성공한다(없으면 링크 만료/무효).
     const { data: { session } } = await supabase.auth.getSession()

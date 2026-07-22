@@ -41,7 +41,7 @@ export default function ChangePasswordPage() {
     setError('')
     if (!current) { setError(t('pw.errCurrent')); return }
     if (!next) { setError(t('pw.errNew')); return }
-    if (next.length < 4) { setError(t('pw.errLen')); return }
+    if (next.length < 8) { setError(t('pw.errLen')); return }
     if (next !== confirm) { setError(t('pw.errMatch')); return }
     if (next === current) { setError(t('pw.errSame')); return }
     const res = await changePassword(current, next)

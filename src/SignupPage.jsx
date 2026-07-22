@@ -147,7 +147,7 @@ export default function SignupPage() {
     if (!emailVerified) { setError(t('signup.errEmailVerify')); return }
     if (!ageGroup) { setError(t('signup.errAge')); return }
     if (!password) { setError(t('signup.errPw')); return }
-    if (password.length < 4) { setError(t('signup.errPwLen')); return }
+    if (password.length < 8) { setError(t('signup.errPwLen')); return }
     if (password !== passwordConfirm) { setError(t('signup.errPwMatch')); return }
 
     completingRef.current = true
