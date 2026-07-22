@@ -101,8 +101,14 @@ Deno.serve(async (req) => {
     if (!uid) { console.error('createUser failed and no existing user found'); return json({ ok: false, error: 'create_failed' }) }
     const { error: updErr } = await admin.auth.admin.updateUserById(uid, { password, email_confirm: true, user_metadata: meta })
     if (updErr) { console.error('account recovery updateUser failed'); return json({ ok: false, error: 'create_failed' }) }
-    // 트리거는 update 시 갱신 안 되므로 프로필 필수값을 직접 반영(닉네임 unique 충돌은 무시 — 로그인은 이미 가능).
-    await admin.from('profiles').update({ nickname, gender, age_group: ageGroup, is_email_verified: true }).eq('id', uid)
+    // 트리거는 update 시 갱신 안 되므로 프로필 필수값을 직접 반영.
+    // 닉네임 외 값은 항상 반영하고, 닉네임은 UNIQUE(profiles_nickname_norm_uk) 충돌 시
+    // 조용히 무시하지 않고 nickname_taken 으로 안내한다(로그인 자체는 이미 가능).
+    await admin.from('profiles').update({ gender, age_group: ageGroup, is_email_verified: true }).eq('id', uid)
+    const { error: nickErr } = await admin.from('profiles').update({ nickname }).eq('id', uid)
+    if (nickErr && (nickErr.code === '23505' || /duplicate key|nickname_norm/i.test(nickErr.message || ''))) {
+      return json({ ok: false, error: 'nickname_taken', code: 'nickname_taken' })
+    }
     userId = uid; recovered = true
   }
 
