@@ -101,19 +101,23 @@
 | Environment Variables | ✅ READY | 프로덕션이 올바른 Supabase 프로젝트(cuuzbddxnzhhlrqmmebz) 지시, 비밀키 번들 미포함 | — |
 | Realtime | ✅ READY(설계) | 팀 집계 1채널 + polling fallback(0069) | 실브라우저 부하 재확인(선택) |
 | **EMAIL_FROM** | ✅ READY | fancluv.com 도메인 소유·DNS 인증(SPF/DKIM) 완료 + 운영용 발신자 `FANCLUV <noreply@fancluv.com>` 설정(프로덕션, 2026-07-22 11:36 UTC) | — |
-| **OAuth (Google)** | ⛔ NOT READY | `external_google_enabled=false`, client_id 미설정, `uri_allow_list` 비어있음, `site_url=http://localhost:3000` | Dashboard에서 Google provider 활성화 + Client ID/Secret + redirect allowlist + site_url(아래) |
-| **OAuth (Kakao/Naver)** | ⚠️ WARNING | 커스텀 Edge(kakao/naver-callback) 경로 사용(native 비활성은 정상). 실제 앱키/redirect는 미검증 | Kakao/Naver 개발자콘솔 앱키·redirect + Edge secrets 확인 |
+| **모바일 회원가입 QA** | ✅ READY | 375/390/430/768 viewport 모두 overflow·가림 없음, OTP 입력·중복 클릭 차단 정상(2026-07-22 실측) | — |
+| **Health Check 엔드포인트** | ✅ READY | GET /api/health/email-provider 구현 완료(캐시 45초, rate limit 60/min, secret 비노출, READY/NOT_READY/DEGRADED 상태) | — |
+| **OAuth (Google)** | 🔄 DEFERRED | 베타 기간 중 이메일 회원가입만 제공. UI는 feature flag로 비활성화, 백엔드 코드 유지. 정식 출시 시 별도 E2E 진행 | 정식 출시 전 별도 OAuth 실 E2E 계획 |
+| **OAuth (Kakao/Naver)** | 🔄 DEFERRED | 베타 기간 중 이메일 회원가입만 제공. 커스텀 Edge(kakao/naver-callback) 코드 유지, UI는 비활성화 | 정식 출시 전 별도 OAuth 실 E2E 계획 |
 | **Storage** | ⚠️ WARNING | `avatars`·`news-images` 둘 다 public, **file_size_limit·allowed_mime_types 미설정**(무제한 업로드 위험) | 버킷별 크기 제한 + MIME allowlist 설정, 미사용 버킷 정리 |
 | AI Provider | ⚠️ WARNING | `OPENAI_API_KEY` 미설정 → AI 인사이트/뉴스요약 extractive 폴백 | 베타 필수 아님. AI 실사용 시 키 설정 |
 | Observability | ⚠️ WARNING | Edge 로그로 사유 확인 가능. Sentry는 stash 대기 | Sentry DSN 확정 후 sink 연결(별도) |
 
-### 프로덕션 승격 최소 게이트(P0) 현재 상태 (2026-07-22 완료)
+### 프로덕션 승격 최소 게이트(P0) 현재 상태 (2026-07-22 최종 확정)
 1. Email Provider — ✅ READY (RESEND_API_KEY + EMAIL_FROM + 도메인 인증 + 실 OTP 수신 확인)
-2. OAuth redirect/secret — ⛔ (Google 미활성) → **베타에 이메일 가입만 쓸지, OAuth도 열지 결정 필요**
+2. OAuth — 🔄 DEFERRED (베타에는 이메일 가입만 제공, 코드 유지, UI 비활성화)
 3. 필수 Edge 배포 — ✅ (프로덕션 배포 완료)
 4. DB migration + UNIQUE/RPC — ✅ (프로덕션 0072-0074 적용)
 5. 프론트 env가 대상 프로젝트를 정확히 지시 — ✅(프로덕션: cuuzbddxnzhhlrqmmebz)
 6. 비밀키 번들 미포함 — ✅
+7. 모바일 회원가입 QA — ✅ (375/390/430/768 viewport 모두 통과)
+8. Health Check 엔드포인트 — ✅ (GET /api/health/email-provider 구현)
 
 ---
 
