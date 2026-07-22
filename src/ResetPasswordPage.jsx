@@ -23,11 +23,17 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
 
-  // recovery 세션이 없으면 로그인 페이지로 리다이렉트
-  // (링크 만료 또는 직접 접근)
+  // recovery 세션 또는 URL 기반 recovery marker 확인
+  // PASSWORD_RECOVERY 이벤트가 발생하지 않으면 URL에서 감지
   useEffect(() => {
-    if (!isPasswordRecovery && !loading && !done) {
-      // recovery 세션 없음 = 링크 만료 또는 이미 사용함
+    if (isPasswordRecovery || loading || done) return
+
+    // URL에 recovery 마커 확인 (code, token_hash 등)
+    const params = new URLSearchParams(window.location.search)
+    const hasRecoveryMarker = params.has('code') || params.has('token_hash') || window.location.hash.includes('type=recovery')
+
+    if (!hasRecoveryMarker) {
+      // recovery 세션도 없고, URL에 recovery marker도 없음 = 만료 또는 직접 접근
       setError(t('resetPw.errGeneric'))
     }
   }, [isPasswordRecovery, loading, done, t])
