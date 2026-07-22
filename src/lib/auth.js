@@ -903,11 +903,65 @@ export async function setSelectedTeam(teamId) {
 }
 
 // ── 계정 복구 (아이디/비밀번호 찾기) ──
+
+// 이메일 마스킹 (sh***01@gmail.com 형태)
 export function maskEmail(email) {
   if (!email || !email.includes('@')) return email || ''
   const [local, domain] = email.split('@')
-  return `${local.slice(0, Math.min(3, local.length))}****@${domain}`
+  const show = Math.min(2, Math.ceil(local.length / 3))
+  return `${local.slice(0, show)}${'*'.repeat(Math.max(2, local.length - show))}@${domain}`
 }
+
+// 닉네임으로 계정 찾기 (P0-2: 아이디 찾기 기능)
+// 계정이 있으면 등록된 이메일로 "계정 안내" 메일 발송
+// 계정이 없어도 동일한 성공 응답 반환 (계정 존재 여부 비노출)
+export async function findAccountByNickname(nickname) {
+  const q = (nickname || '').trim()
+  if (!q) return { ok: false, error: '닉네임을 입력해 주세요.' }
+
+  if (isSupabaseConfigured) {
+    // RPC: find_account_by_nickname (0075)
+    // 반환: { ok, message, email_hashed } 또는 오류
+    const { data, error } = await supabase.rpc('find_account_by_nickname', { p_nickname: q })
+    if (error) {
+      logger.warn('[findAccountByNickname] RPC error:', error.message)
+      // 클라이언트에는 일반 오류 메시지만 표시
+      return { ok: false, error: '요청 처리 중 오류가 발생했습니다.' }
+    }
+    if (!data || !data.ok) {
+      return { ok: false, error: '요청 처리 중 오류가 발생했습니다.' }
+    }
+
+    // email_hashed가 있으면 실제 메일 발송 지시 (Edge Function에서)
+    if (data.email_hashed) {
+      try {
+        await invokeFunction('send-find-account-mail', {
+          nickname: q,
+          email_hashed: data.email_hashed,
+        })
+      } catch (e) {
+        logger.warn('[findAccountByNickname] mail invoke failed:', e.message)
+        // 메일 발송 실패해도 성공 응답 (사용자에게 숨김)
+      }
+    }
+
+    // 계정 존재 여부와 관계없이 동일한 성공 응답
+    return { ok: true }
+  }
+
+  // Mock mode
+  const user = readUsers().find(u =>
+    (u.nickname || '').toLowerCase() === q.toLowerCase()
+  )
+  if (user) {
+    // Mock에서는 실제 발송 시뮬레이션 (로그만)
+    logger.info(`[Mock] Account found for nickname: ${q}`)
+  }
+  // 계정 존재 여부와 관계없이 성공 응답
+  return { ok: true }
+}
+
+// 레거시: 힌트(닉네임/이메일)로 계정 찾기
 export async function findAccountByHint(hint) {
   const q = (hint || '').trim()
   if (!q) return { ok: false }
