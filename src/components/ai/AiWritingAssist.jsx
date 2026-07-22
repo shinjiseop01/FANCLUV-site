@@ -73,7 +73,7 @@ export default function AiWritingAssist({ teamId, value, onApplyBody, onApplyTit
     onAiMeta?.({ aiAssisted: true, aiOperation: preview.operation, aiRequestId: preview.requestId })
     setPreview(null)
   }
-  function useTitle(tt) {
+  function chooseTitle(tt) {
     onApplyTitle?.(tt)
     onAiMeta?.({ aiAssisted: true, aiOperation: 'titles', aiRequestId: preview?.requestId || null })
     setPreview(null)
@@ -142,7 +142,7 @@ export default function AiWritingAssist({ teamId, value, onApplyBody, onApplyTit
                 {preview.titleSuggestions.map((tt, i) => (
                   <li key={i} className="aiw-title-item">
                     <span className="aiw-title-text">{tt}</span>
-                    <button type="button" className="aiw-mini" onClick={() => useTitle(tt)}>{t('aiw.useTitle')}</button>
+                    <button type="button" className="aiw-mini" onClick={() => chooseTitle(tt)}>{t('aiw.chooseTitle')}</button>
                   </li>
                 ))}
               </ul>

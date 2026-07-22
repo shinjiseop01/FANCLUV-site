@@ -73,6 +73,7 @@ const AdminIdentity = lazy(() => import('./admin/AdminIdentity.jsx'))
 const AdminPulse = lazy(() => import('./admin/AdminPulse.jsx'))
 const AdminQuickPoll = lazy(() => import('./admin/AdminQuickPoll.jsx'))
 const AdminAiWriting = lazy(() => import('./admin/AdminAiWriting.jsx'))
+const AdminRealtimeDashboard = lazy(() => import('./admin/AdminRealtimeDashboard.jsx'))
 const AdminSettings = lazy(() => import('./admin/AdminSettings.jsx'))
 const AccessDenied = lazy(() => import('./admin/AccessDenied.jsx'))
 // 구단(고객) Executive Dashboard
@@ -199,6 +200,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="pulse" element={<AdminPulse />} />
           <Route path="quickpoll" element={<AdminQuickPoll />} />
           <Route path="ai-writing" element={<AdminAiWriting />} />
+          <Route path="realtime" element={<AdminRealtimeDashboard />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
 
