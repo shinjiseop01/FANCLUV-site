@@ -225,6 +225,7 @@ export default {
   'signup.loading': 'Signing up...',
   'signup.haveAccount': 'Already have an account?',
   'signup.loginLink': 'Log in',
+  'signup.goLoginCta': 'Go to login',
   'signup.errNickname': 'Please enter a nickname.',
   // Nickname validation (real-time)
   'nickname.hint': 'Enter at least 2 characters using complete Korean letters, English, or numbers.',

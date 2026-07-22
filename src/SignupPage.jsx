@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signup, issueEmailCode, confirmEmailCode, needsOnboarding, requiresIdentityVerification, isIdentityVerificationEnabled } from './lib/auth.js'
+import { signupErrorPolicy } from './lib/signupErrorPolicy.js'
 import { isValidEmail, resendButtonState, RESEND_COOLDOWN_SEC } from './lib/authForm.js'
 import { logger } from './lib/logger.js'
 import { useLang } from './contexts/LanguageContext.jsx'
@@ -37,6 +38,9 @@ export default function SignupPage() {
   const [resendCooldown, setResendCooldown] = useState(0) // 재전송 쿨다운(초) — 연속 클릭 방지
   const [emailTouched, setEmailTouched] = useState(false) // blur 후에만 형식 오류 표시
   const completingRef = useRef(false) // 가입 완료 중복 제출 방지(동기 lock)
+  const nicknameRef = useRef(null)    // 닉네임 충돌 시 focus 이동 대상
+  const composingRef = useRef(false)  // 한글 IME 조합 중 여부(조합 중 submit/검증 억제)
+  const [showLoginLink, setShowLoginLink] = useState(false) // 이미 가입된 이메일 → 로그인 안내 CTA
 
   const emailValid = isValidEmail(email)              // RFC 수준 형식(도메인 제한 없음)
   const emailFormatError = emailTouched && email.trim().length > 0 && !emailValid
@@ -132,7 +136,9 @@ export default function SignupPage() {
     e.preventDefault()
     // 동기식 lock — 더블클릭/재렌더로 인한 중복 complete-signup 호출 방지.
     if (completingRef.current) return
-    setError('')
+    // 한글 IME 조합 중 Enter 는 조합 확정이지 제출이 아니다 — 조합 중이면 무시.
+    if (composingRef.current) return
+    setError(''); setShowLoginLink(false)
 
     if (!nickname.trim()) { setError(t('signup.errNickname')); return }
     if (!email.trim()) { setError(t('signup.errEmail')); return }
@@ -152,7 +158,15 @@ export default function SignupPage() {
         nickname: nickname.trim(), email: email.trim(), password,
         gender: gender || null, ageGroup,
       })
-      if (!result.ok) { setError(result.error); return }
+      if (!result.ok) {
+        // 서버 stable code 로 UX 분기(문자열 파싱 금지): 닉네임 충돌→필드 focus·값 유지,
+        // 이미 가입된 이메일→로그인 CTA(OTP 무한 재요청 금지). 메시지는 서버 로케일 문구 사용.
+        const pol = signupErrorPolicy(result.code)
+        setError(result.error)
+        setShowLoginLink(pol.showLoginLink)
+        if (pol.focusNickname && nicknameRef.current) nicknameRef.current.focus()
+        return
+      }
       // 서버에서 email_confirm:true 로 확정 생성 + 세션 확보 완료 → "확인 메일" 재요구 없이
       // 바로 다음 단계로. (본인인증 업체 설정 시 본인인증, 아니면 팀 선택.)
       navigate(isIdentityVerificationEnabled() ? '/verify-identity' : '/team-select')
@@ -186,12 +200,16 @@ export default function SignupPage() {
           <div className="su-field">
             <label className="su-label">{t('signup.nickname')}</label>
             <input
+              ref={nicknameRef}
               type="text"
               className="su-input"
               placeholder={t('signup.nicknamePh')}
               value={nickname}
               onChange={e => { setNickname(e.target.value); setError('') }}
+              onCompositionStart={() => { composingRef.current = true }}
+              onCompositionEnd={e => { composingRef.current = false; setNickname(e.target.value) }}
               autoComplete="nickname"
+              autoCapitalize="none"
               maxLength={12}
             />
             <NicknameStatus status={nickCheck} />
@@ -330,7 +348,12 @@ export default function SignupPage() {
           </div>
 
           {error && (
-            <Alert kind="error" boxed className="su-error">{error}</Alert>
+            <Alert kind="error" boxed className="su-error">
+              {error}
+              {showLoginLink && (
+                <> <Link to="/" className="signup-login-link">{t('signup.goLoginCta')}</Link></>
+              )}
+            </Alert>
           )}
 
           <button type="submit" className="su-btn" disabled={loading || nickCheck.state !== 'available' || !emailValid || !emailVerified}>

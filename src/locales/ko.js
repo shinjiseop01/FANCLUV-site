@@ -225,6 +225,7 @@ export default {
   'signup.loading': '가입 중...',
   'signup.haveAccount': '이미 계정이 있으신가요?',
   'signup.loginLink': '로그인',
+  'signup.goLoginCta': '로그인하러 가기',
   'signup.errNickname': '닉네임을 입력해주세요.',
   // 닉네임 검증(실시간)
   'nickname.hint': '닉네임은 완성된 한글, 영문, 숫자로 2자 이상 입력해 주세요.',

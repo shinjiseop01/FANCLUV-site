@@ -16,7 +16,10 @@
 }
 
 .signup-root {
-  min-height: 100vh;
+  min-height: 100vh;          /* fallback */
+  min-height: 100dvh;         /* 모바일 주소창/키보드 대응(동적 뷰포트) */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
   background: var(--dark-bg);
   /* subtle gold glow from the top, keeps it feeling like a sports platform without clutter */
   background-image:
