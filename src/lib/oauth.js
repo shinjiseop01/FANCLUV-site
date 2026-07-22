@@ -144,7 +144,9 @@ export function getProvider(id) {
 //    (functions/v1/kakao-callback)을 사용한다. 비즈 앱 전환 시 네이티브로 되돌리고
 //    account_email 을 추가할 수 있다(OAUTH_SETUP.md).
 export const SUPABASE_PROVIDER_CONFIG = {
-  google: { supabaseProvider: 'google', native: true },
+  // Google: 로그아웃 후 재로그인 시 이전 계정으로 즉시 로그인되지 않도록 항상 계정 선택창을
+  // 띄운다(prompt=select_account). Google 세션은 유지돼도 계정 선택은 매번 노출된다.
+  google: { supabaseProvider: 'google', native: true, queryParams: { prompt: 'select_account' } },
   kakao:  { supabaseProvider: null, native: false, custom: 'kakao' },
   naver:  { supabaseProvider: null, native: false, custom: 'naver' },
 }

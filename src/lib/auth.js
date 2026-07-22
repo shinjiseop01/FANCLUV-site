@@ -507,6 +507,8 @@ export async function socialLogin(providerId, keep = false) {
       const options = { redirectTo: `${window.location.origin}/auth/callback` }
       // Kakao 등 provider 별 scope 재정의(비즈 앱 아닌 Kakao 는 account_email 제외).
       if (cfg.scopes) options.scopes = cfg.scopes
+      // Google prompt=select_account 등 provider 별 인가 파라미터(항상 계정 선택창 노출).
+      if (cfg.queryParams) options.queryParams = cfg.queryParams
       const { error } = await supabase.auth.signInWithOAuth({ provider: cfg.supabaseProvider, options })
       if (error) return { ok: false, error: translateAuthError(error) }
       return { ok: true, redirecting: true } // 브라우저가 provider 로 리다이렉트됨
