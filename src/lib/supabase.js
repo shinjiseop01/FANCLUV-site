@@ -11,6 +11,11 @@
 import { createClient } from '@supabase/supabase-js'
 import { logger } from './logger.js'
 import { pickStores } from './authForm.js'
+// ⚠️ import 순서 중요: authRecoveryState 모듈은 로드 시점에 URL hash의 recovery
+//    marker(type=recovery)를 동기 캡처한다. createClient() 가 initialize()에서
+//    hash를 제거하기 "전에" intent를 확보하려면 이 import가 createClient 호출보다
+//    먼저 평가되어야 하므로 최상단에 둔다.
+import { markRecoverySignal } from './authRecoveryState.js'
 
 const url = import.meta.env.VITE_SUPABASE_URL
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -89,6 +94,8 @@ export const hybridStorage = {
 }
 
 // 설정되지 않았으면 client는 null (Mock 폴백 사용).
+// flowType 미지정 → @supabase/auth-js 기본값 'implicit'. recovery 콜백은
+// hash 기반(#access_token=...&type=recovery)이며, 위 authRecoveryState가 이를 보존한다.
 export const supabase = isSupabaseConfigured
   ? createClient(url, anonKey, {
       auth: {
@@ -99,3 +106,27 @@ export const supabase = isSupabaseConfigured
       },
     })
   : null
+
+// ── Eager(모듈 스코프) auth listener ────────────────────────────────────────
+// createClient() 직후 "동기적으로" 구독한다. auth-js는 생성자에서 initialize()를
+// 즉시 킥오프하지만 그 처리(PASSWORD_RECOVERY emit)는 비동기(microtask)라, 여기서
+// 지금 구독하면 React AuthContext(useEffect, 늦은 구독)와 달리 PASSWORD_RECOVERY를
+// "소실 전에" 잡을 수 있다. 잡으면 recovery intent를 즉시 확정(markRecoverySignal).
+//
+// 진단 로그는 DEV 또는 VITE_AUTH_DIAGNOSTICS=true 에서만. 토큰/URL/hash/session/
+// 이메일은 절대 출력하지 않고 event 명과 hasSession(boolean), pathname 만 남긴다.
+const AUTH_DIAG = Boolean(
+  import.meta.env.DEV || import.meta.env.VITE_AUTH_DIAGNOSTICS === 'true',
+)
+if (supabase && !globalThis.__fancluvEagerAuthBound) {
+  globalThis.__fancluvEagerAuthBound = true // HMR/중복 등록 방지
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      markRecoverySignal()
+    }
+    if (AUTH_DIAG) {
+      const path = typeof window !== 'undefined' ? window.location.pathname : ''
+      logger.info(`[AUTH-DIAG] event=${event} hasSession=${!!session} path=${path}`)
+    }
+  })
+}

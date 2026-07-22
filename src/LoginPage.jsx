@@ -13,7 +13,7 @@ import './LoginPage.css'
 export default function LoginPage() {
   const navigate = useNavigate()
   const { t } = useLang()
-  const { user: sessionUser, isPasswordRecovery } = useAuth()
+  const { user: sessionUser, recoveryStatus } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -54,10 +54,20 @@ export default function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // recovery 세션(비밀번호 재설정 링크)이 Site URL fallback으로 '/'(로그인 화면)에
+  // 떨어질 수 있다. 이 경우 홈으로 라우팅하지 말고 /reset-password로 넘긴다.
+  useEffect(() => {
+    if (!isSupabaseConfigured) return
+    if (recoveryStatus === 'active') {
+      navigate('/reset-password', { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recoveryStatus])
+
   // 환영 메시지는 "이번에 새로 세션이 생긴 경우(무→유 전이)"에만 표시한다.
   // 로그아웃 직후 stale 한 sessionUser 로 리마운트되어 환영이 재표시/잔존하는 것을 막고,
   // 세션이 없어지면(로그아웃) 로그인 성공 안내를 즉시 제거한다.
-  // PASSWORD_RECOVERY 상태에서는 /reset-password로 가야 하므로 routeAfterAuth 실행 금지.
+  // recovery 상태(checking/active)에서는 절대 routeAfterAuth를 실행하지 않는다.
   const prevUserRef = useRef(sessionUser)
   useEffect(() => {
     if (!isSupabaseConfigured) return
@@ -69,13 +79,13 @@ export default function LoginPage() {
       return
     }
     if (hadUser) return // 마운트 시 이미 세션이 있던(stale) 경우엔 환영 재표시 금지
-    // PASSWORD_RECOVERY 상태 → /reset-password 화면에서 처리, 여기선 무시
-    if (isPasswordRecovery) return
+    // recovery 판정 중이거나 recovery 세션이면 홈 라우팅 금지(/reset-password에서 처리)
+    if (recoveryStatus === 'checking' || recoveryStatus === 'active') return
     setNotice({ kind: 'success', text: t('login.welcome') })
     const id = setTimeout(() => routeAfterAuth(sessionUser), 1000)
     return () => clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionUser, isPasswordRecovery])
+  }, [sessionUser, recoveryStatus])
 
   // 소셜 로그인(Mock) 성공 → 환영 메시지 짧게 표시 후 이동.
   function handleSocialSuccess(res) {

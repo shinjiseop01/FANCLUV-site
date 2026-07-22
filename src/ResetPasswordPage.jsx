@@ -1,10 +1,21 @@
 // FANCLUV — 비밀번호 재설정 완료 화면 (/reset-password).
 //
 // 비밀번호 찾기(/find-password) → 재설정 메일 → 링크 클릭 시 이 경로로 돌아온다.
-// Supabase 가 링크의 recovery 토큰을 세션으로 교환(detectSessionInUrl)하면,
-// 여기서 새 비밀번호를 입력받아 updateUser({ password }) 로 저장한다.
+// Supabase(implicit flow)가 링크 hash(#access_token=...&type=recovery)를 세션으로
+// 교환(detectSessionInUrl)하면, 여기서 새 비밀번호를 입력받아 updateUser로 저장한다.
 // (현재 비밀번호는 묻지 않는다 — 복구 세션이 인증을 대신한다.)
-import { useState, useEffect } from 'react'
+//
+// ── 상태 모델 ────────────────────────────────────────────────────────────────
+//   checking   : auth bootstrap 진행 중 — 아직 recovery 판정 전(로딩 표시)
+//   ready      : recovery 세션 유효 — 새 비밀번호 입력 폼
+//   invalid    : bootstrap 완료 + recovery 아님 — 만료/무효 안내 + 재요청
+//   submitting : updateUser 진행 중
+//   success    : 변경 완료
+//   error      : 입력값 오류(폼 내 인라인, 재입력 가능)
+//
+// ⚠️ 초기 렌더에서 곧바로 만료 오류를 띄우지 않는다(implicit flow에서 recovery
+//    판정은 비동기). recoveryStatus가 'checking'인 동안은 로딩만 보여준다.
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { completePasswordReset } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
@@ -16,27 +27,21 @@ import './RecoveryPages.css'
 export default function ResetPasswordPage() {
   const { t } = useLang()
   const navigate = useNavigate()
-  const { isPasswordRecovery } = useAuth()
+  const { recoveryStatus } = useAuth()
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
 
-  // recovery 세션 또는 URL 기반 recovery marker 확인
-  // PASSWORD_RECOVERY 이벤트가 발생하지 않으면 URL에서 감지
-  useEffect(() => {
-    if (isPasswordRecovery || loading || done) return
-
-    // URL에 recovery 마커 확인 (code, token_hash 등)
-    const params = new URLSearchParams(window.location.search)
-    const hasRecoveryMarker = params.has('code') || params.has('token_hash') || window.location.hash.includes('type=recovery')
-
-    if (!hasRecoveryMarker) {
-      // recovery 세션도 없고, URL에 recovery marker도 없음 = 만료 또는 직접 접근
-      setError(t('resetPw.errGeneric'))
-    }
-  }, [isPasswordRecovery, loading, done, t])
+  // 화면 상태 파생. done/submitting이 우선하고, 그 외에는 recoveryStatus로 판정.
+  const pageStatus = done
+    ? 'success'
+    : recoveryStatus === 'checking'
+      ? 'checking'
+      : recoveryStatus === 'active'
+        ? 'ready'
+        : 'invalid'
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -44,14 +49,16 @@ export default function ResetPasswordPage() {
     if (!next) { setError(t('resetPw.errNew')); return }
     if (next.length < 8) { setError(t('resetPw.errLen')); return }
     if (next !== confirm) { setError(t('resetPw.errMatch')); return }
-    setLoading(true)
+    setSubmitting(true)
+    // completePasswordReset: updateUser → signOut → recovery intent 정리(auth.js)
     const res = await completePasswordReset(next)
-    setLoading(false)
+    setSubmitting(false)
     if (res.ok) {
       setDone(true)
-      // 3초 후 로그인 페이지로 이동 (recovery 세션은 자동 종료됨)
+      // 3초 후 로그인 페이지로 이동 (recovery 세션은 이미 종료됨)
       setTimeout(() => navigate('/', { replace: true }), 3000)
     } else {
+      // 복구 가능한 실패 → intent를 지우지 않고 재입력 허용
       setError(res.error || t('resetPw.errGeneric'))
     }
   }
@@ -66,7 +73,30 @@ export default function ResetPasswordPage() {
           <p className="signup-subtitle">{t('resetPw.subtitle')}</p>
         </div>
 
-        {done ? (
+        {pageStatus === 'checking' && (
+          <div className="rec-result" role="status" aria-busy="true">
+            <span className="su-btn-loading"><span className="su-spinner" /></span>
+            <p className="rec-result-note">{t('resetPw.checking')}</p>
+          </div>
+        )}
+
+        {pageStatus === 'invalid' && (
+          <div className="rec-result" role="alert">
+            <span className="rec-result-icon" aria-hidden="true"><Icon name="warningTriangle" size={26} /></span>
+            <p className="rec-result-label">{t('resetPw.invalidTitle')}</p>
+            <p className="rec-result-note">{t('resetPw.invalidDesc')}</p>
+            <div className="rec-result-actions">
+              <button type="button" className="su-btn rec-btn-link" onClick={() => navigate('/find-password', { replace: true })}>
+                {t('resetPw.requestNew')}
+              </button>
+              <button type="button" className="su-btn rec-btn-link" onClick={() => navigate('/', { replace: true })}>
+                {t('findId.goLogin')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {pageStatus === 'success' && (
           <div className="rec-result" role="status">
             <span className="rec-result-icon" aria-hidden="true"><Icon name="successCircle" size={26} /></span>
             <p className="rec-result-label">{t('resetPw.doneTitle')}</p>
@@ -77,7 +107,9 @@ export default function ResetPasswordPage() {
               </button>
             </div>
           </div>
-        ) : (
+        )}
+
+        {pageStatus === 'ready' && (
           <form onSubmit={handleSubmit} noValidate>
             <div className="su-field">
               <label className="su-label">{t('resetPw.new')}</label>
@@ -104,8 +136,8 @@ export default function ResetPasswordPage() {
 
             {error && <div className="su-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>}
 
-            <button type="submit" className="su-btn" disabled={loading}>
-              {loading ? (
+            <button type="submit" className="su-btn" disabled={submitting}>
+              {submitting ? (
                 <span className="su-btn-loading"><span className="su-spinner" />{t('resetPw.loading')}</span>
               ) : (
                 <span>{t('resetPw.submit')}</span>

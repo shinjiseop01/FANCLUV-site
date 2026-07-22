@@ -16,6 +16,7 @@ import { logger } from './logger.js'
 import { getProvider, SUPABASE_PROVIDER_CONFIG } from './oauth.js'
 import { sendWelcomeEmail } from './welcomeEmail.js'
 import { validateNicknameFormat } from './nicknameValidation.js'
+import { clearRecoveryIntent } from './authRecoveryState.js'
 
 const USERS_KEY = 'fancluv_users'
 const SESSION_KEY = 'fancluv_session' // (Mock) 현재 로그인한 사용자의 email
@@ -489,6 +490,7 @@ export async function login({ email, password, keep = false }) {
 // ── 로그아웃 ── 모든 토큰/세션/OAuth 흔적/자동 로그인 플래그를 제거한다.
 export async function logout() {
   cachedUser = null // 가드가 즉시 반영되도록 동기 초기화
+  clearRecoveryIntent() // 로그아웃 시 recovery intent 잔존 방지(오탐 재활성화 차단)
   if (isSupabaseConfigured) {
     // signOut 이 hybridStorage.removeItem 으로 활성 세션 토큰을 지우고,
     // clearAuthArtifacts 가 남은 저장소/OAuth state/keep 플래그까지 정리한다.
@@ -1000,8 +1002,9 @@ export async function completePasswordReset(newPassword) {
     if (!session) return { ok: false, error: '재설정 링크가 만료되었거나 유효하지 않습니다. 다시 요청해 주세요.', code: 'no_session' }
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) return { ok: false, error: translateAuthError(error) }
-    // 비밀번호 변경 성공 → recovery 세션을 명시적으로 종료
-    // (사용자가 새 비밀번호로 다시 로그인하도록)
+    // 비밀번호 변경 성공 → recovery 세션을 명시적으로 종료 + recovery intent 정리
+    // (사용자가 새 비밀번호로 다시 로그인하도록. intent가 남아 재활성화되는 것 방지)
+    clearRecoveryIntent()
     await supabase.auth.signOut()
     return { ok: true }
   }

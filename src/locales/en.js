@@ -119,6 +119,10 @@ export default {
   'resetPw.errGeneric': 'Failed to change password. Please try again.',
   'resetPw.doneTitle': 'Password changed',
   'resetPw.doneDesc': 'Please sign in with your new password.',
+  'resetPw.checking': 'Verifying your password reset link.',
+  'resetPw.invalidTitle': 'Invalid link',
+  'resetPw.invalidDesc': 'This password reset link has expired or is invalid.',
+  'resetPw.requestNew': 'Request a new reset email',
   // Email verification (mock)
   'verify.sentTitle': 'Verification email sent',
   'verify.needTitle': 'Email verification required',
