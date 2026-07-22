@@ -83,3 +83,95 @@
 4. DB migration 최신 + 회원가입 UNIQUE/RPC 존재
 5. 프론트 환경변수가 프로덕션 프로젝트를 정확히 가리킴
 6. 비밀키 번들 미포함
+
+---
+
+# Phase 20-C 재평가 (2026-07-22, staging `frerrxntbtcapapvbqwb` 실측)
+
+> Claude가 직접 접근 가능한 범위(Management API·Edge 호출·DB)로 실측. 브라우저 실 OTP/OAuth E2E와
+> 모바일 실측은 사용자 수행(아래 체크리스트). 민감값(키/토큰/OTP)은 문서에 남기지 않음.
+
+## 재평가 게이트 표
+| 항목 | 상태 | 원인 / 근거 | READY로 만들 남은 작업 |
+|---|---|---|---|
+| Email Provider | ✅ READY | RESEND_API_KEY 설정 확인 + live send `delivered@resend.dev`→`{ok:true,sent:true}` | — |
+| Edge Functions | ✅ READY | send-email-code·complete-signup·kakao-callback·naver-callback 배포(16개) | — |
+| Database | ✅ READY | email/nickname 정규화 UNIQUE 2종 + complete_signup RPC | — |
+| Migration | ✅ READY | staging 최신 0072 적용 | — |
+| Environment Variables | ✅ READY | 프론트가 staging URL/anon 사용, 비밀키 번들 미포함 | — |
+| Realtime | ✅ READY(설계) | 팀 집계 1채널 + polling fallback(0069) | 실브라우저 부하 재확인(선택) |
+| **EMAIL_FROM** | ⚠️ WARNING | 미설정 → 기본 `onboarding@resend.dev` 발신 | 인증 도메인 + no-reply 주소 설정(아래 절차) |
+| **OAuth (Google)** | ⛔ NOT READY | `external_google_enabled=false`, client_id 미설정, `uri_allow_list` 비어있음, `site_url=http://localhost:3000` | Dashboard에서 Google provider 활성화 + Client ID/Secret + redirect allowlist + site_url(아래) |
+| **OAuth (Kakao/Naver)** | ⚠️ WARNING | 커스텀 Edge(kakao/naver-callback) 경로 사용(native 비활성은 정상). 실제 앱키/redirect는 미검증 | Kakao/Naver 개발자콘솔 앱키·redirect + Edge secrets 확인 |
+| **Storage** | ⚠️ WARNING | `avatars`·`news-images` 둘 다 public, **file_size_limit·allowed_mime_types 미설정**(무제한 업로드 위험) | 버킷별 크기 제한 + MIME allowlist 설정, 미사용 버킷 정리 |
+| AI Provider | ⚠️ WARNING | `OPENAI_API_KEY` 미설정 → AI 인사이트/뉴스요약 extractive 폴백 | 베타 필수 아님. AI 실사용 시 키 설정 |
+| Observability | ⚠️ WARNING | Edge 로그로 사유 확인 가능. Sentry는 stash 대기 | Sentry DSN 확정 후 sink 연결(별도) |
+
+### 프로덕션 승격 최소 게이트(P0) 현재 상태
+1. Email Provider — ✅ READY
+2. OAuth redirect/secret — ⛔ (Google 미활성) → **베타에 이메일 가입만 쓸지, OAuth도 열지 결정 필요**
+3. 필수 Edge 배포 — ✅
+4. DB migration + UNIQUE/RPC — ✅
+5. 프론트 env가 대상 프로젝트를 정확히 지시 — ✅(staging)
+6. 비밀키 번들 미포함 — ✅
+
+---
+
+## 1) EMAIL_FROM 운영 적용 절차 (도메인 준비 후)
+1. RESEND에서 발신 도메인 추가 → DNS(SPF/DKIM/DMARC) 레코드 등록 → 인증 완료.
+2. 운영용 no-reply 주소 결정: 예 `FANCLUV <no-reply@메일도메인>`.
+3. 시크릿 설정(스테이징):
+   ```bash
+   npx supabase secrets set EMAIL_FROM="FANCLUV <no-reply@your-domain.com>" \
+     --project-ref frerrxntbtcapapvbqwb
+   ```
+4. Health Check로 확인: `send-email-code {action:'health'}`(관리자) → `checks.email_from: true`.
+5. 미설정 시 Health Check는 `email_from:false`(WARNING)로 유지 — 기본 발신자로도 발송은 되나 도착률·브랜딩 저하.
+
+## 2) Storage READY 절차 (Dashboard 또는 API)
+- `avatars`(프로필 이미지), `news-images`(뉴스 이미지) — 둘 다 public read는 유지 가능하나 업로드 제한 필요:
+  - `file_size_limit`(예: avatars 2MB, news-images 5MB)
+  - `allowed_mime_types`(예: `image/png,image/jpeg,image/webp`)
+  - 업로드 RLS: 인증 사용자·본인 경로만 write(현재 정책 재확인 권장).
+- 미사용 버킷 없음(2개 모두 사용 중). Storage 정책은 Dashboard 설정이라 코드 변경 없음.
+
+## 3) OAuth READY 절차 (Google, Dashboard)
+1. Authentication → Providers → Google 활성화 + Client ID/Secret 입력.
+2. Authentication → URL Configuration:
+   - `Site URL`을 배포 도메인으로(현재 `http://localhost:3000` → 예 `https://fancluv-site.vercel.app` 또는 staging preview URL).
+   - `Redirect URLs`(allowlist)에 `<배포도메인>/auth/callback` 추가(현재 비어 있음).
+3. Google Cloud Console OAuth 클라이언트의 Authorized redirect URI에 Supabase 콜백 URL 등록.
+4. 코드는 이미 `prompt=select_account` 적용됨(항상 계정 선택창).
+
+---
+
+## 4) 브라우저 회원가입 E2E 체크리스트 (사용자 5분)
+> staging 연결 프론트에서 수행. OTP는 브라우저 입력창에만 입력(채팅 금지). 민감값 회신 금지.
+
+| 단계 | 정상 결과 | 실패 조건 | Network 확인 | Console 확인 |
+|---|---|---|---|---|
+| 이메일 입력 → 인증번호 받기 | "인증번호 발송" 안내 | 500/`provider_unconfigured` | `send-email-code` 1회, 200 | 오류 0 |
+| 메일 OTP 입력 → 인증 | 인증 완료 표시 | mismatch/expired | `send-email-code`(verify) 1회 | 오류 0 |
+| 닉네임/팀/비번 → 최종 제출 | 가입 성공·이동 | raw SQL/500 | `complete-signup` **1회** | 오류 0 |
+| 자동 로그인·메인 진입 | 로그인 상태로 진입 | 무한 redirect | auth session 정상 | redirect loop 0 |
+| 프로필 생성 | 프로필 존재 | 프로필 없음 | — | — |
+| 로그아웃 → 재로그인 | 동일 계정 로그인 | 새 계정 생성 | — | — |
+| 새로고침 | 세션 유지 | signup으로 튕김 | — | auth loop 0 |
+| **중복 닉네임**(다른 이메일) | "이미 사용 중"·닉네임 focus·OTP 유지 | 이메일 단계로 복귀 | `complete-signup` 409/코드 | raw error 0 |
+| **동일 이메일 재가입** | "이미 가입된 이메일 + 로그인 CTA" | 새 프로필/무한 OTP | 500 0 | — |
+| **중복 submit**(버튼 5회/Enter 5회) | — | — | `complete-signup` **정확히 1회** | — |
+
+## 5) 모바일 QA 체크리스트 (375 / 390 / 430 / 768)
+> Chrome DevTools Device Mode(⌘⇧M) 또는 실기기. 각 폭에서 아래 확인.
+
+- [ ] 가로 overflow 없음(문서가 좌우로 안 밀림)
+- [ ] 입력창(이메일/OTP/닉네임/비번) 탭·입력 정상, 확대 없이 입력(폰트 ≥16px)
+- [ ] 키보드 올라올 때 **현재 입력창·제출 버튼 접근 가능**(가림 없음) — `100dvh`+safe-area 적용됨
+- [ ] Safe Area(노치/홈바) padding 적정(과도 여백 없음)
+- [ ] 스크롤로 폼 전체 접근 가능(중첩 스크롤 없음)
+- [ ] 버튼 터치 영역 충분, 로딩 중 disabled
+- [ ] 오류 메시지 줄바꿈·잘림 없음
+- [ ] OTP 입력(numeric 키패드, 붙여넣기)
+- [ ] 한글 닉네임 조합 중 마지막 글자 누락 없음·Enter 오제출 없음
+
+**실기기 테스트법**: 같은 네트워크에서 `npm run dev -- --host` → 폰 브라우저로 `http://<PC-IP>:5173/signup` 접속(또는 staging preview URL). iOS Safari·Android Chrome 각 1회 권장.
