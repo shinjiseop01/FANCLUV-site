@@ -88,22 +88,34 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: 'not_verified' })
   }
 
-  // 3) 사용자 생성(원자적 이메일 유일성). 이미 존재하면 — OTP 로 소유가 증명됐으므로 —
-  //    입력 비밀번호로 credential 을 설정(email_confirm)해 "실제 로그인 가능" 상태로 복구한다.
-  //    (기존 불완전/OAuth 계정이 로그인 불가로 남는 문제 해결. service_role 로 직접 signIn 하지 않음.)
+  // 3) 사용자 생성(원자적 이메일 유일성).
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email: addr, password, email_confirm: true, user_metadata: meta,
   })
   let userId: string | null = created?.user?.id ?? null
   let recovered = false
   if (createErr || !userId) {
+    // 이미 가입된 이메일. 원칙(P0-3): 이미 가입된 이메일(이메일/구글 OAuth 포함)은 두 번째
+    // 계정 생성도, 기존 계정 변경(비번 부여)도 하지 않고 회원가입 자체를 차단한다.
+    // 유일한 예외: 우리 OTP 흐름이 방금(윈도우 내) 만든 email-only shell 의 응답유실 재시도 복구.
     const uid = await findUserIdByEmail()
     if (!uid) { console.error('createUser failed and no existing user found'); return json({ ok: false, error: 'create_failed' }) }
+    const { data: got } = await admin.auth.admin.getUserById(uid)
+    const u = got?.user
+    const identities = (u?.identities ?? []) as Array<{ provider?: string }>
+    const OAUTH = ['google', 'kakao', 'naver', 'apple', 'github', 'azure', 'facebook']
+    const hasOAuth = identities.some(i => i.provider && i.provider !== 'email') ||
+      OAUTH.includes(String((u?.app_metadata as Record<string, unknown>)?.provider || ''))
+    const recentShell = !!u && (Date.now() - new Date(u.created_at).getTime() <= VERIFY_WINDOW_MIN * 60000)
+    // OAuth 계정이거나(소셜 로그인 필요) 이미 확립된(오래된) 계정 → 중복 차단.
+    if (hasOAuth || !recentShell) {
+      return json({ ok: false, error: 'email_already_registered', code: 'email_already_registered' }, 409)
+    }
+    // 최근 우리 흐름이 만든 email-only shell 만 재시도 복구(비번 설정). OTP 로 소유 증명됨.
     const { error: updErr } = await admin.auth.admin.updateUserById(uid, { password, email_confirm: true, user_metadata: meta })
-    if (updErr) { console.error('account recovery updateUser failed'); return json({ ok: false, error: 'create_failed' }) }
+    if (updErr) { console.error('account resume updateUser failed'); return json({ ok: false, error: 'create_failed' }) }
     // 트리거는 update 시 갱신 안 되므로 프로필 필수값을 직접 반영.
-    // 닉네임 외 값은 항상 반영하고, 닉네임은 UNIQUE(profiles_nickname_norm_uk) 충돌 시
-    // 조용히 무시하지 않고 nickname_taken 으로 안내한다(로그인 자체는 이미 가능).
+    // 닉네임 UNIQUE(profiles_nickname_norm_uk) 충돌 시 nickname_taken 으로 안내.
     await admin.from('profiles').update({ gender, age_group: ageGroup, is_email_verified: true }).eq('id', uid)
     const { error: nickErr } = await admin.from('profiles').update({ nickname }).eq('id', uid)
     if (nickErr && (nickErr.code === '23505' || /duplicate key|nickname_norm/i.test(nickErr.message || ''))) {

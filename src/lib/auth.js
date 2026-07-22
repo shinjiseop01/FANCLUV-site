@@ -708,8 +708,14 @@ export async function issueEmailCode(email) {
     const info = emailCodeErrorInfo('provider_unconfigured')
     return { ok: false, code: info.code, error: info.message }
   }
-  const { data: exists } = await supabase.from('profiles').select('id').ilike('email', q).limit(1)
-  if (exists && exists.length) return { ok: false, code: 'duplicate', error: '이미 가입된 이메일입니다.' }
+  // profiles 는 RLS(own row only)라 anon 이 직접 SELECT 하면 항상 빈 결과 → 이미 가입된 이메일
+  // (이메일/구글 OAuth 포함)에도 "사용 가능"으로 오판·OTP 발송됨. email_available RPC(SECURITY
+  // DEFINER, 프로필 미노출)로 확인해 이미 가입된 이메일이면 OTP 발송 전에 차단한다.
+  // (최종 방어선은 complete-signup Edge 의 email_already_registered 차단.)
+  const { data: emailFree, error: availErr } = await supabase.rpc('email_available', { p_email: q })
+  if (!availErr && emailFree === false) {
+    return { ok: false, code: 'duplicate', error: '이미 가입된 이메일입니다.' }
+  }
   const { data, error } = await invokeFunction('send-email-code', { body: { action: 'send', email: q } })
   if (error || !data?.ok) {
     // 내부 사유(email_provider_unconfigured/email_send_failed/invalid_email 등)는
@@ -765,7 +771,8 @@ function completeSignupErrMsg(code) {
     case 'invalid_email': return '올바른 이메일 주소를 입력해 주세요.'
     case 'not_verified':
     case 'stale': return '이메일 인증을 먼저 완료해 주세요.'
-    case 'already_registered': return '이미 가입된 이메일입니다.'
+    case 'already_registered':
+    case 'email_already_registered': return '이미 가입된 이메일입니다. 로그인해 주세요.'
     case 'weak_password': return '비밀번호는 4자 이상이어야 합니다.'
     default: return '회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.'
   }

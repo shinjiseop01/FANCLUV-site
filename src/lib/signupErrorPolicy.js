@@ -10,7 +10,7 @@
 // 닉네임 입력 유지·focus 대상(이메일 OTP 단계로 되돌리지 않는다).
 const NICKNAME_CODES = new Set(['nickname_taken', 'nickname_invalid', 'NICKNAME_ALREADY_TAKEN', 'INVALID_NICKNAME'])
 // 이미 가입된 이메일 계열 → 로그인 안내 CTA(무한 OTP 재요청 금지).
-const LOGIN_CTA_CODES = new Set(['already_registered', 'duplicate', 'EMAIL_ALREADY_REGISTERED', 'signin_after_signup', 'SIGNUP_ALREADY_COMPLETED'])
+const LOGIN_CTA_CODES = new Set(['already_registered', 'email_already_registered', 'duplicate', 'EMAIL_ALREADY_REGISTERED', 'signin_after_signup', 'SIGNUP_ALREADY_COMPLETED'])
 // 인증 세션 만료 계열 → 인증 단계 재개.
 const REVERIFY_CODES = new Set(['unverified', 'not_verified', 'stale', 'verification_expired', 'UNAUTHENTICATED', 'SESSION_EXPIRED'])
 // 재시도해도 되는 일시적 오류.
