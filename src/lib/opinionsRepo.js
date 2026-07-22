@@ -244,18 +244,16 @@ export async function getOpinionDetail(teamId, id) {
 }
 
 // 의견 작성
-export async function createOpinion(teamId, { category, rating, title, body, hasPhoto = false, aiAssisted = false, aiOperation = null, aiRequestId = null }) {
+export async function createOpinion(teamId, { category, rating, title, body, hasPhoto = false }) {
   const me = getCurrentUser()
   // 본인인증 미완료 계정은 팬 의견을 작성할 수 없다(핵심 기능 보호).
   if (requiresIdentityVerification(me))
     return { ok: false, code: 'identity_required', error: '본인인증 후 이용할 수 있습니다.' }
   if (isSupabaseConfigured) {
     if (!me) return { ok: false, error: '로그인이 필요합니다.' }
-    // 최종 게시글은 사용자가 확정한 title/body 만 저장. AI 메타는 내부 분석용(원문 아님).
     const { data, error } = await supabase
       .from('opinions')
-      .insert({ author_id: me.id, team_id: teamId, category, rating, title, body, has_photo: hasPhoto,
-        ai_assisted: !!aiAssisted, ai_operation: aiOperation, ai_request_id: aiRequestId })
+      .insert({ author_id: me.id, team_id: teamId, category, rating, title, body, has_photo: hasPhoto })
       .select('*').single()
     if (error) { logger.error('의견 저장 실패(opinions insert)', { error, context: { teamId } }); return { ok: false, error: error.message } }
     recordActivity('opinion')
@@ -282,16 +280,13 @@ export async function createOpinion(teamId, { category, rating, title, body, has
 }
 
 // 의견 수정 (본인만 — Supabase RLS "update own opinion" 이 보장, UI 도 mine 만 노출)
-export async function updateOpinion(teamId, id, { category, rating, title, body, aiAssisted, aiOperation, aiRequestId }) {
+export async function updateOpinion(teamId, id, { category, rating, title, body }) {
   const me = getCurrentUser()
   if (isSupabaseConfigured) {
     if (!me) return { ok: false, error: '로그인이 필요합니다.' }
-    // AI 메타는 이번 편집에서 실제 사용했을 때만 갱신(undefined 면 기존 값 유지).
-    const patch = { category, rating, title, body }
-    if (aiAssisted !== undefined) { patch.ai_assisted = !!aiAssisted; patch.ai_operation = aiOperation ?? null; patch.ai_request_id = aiRequestId ?? null }
     const { data, error } = await supabase
       .from('opinions')
-      .update(patch)
+      .update({ category, rating, title, body })
       .eq('id', id)
       .select('id') // RLS 로 본인 아니면 0행 → 권한 없음
     if (error) { logger.error('의견 수정 실패(opinions update)', { error, context: { id } }); return { ok: false, error: error.message } }

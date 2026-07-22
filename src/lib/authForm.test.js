@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  isValidEmail, RESEND_COOLDOWN_SEC, resendButtonState, SIGNUP_STEPS, signupProgress, pickStores,
+  isValidEmail, RESEND_COOLDOWN_SEC, resendButtonState, pickStores,
 } from './authForm.js'
 
 // 브라우저 Storage 를 흉내내는 순수 mock(테스트 전용).
@@ -111,53 +111,10 @@ test('resendButtonState — sending 이 cooldown 보다 우선', () => {
 })
 
 // ── 회원가입 단계 ──
-test('SIGNUP_STEPS 순서', () => assert.deepEqual(SIGNUP_STEPS, ['email', 'code', 'profile', 'done']))
 
-test('signupProgress — 초기(아무 입력 없음)는 ① 이메일 active', () => {
-  const { currentIndex, steps } = signupProgress({})
-  assert.equal(currentIndex, 1)
-  assert.equal(steps[0].status, 'active')
-  assert.equal(steps[1].status, 'todo')
-})
 
-test('signupProgress — 이메일 형식 OK → ② 인증 active, ① done', () => {
-  const { currentIndex, steps } = signupProgress({ emailValid: true })
-  assert.equal(currentIndex, 2)
-  assert.equal(steps[0].status, 'done')
-  assert.equal(steps[1].status, 'active')
-})
 
-test('signupProgress — 코드 발송(미검증)도 여전히 ② 인증 단계', () => {
-  const { currentIndex } = signupProgress({ emailValid: true, codeSent: true })
-  assert.equal(currentIndex, 2)
-})
 
-test('signupProgress — 이메일 인증 완료 → ③ 프로필 active', () => {
-  const { currentIndex, steps } = signupProgress({ emailValid: true, codeSent: true, emailVerified: true })
-  assert.equal(currentIndex, 3)
-  assert.equal(steps[1].status, 'done')
-  assert.equal(steps[2].status, 'active')
-})
 
-test('signupProgress — 프로필 완료 → ④ 완료 active', () => {
-  const { currentIndex, steps } = signupProgress({
-    emailValid: true, codeSent: true, emailVerified: true, profileComplete: true,
-  })
-  assert.equal(currentIndex, 4)
-  assert.equal(steps[2].status, 'done')
-  assert.equal(steps[3].status, 'active')
-})
 
-test('signupProgress — done 이면 모든 단계 done', () => {
-  const { currentIndex, steps } = signupProgress({
-    emailValid: true, codeSent: true, emailVerified: true, profileComplete: true, done: true,
-  })
-  assert.equal(currentIndex, 4)
-  assert.ok(steps.every(s => s.status === 'done'))
-})
 
-test('signupProgress — 프로필 먼저 채워도 인증 전이면 ③ 로 건너뛰지 않음', () => {
-  // emailVerified=false 인데 profileComplete=true → 여전히 ② 인증 단계에 머문다.
-  const { currentIndex } = signupProgress({ emailValid: true, profileComplete: true })
-  assert.equal(currentIndex, 2)
-})

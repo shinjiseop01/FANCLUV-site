@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signup, issueEmailCode, confirmEmailCode, needsOnboarding, requiresIdentityVerification, isIdentityVerificationEnabled } from './lib/auth.js'
-import { isValidEmail, signupProgress, resendButtonState, RESEND_COOLDOWN_SEC } from './lib/authForm.js'
+import { isValidEmail, resendButtonState, RESEND_COOLDOWN_SEC } from './lib/authForm.js'
 import { logger } from './lib/logger.js'
 import { useLang } from './contexts/LanguageContext.jsx'
-import Icon from './components/Icon.jsx'
 import Alert from './components/Alert.jsx'
 import { useNicknameCheck } from './lib/useNicknameCheck.js'
 import NicknameStatus from './components/NicknameStatus.jsx'
@@ -164,11 +163,6 @@ export default function SignupPage() {
     }
   }
 
-  // 회원가입 진행 단계(① 이메일 → ② 인증 → ③ 프로필 → ④ 완료) — 상단 스텝 인디케이터.
-  const profileComplete =
-    nickCheck.state === 'available' && !!ageGroup && password.length >= 4 && password === passwordConfirm
-  const progress = signupProgress({ emailValid, codeSent, emailVerified, profileComplete })
-  const stepLabels = { email: t('signup.stepEmail'), code: t('signup.stepCode'), profile: t('signup.stepProfile'), done: t('signup.stepDone') }
   const resendState = resendButtonState({ sending, cooldown: resendCooldown, codeSent })
   const resendLabel = {
     sending: t('signup.sendingCode'),
@@ -187,20 +181,6 @@ export default function SignupPage() {
           <h1 className="signup-title">{t('signup.title')}</h1>
           <p className="signup-subtitle">{t('signup.subtitle')}</p>
         </div>
-
-        {/* 진행 단계 인디케이터: ① 이메일 → ② 인증 → ③ 프로필 → ④ 완료 */}
-        <ol className="su-steps" aria-label={t('signup.stepsAria')}>
-          {progress.steps.map(s => (
-            <li key={s.key} className={`su-step ${s.status}`} aria-current={s.status === 'active' ? 'step' : undefined}>
-              <span className="su-step-dot">
-                {s.status === 'done'
-                  ? <Icon name="check" size={13} />
-                  : s.index}
-              </span>
-              <span className="su-step-label">{stepLabels[s.key]}</span>
-            </li>
-          ))}
-        </ol>
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="su-field">

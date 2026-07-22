@@ -54,31 +54,6 @@ export function resendButtonState({ sending = false, cooldown = 0, codeSent = fa
   return { disabled: false, key: 'send', seconds: 0 }
 }
 
-// ── 회원가입 단계(① 이메일 → ② 인증 → ③ 프로필 → ④ 완료) ──
-export const SIGNUP_STEPS = ['email', 'code', 'profile', 'done']
-
-// 현재 상태 플래그로 각 단계의 status(done/active/todo) 와 현재 단계 index(1~4) 계산.
-//   emailValid       : 이메일 형식 유효
-//   codeSent         : 인증번호 발송됨
-//   emailVerified    : 인증번호 검증 완료
-//   profileComplete  : 닉네임/나이대/비밀번호 등 프로필 입력 완료
-//   done             : 회원가입 완료(제출 성공)
-export function signupProgress({ emailValid = false, codeSent = false, emailVerified = false, profileComplete = false, done = false } = {}) {
-  // 완료된 단계 수(앞에서부터 순차 충족).
-  let completed = 0
-  if (emailValid) completed = 1                          // ① 이메일 형식 OK
-  if (completed === 1 && codeSent) completed = 1.5       // 인증번호 발송(②의 진행 중)
-  if (emailVerified) completed = 2                        // ② 인증 완료
-  if (completed >= 2 && profileComplete) completed = 3    // ③ 프로필 완료
-  if (done) completed = 4                                 // ④ 가입 완료
-
-  const currentIndex = done ? 4 : Math.min(Math.floor(completed) + 1, 4) // 1~4
-  const steps = SIGNUP_STEPS.map((key, i) => {
-    const n = i + 1
-    let status = 'todo'
-    if (done || n < currentIndex) status = 'done'
-    else if (n === currentIndex) status = 'active'
-    return { key, index: n, status }
-  })
-  return { currentIndex, steps }
-}
+// 회원가입 단계 표시(Stepper) UI 제거(Phase: 회원가입 안정화). 시각적 단계 인디케이터를
+// 없앴으므로 signupProgress/SIGNUP_STEPS 도 함께 제거했다. 실제 인증 흐름 제어는
+// emailValid/codeSent/emailVerified 등 개별 state 로 SignupPage 에서 직접 처리한다.
