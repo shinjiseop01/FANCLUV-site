@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { OAUTH_PROVIDERS } from '../lib/oauth.js'
 import { socialLogin } from '../lib/auth.js'
+import { SOCIAL_LOGIN_ENABLED } from '../lib/features.js'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import './SocialAuth.css'
 
@@ -34,6 +35,10 @@ const LOGOS = {
 export default function SocialAuth({ onSuccess, onError, onStart, keep = false }) {
   const { t } = useLang()
   const [busy, setBusy] = useState(null) // provider id currently authenticating
+
+  // 베타: 소셜 로그인 UI 미제공(플래그로 숨김). OAuth 구현/Edge/설정은 그대로 유지되며
+  // 여기서 구분선+버튼 렌더만 생략한다. VITE_ENABLE_SOCIAL_LOGIN=true → 다시 노출.
+  if (!SOCIAL_LOGIN_ENABLED) return null
 
   async function handleClick(providerId) {
     if (busy) return // 중복 클릭 방지(진행 중이면 무시)
