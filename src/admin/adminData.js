@@ -12,7 +12,6 @@ export const ADMIN_MENU = [
   { key: 'members',   path: '/admin/members',  labelKey: 'admin.menu.members',   roles: null },
   { key: 'opinions',  path: '/admin/opinions', labelKey: 'admin.menu.opinions',  roles: null },
   { key: 'surveys',   path: '/admin/surveys',  labelKey: 'admin.menu.surveys',   roles: null },
-  { key: 'pulse',     path: '/admin/pulse',    labelKey: 'admin.menu.pulse',     roles: null },
   { key: 'quickpoll', path: '/admin/quickpoll', labelKey: 'admin.menu.quickpoll', roles: null },
   { key: 'realtimeStats', path: '/admin/realtime', labelKey: 'admin.menu.realtimeStats', roles: null },
   { key: 'news',      path: '/admin/news',     labelKey: 'admin.menu.news',      roles: null },

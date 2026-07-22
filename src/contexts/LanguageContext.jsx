@@ -10,7 +10,6 @@ const STORAGE_KEY = 'fancluv_lang'
 export const NAV_KEYS = {
   '홈': 'nav.home',
   '설문': 'nav.surveys',
-  '펄스': 'nav.pulse',
   '팬 의견': 'nav.opinions',
   '팀 뉴스': 'nav.news',
   '경기센터': 'nav.matches',

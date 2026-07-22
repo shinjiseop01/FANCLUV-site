@@ -30,7 +30,7 @@
 .st-feed-opinion { background: var(--team, #2563EB); }
 .st-feed-like { background: #DC2626; }
 .st-feed-comment { background: #0891B2; }
-.st-feed-quick_poll_vote, .st-feed-pulse_vote { background: #7C3AED; }
+.st-feed-quick_poll_vote { background: #7C3AED; }
 .st-feed-type { font-weight: 700; color: var(--team-deep, #1D4ED8); font-size: 12px; }
 .st-feed-title { color: var(--ink, #111827); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .st-feed-time { color: var(--muted, #6B7280); font-size: 11.5px; white-space: nowrap; }

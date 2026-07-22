@@ -70,7 +70,6 @@ export default function AdminRealtimeDashboard() {
               <RealtimeMetricCard label={t('stats.admin.likes')} value={s.likes_today} />
               <RealtimeMetricCard label={t('stats.admin.comments')} value={s.comments_today} />
               <RealtimeMetricCard label={t('stats.admin.survey')} value={s.survey_responses_today} />
-              <RealtimeMetricCard label={t('stats.admin.pulse')} value={s.pulse_votes_today} />
               <RealtimeMetricCard label={t('stats.admin.quickPoll')} value={s.quick_poll_votes_today} />
               <RealtimeMetricCard label={t('stats.admin.active24h')} value={s.active_users_24h} />
             </div>

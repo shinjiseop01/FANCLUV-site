@@ -19,7 +19,7 @@ function mockTeamStats(teamId) {
   const op = 40 + (s % 60), li = 120 + (s % 200), co = 20 + (s % 80)
   return {
     ok: true, team_id: teamId, opinions_total: op, likes_total: li, comments_total: co,
-    survey_responses_total: 10 + (s % 30), pulse_votes_total: 30 + (s % 50), quick_poll_votes_total: 25 + (s % 40),
+    survey_responses_total: 10 + (s % 30), quick_poll_votes_total: 25 + (s % 40),
     average_rating: Math.round((30 + (s % 20)) / 10 * 100) / 100, rating_count: op,
     active_users_24h: 15 + (s % 40), opinions_today: s % 8, likes_today: s % 20, comments_today: s % 6,
     sentiment: { positive: 45 + (s % 20), neutral: 30, negative: 10 + (s % 10), total: 90, period: 'week' },
@@ -86,7 +86,7 @@ export function getAdminDashboard(days = 7, { force = false } = {}) {
     ? rpc('get_admin_realtime_dashboard', { p_days: days })
     : Promise.resolve({ ok: true, _mock: true, summary: {
         new_opinions_today: 12, new_members_today: 5, likes_today: 88, comments_today: 21,
-        survey_responses_today: 9, pulse_votes_today: 33, quick_poll_votes_today: 27, active_users_24h: 140 },
+        survey_responses_today: 9, quick_poll_votes_today: 27, active_users_24h: 140 },
       teams: ['seoul', 'ulsan', 'jeonbuk'].map(t => ({ team_id: t, ...mockTeamStats(t), opinions: mockTeamStats(t).opinions_total })),
       recent_activity: mockActivity().items }), STATS_TTL.admin)
 }
