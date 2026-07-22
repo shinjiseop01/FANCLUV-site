@@ -94,25 +94,25 @@
 ## 재평가 게이트 표
 | 항목 | 상태 | 원인 / 근거 | READY로 만들 남은 작업 |
 |---|---|---|---|
-| Email Provider | ✅ READY | RESEND_API_KEY 설정 확인 + live send `delivered@resend.dev`→`{ok:true,sent:true}` | — |
-| Edge Functions | ✅ READY | send-email-code·complete-signup·kakao-callback·naver-callback 배포(16개) | — |
-| Database | ✅ READY | email/nickname 정규화 UNIQUE 2종 + complete_signup RPC | — |
-| Migration | ✅ READY | staging 최신 0072 적용 | — |
-| Environment Variables | ✅ READY | 프론트가 staging URL/anon 사용, 비밀키 번들 미포함 | — |
+| Email Provider | ✅ READY | RESEND_API_KEY 설정 + EMAIL_FROM 설정(`FANCLUV <noreply@fancluv.com>`) + RESEND 도메인 검증 완료(SPF/DKIM) + 실 브라우저 OTP 수신 확인(Gmail 2026-07-22) | — |
+| Edge Functions | ✅ READY | send-email-code·complete-signup·kakao-callback·naver-callback 배포(16개) + 프로덕션 재배포(send-email-code, 2026-07-22) | — |
+| Database | ✅ READY | email/nickname 정규화 UNIQUE 2종 + complete_signup RPC + 프로덕션 0072/0073/0074 적용 | — |
+| Migration | ✅ READY | 스테이징 0072-0074 + 프로덕션 0072-0074(2026-07-22) | — |
+| Environment Variables | ✅ READY | 프로덕션이 올바른 Supabase 프로젝트(cuuzbddxnzhhlrqmmebz) 지시, 비밀키 번들 미포함 | — |
 | Realtime | ✅ READY(설계) | 팀 집계 1채널 + polling fallback(0069) | 실브라우저 부하 재확인(선택) |
-| **EMAIL_FROM** | ⚠️ WARNING | 미설정 → 기본 `onboarding@resend.dev` 발신 | 인증 도메인 + no-reply 주소 설정(아래 절차) |
+| **EMAIL_FROM** | ✅ READY | fancluv.com 도메인 소유·DNS 인증(SPF/DKIM) 완료 + 운영용 발신자 `FANCLUV <noreply@fancluv.com>` 설정(프로덕션, 2026-07-22 11:36 UTC) | — |
 | **OAuth (Google)** | ⛔ NOT READY | `external_google_enabled=false`, client_id 미설정, `uri_allow_list` 비어있음, `site_url=http://localhost:3000` | Dashboard에서 Google provider 활성화 + Client ID/Secret + redirect allowlist + site_url(아래) |
 | **OAuth (Kakao/Naver)** | ⚠️ WARNING | 커스텀 Edge(kakao/naver-callback) 경로 사용(native 비활성은 정상). 실제 앱키/redirect는 미검증 | Kakao/Naver 개발자콘솔 앱키·redirect + Edge secrets 확인 |
 | **Storage** | ⚠️ WARNING | `avatars`·`news-images` 둘 다 public, **file_size_limit·allowed_mime_types 미설정**(무제한 업로드 위험) | 버킷별 크기 제한 + MIME allowlist 설정, 미사용 버킷 정리 |
 | AI Provider | ⚠️ WARNING | `OPENAI_API_KEY` 미설정 → AI 인사이트/뉴스요약 extractive 폴백 | 베타 필수 아님. AI 실사용 시 키 설정 |
 | Observability | ⚠️ WARNING | Edge 로그로 사유 확인 가능. Sentry는 stash 대기 | Sentry DSN 확정 후 sink 연결(별도) |
 
-### 프로덕션 승격 최소 게이트(P0) 현재 상태
-1. Email Provider — ✅ READY
+### 프로덕션 승격 최소 게이트(P0) 현재 상태 (2026-07-22 완료)
+1. Email Provider — ✅ READY (RESEND_API_KEY + EMAIL_FROM + 도메인 인증 + 실 OTP 수신 확인)
 2. OAuth redirect/secret — ⛔ (Google 미활성) → **베타에 이메일 가입만 쓸지, OAuth도 열지 결정 필요**
-3. 필수 Edge 배포 — ✅
-4. DB migration + UNIQUE/RPC — ✅
-5. 프론트 env가 대상 프로젝트를 정확히 지시 — ✅(staging)
+3. 필수 Edge 배포 — ✅ (프로덕션 배포 완료)
+4. DB migration + UNIQUE/RPC — ✅ (프로덕션 0072-0074 적용)
+5. 프론트 env가 대상 프로젝트를 정확히 지시 — ✅(프로덕션: cuuzbddxnzhhlrqmmebz)
 6. 비밀키 번들 미포함 — ✅
 
 ---

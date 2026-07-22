@@ -593,8 +593,13 @@ npm run lint     # oxlint
 
 - **스택(현재)**: React + Vite + React Router / Supabase(Postgres, Auth, Edge Functions, Storage, Realtime) / Vercel / OpenAI(선택). 언어는 JS(TS 아님).
 - **환경**: staging ref `frerrxntbtcapapvbqwb` / production ref `cuuzbddxnzhhlrqmmebz`. 로컬 dev는 `.env.local`의 `VITE_SUPABASE_URL/ANON_KEY`로 대상 전환. 링크는 staging 유지.
-- **회원가입(P0, 완료)**: 이메일 OTP(send-email-code Edge + RESEND) → complete-signup Edge → `complete_signup` RPC. 이메일/닉네임 **정규화(NFC+trim+lower) UNIQUE**(migration 0072)로 중복 차단, race ×100 무손실 실증. OTP 브루트포스 5회 제한·10분 TTL, 해시 저장.
-- **Release Gate 요약(staging 실측)**: Email Provider ✅ / Edge ✅ / DB ✅ / Migration(0072) ✅ / Env ✅ / Realtime ✅ · **EMAIL_FROM ⚠**(기본 발신자) · **Google OAuth ⛔**(Dashboard 미활성) · **Storage ⚠**(public·업로드 제한 미설정) · AI ⚠(OPENAI 미설정) · Observability ⚠(Sentry stash 대기). 상세·해결 절차는 `docs/RELEASE_GATE.md` "Phase 20-C 재평가".
+- **회원가입(P0, ✅ 완료 2026-07-22)**: 
+  - P0-1 이메일 OTP: `send-email-code` Edge(RESEND) + `EMAIL_FROM=noreply@fancluv.com`(도메인 검증 완료, SPF/DKIM) + 실 브라우저 Gmail 수신 확인.
+  - P0-2 닉네임 중복: `nickname_available()` SECURITY DEFINER RPC(0073) + 정규화 UNIQUE 인덱스(0072).
+  - P0-3 이메일 중복 + OAuth: `email_available()` RPC(0074) + `complete-signup` Edge(OAuth/기존 계정 하드 차단, 최근 shell만 복구).
+  - 프로덕션 배포: 0072/0073/0074 마이그레이션 + send-email-code Edge 재배포 + EMAIL_FROM 설정(2026-07-22 11:36 UTC).
+  - OTP 보안: 5회 브루트포스 제한·10분 TTL·해시 저장. 닉네임/이메일 정규화(NFC+trim+lower) UNIQUE. Race ×100 무손실 실증.
+- **Release Gate 요약(프로덕션 확정)**: Email Provider ✅ / Edge ✅ / DB ✅ / Migration(0072-0074) ✅ / Env ✅ / Realtime ✅ / **EMAIL_FROM ✅** · **Google OAuth ⛔**(Dashboard 미활성, 운영 정책 결정 대기) · **Storage ⚠**(public·업로드 제한 미설정) · AI ⚠(OPENAI 미설정) · Observability ⚠(Sentry stash 대기). 상세·해결 절차는 `docs/RELEASE_GATE.md` "Phase 20-C 재평가".
 - **메뉴 정책(고정)**: 홈 / 설문 / 팬 의견 / 팀 뉴스 / 경기센터 / AI 인사이트 / 팬 랭킹 / 내 활동. Fan Pulse·Quick Poll·AI 작성지원·Premium 미개발/제거됨. 홈 "우리 팀 실시간" 제거됨.
-- **미검증(사용자 협업 필요)**: 실 OTP 브라우저 E2E, 모바일 6종 실측, Google/Kakao/Naver 실 OAuth E2E → `docs/RELEASE_GATE.md`의 체크리스트로 진행.
+- **미검증(사용자 협업 필요)**: 모바일 6종 실측(375/390/430/768), Google/Kakao/Naver 실 OAuth E2E → `docs/RELEASE_GATE.md`의 체크리스트로 진행.
 - **운영 진단**: 관리자용 이메일 provider Health Check = `send-email-code {action:'health'}`(관리자 JWT) → `{status:READY|NOT_READY, checks}`. 프론트 `checkEmailProviderHealth()`.
