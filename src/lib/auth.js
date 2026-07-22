@@ -11,6 +11,7 @@
 // 아래 동기 캐시(cachedUser)에 반영하고, 그 값을 동기로 반환한다.
 import { supabase, isSupabaseConfigured, isProdMisconfigured, setKeepSignedIn, getKeepSignedIn } from './supabase.js'
 import { invokeFunction } from './edgeFunctions.js'
+import { emailCodeErrorInfo } from './emailCodeErrors.js'
 import { logger } from './logger.js'
 import { getProvider, SUPABASE_PROVIDER_CONFIG } from './oauth.js'
 import { sendWelcomeEmail } from './welcomeEmail.js'
@@ -707,7 +708,8 @@ export async function issueEmailCode(email) {
   if (!isSupabaseConfigured) {
     // 백엔드(발송 공급자) 미설정 → 인증번호를 보낼 수 없다. 로컬 코드 발급/우회 금지.
     logger.error('[email-code] 발송 불가: 공급자 미설정(mock mode)')
-    return { ok: false, code: 'provider_unconfigured', error: EMAIL_SEND_FAIL_MSG }
+    const info = emailCodeErrorInfo('provider_unconfigured')
+    return { ok: false, code: info.code, error: info.message }
   }
   const { data: exists } = await supabase.from('profiles').select('id').ilike('email', q).limit(1)
   if (exists && exists.length) return { ok: false, code: 'duplicate', error: '이미 가입된 이메일입니다.' }
@@ -716,12 +718,29 @@ export async function issueEmailCode(email) {
     // 내부 사유(email_provider_unconfigured/email_send_failed/invalid_email 등)는
     // 서버 로그에만 남긴다(시크릿·공급자 응답 미노출). 사용자에겐 안전 문구만.
     const reason = data?.error || error?.message || 'unknown'
+    // 실제 사유는 서버(Edge) 로그와 이 Console 로그에서만 확인(시크릿/공급자 응답 미노출).
     logger.error('[email-code] 발송 실패', { context: { reason } })
-    if (reason === 'invalid_email')
-      return { ok: false, code: 'invalid_email', error: '올바른 이메일 주소를 입력해 주세요.' }
-    return { ok: false, code: data?.error || 'send_failed', error: EMAIL_SEND_FAIL_MSG }
+    const info = emailCodeErrorInfo(reason)
+    return { ok: false, code: info.code, error: info.message }
   }
   return { ok: true, sent: true } // 코드 미반환
+}
+
+// 이메일 OTP 서비스 상태 점검(관리자 운영용). Edge 의 health action 을 호출해 READY/NOT_READY
+// 와 사유(민감값 없음)를 반환한다. 향후 Admin > System Status 에서 사용(이번엔 UI 없음).
+// 반환: { ok, status:'READY'|'NOT_READY', reason, provider, env, checks } | { ok:false, code }
+export async function checkEmailProviderHealth() {
+  if (!isSupabaseConfigured) {
+    return { ok: true, status: 'NOT_READY', reason: 'backend_unconfigured', provider: 'none', env: 'mock',
+      checks: { resend_api_key: false, email_from: false, test_harness: false } }
+  }
+  const { data, error } = await invokeFunction('send-email-code', { body: { action: 'health' } })
+  if (error || !data?.ok) {
+    const reason = data?.error || error?.message || 'unknown'
+    logger.warn('[email-health] 조회 실패', { context: { reason } })
+    return { ok: false, code: reason }
+  }
+  return data
 }
 
 // 이메일 인증번호 확인 — 서버(Edge)에서 입력값을 해시해 비교한다. 클라이언트 로컬 비교/우회 없음.

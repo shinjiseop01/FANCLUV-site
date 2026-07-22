@@ -73,6 +73,31 @@ Deno.serve(async (req) => {
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } })
 
   const { action, email, code, userId, testKey } = await req.json().catch(() => ({}))
+  const env = isProdProject ? 'production' : 'staging'
+
+  // ── Health Check ── 이메일 OTP 서비스 가용성(관리자 전용, 민감값 미노출).
+  // 향후 Admin > System Status 에서 사용. RESEND_API_KEY/EMAIL_FROM 존재 여부만 boolean 으로.
+  if (action === 'health') {
+    const ANON = Deno.env.get('SUPABASE_ANON_KEY')!
+    const authHeader = req.headers.get('Authorization') || ''
+    const caller = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: authHeader } } })
+    const { data: { user } } = await caller.auth.getUser()
+    if (!user) return json({ ok: false, error: 'unauthorized' }, 401)
+    const { data: prof } = await admin.from('profiles').select('role').eq('id', user.id).maybeSingle()
+    if (!['admin', 'superadmin', 'staff'].includes(prof?.role || 'user')) return json({ ok: false, error: 'forbidden' }, 403)
+
+    const resendSet = !!RESEND_API_KEY
+    const emailFromSet = !!Deno.env.get('EMAIL_FROM') // 기본값 유무와 무관하게 명시 설정 여부
+    const status = resendSet ? 'READY' : 'NOT_READY'
+    const reason = resendSet ? null : 'RESEND_API_KEY missing'
+    // 운영 로그(민감값 없음) — 어떤 시크릿이 없는지/공급자/환경을 바로 확인.
+    console.log(`[send-email-code:health] env=${env} provider=resend status=${status} resend_api_key=${resendSet} email_from_set=${emailFromSet} test_harness=${!!TEST_HARNESS_KEY}`)
+    return json({
+      ok: true, service: 'email_otp', provider: 'resend', env, status, reason,
+      checks: { resend_api_key: resendSet, email_from: emailFromSet, test_harness: !!TEST_HARNESS_KEY },
+    })
+  }
+
   const addr = (email || '').trim().toLowerCase()
   if (!addr) return json({ ok: false, error: 'no_email' })
 
@@ -101,8 +126,10 @@ Deno.serve(async (req) => {
       return json({ ok: true, sent: true, __test_code: codePlain })
     }
     // 발송 공급자 미설정 → 인증 진행 불가(Mock/devCode 폴백 금지).
+    // 운영 로그: 어떤 시크릿이 누락됐는지·공급자·환경을 명시(키 값은 절대 미출력).
     if (!RESEND_API_KEY) {
-      console.error('email send blocked: provider unconfigured')
+      const emailFromSet = !!Deno.env.get('EMAIL_FROM')
+      console.error(`[send-email-code] BLOCKED provider_unconfigured env=${env} provider=resend missing=RESEND_API_KEY email_from_set=${emailFromSet} — set the RESEND_API_KEY secret on this project (no key values are logged).`)
       return json({ ok: false, error: 'email_provider_unconfigured' })
     }
     const codePlain = gen6()
