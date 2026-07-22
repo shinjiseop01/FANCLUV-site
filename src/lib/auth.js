@@ -11,7 +11,7 @@
 // 아래 동기 캐시(cachedUser)에 반영하고, 그 값을 동기로 반환한다.
 import { supabase, isSupabaseConfigured, isProdMisconfigured, setKeepSignedIn, getKeepSignedIn } from './supabase.js'
 import { invokeFunction } from './edgeFunctions.js'
-import { emailCodeErrorInfo } from './emailCodeErrors.js'
+import { emailCodeErrorInfo, otpVerifyErrorInfo } from './emailCodeErrors.js'
 import { logger } from './logger.js'
 import { getProvider, SUPABASE_PROVIDER_CONFIG } from './oauth.js'
 import { sendWelcomeEmail } from './welcomeEmail.js'
@@ -400,10 +400,15 @@ export async function isNicknameTaken(nickname, opts = {}) {
   const name = (nickname || '').trim()
   if (!name) return false
   if (isSupabaseConfigured) {
-    let q = supabase.from('profiles').select('id').ilike('nickname', name)
-    if (opts.exceptId) q = q.neq('id', opts.exceptId)
-    const { data } = await q.limit(1)
-    return !!(data && data.length)
+    // profiles 는 RLS(own row only)라 anon 이 직접 SELECT 하면 항상 빈 결과 → 오판.
+    // nickname_available RPC(SECURITY DEFINER, 정규화 기준, 프로필 미노출)로 확인한다.
+    const { data, error } = await supabase.rpc('nickname_available', {
+      p_nickname: name, p_exclude_id: opts.exceptId || null,
+    })
+    // 조회 실패 시엔 낙관적으로 '사용 가능'(false) 처리 — 최종 제출은 DB UNIQUE + complete_signup
+    // 이 반드시 막으므로 잘못된 가입은 발생하지 않는다.
+    if (error) { logger.warn('[nickname] 가용성 확인 실패', { error }); return false }
+    return data === false // RPC: true=사용가능 → taken=false
   }
   const lc = name.toLowerCase()
   return readUsers().some(u =>
@@ -689,14 +694,6 @@ export async function completeIdentityVerification(result) {
 // 사용자에게 보이는 안전 문구(내부 사유·공급자 응답·코드값은 절대 노출하지 않는다).
 const EMAIL_SEND_FAIL_MSG = '인증번호를 전송하지 못했습니다. 이메일 주소를 확인한 후 다시 시도해 주세요.'
 // 검증 실패 사유별 안전 문구.
-function verifyErrMsg(reason) {
-  switch (reason) {
-    case 'expired': return '인증번호가 만료되었습니다. 다시 요청해 주세요.'
-    case 'too_many_attempts': return '인증 시도가 많습니다. 인증번호를 다시 요청해 주세요.'
-    case 'consumed': return '이미 사용된 인증번호입니다. 다시 요청해 주세요.'
-    default: return '인증번호가 올바르지 않습니다.'
-  }
-}
 
 // 이메일 인증번호 발급 — 실제 이메일 발송 성공이 전제.
 // 서버(send-email-code Edge)가 이메일 형식 검증 → 발송 공급자(RESEND) 발송 성공 → OTP 해시
@@ -754,8 +751,10 @@ export async function confirmEmailCode(email, code) {
     body: { action: 'verify', email: q, code: (code || '').trim() },
   })
   if (error || !data?.ok) {
-    const reason = data?.error || 'mismatch'
-    return { ok: false, code: reason, error: verifyErrMsg(reason) }
+    // Edge 사유(expired/mismatch/too_many_attempts/consumed…) 또는 네트워크 오류를 구분.
+    const reason = data?.error || (error ? 'network_error' : 'mismatch')
+    const info = otpVerifyErrorInfo(reason)
+    return { ok: false, code: info.code, error: info.message }
   }
   return { ok: true }
 }
