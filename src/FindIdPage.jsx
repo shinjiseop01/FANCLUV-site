@@ -154,7 +154,7 @@ export default function FindIdPage() {
             <span className="footer-sep">|</span>
             <Link to="/signup" className="form-link">{t('login.signup')}</Link>
             <span className="footer-sep">|</span>
-            <Link to="/" className="form-link">{t('common.login')}</Link>
+            <Link to="/" className="form-link">{t('login.submit')}</Link>
           </div>
         </div>
       </div>

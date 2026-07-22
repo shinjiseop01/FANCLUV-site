@@ -914,52 +914,27 @@ export function maskEmail(email) {
   return `${local.slice(0, show)}${'*'.repeat(Math.max(2, local.length - show))}@${domain}`
 }
 
-// 닉네임으로 계정 찾기 (P0-2: 아이디 찾기 기능)
-// 계정이 있으면 등록된 이메일로 "계정 안내" 메일 발송
-// 계정이 없어도 동일한 성공 응답 반환 (계정 존재 여부 비노출)
+// 닉네임으로 계정 찾기 (아이디 찾기). enumeration-safe.
+// ⚠️ 클라이언트는 존재 여부를 절대 알 수 없다. 존재 판정·이메일 조회·메일 발송은
+//    전부 서버(send-find-account-mail Edge, service_role) 내부에서 처리하고,
+//    계정 유무와 무관하게 항상 { ok: true } 를 받는다. (RPC로 존재 신호를 받지 않음)
+//    → "요청 처리 자체가 실패"(네트워크/서버 5xx)한 경우에만 별도 오류를 노출한다.
 export async function findAccountByNickname(nickname) {
   const q = (nickname || '').trim()
   if (!q) return { ok: false, error: '닉네임을 입력해 주세요.' }
 
   if (isSupabaseConfigured) {
-    // RPC: find_account_by_nickname (0075)
-    // 반환: { ok, message, email_hashed } 또는 오류
-    const { data, error } = await supabase.rpc('find_account_by_nickname', { p_nickname: q })
-    if (error) {
-      logger.warn('[findAccountByNickname] RPC error:', error.message)
-      // 클라이언트에는 일반 오류 메시지만 표시
-      return { ok: false, error: '요청 처리 중 오류가 발생했습니다.' }
+    // 닉네임만 전달. 서버가 존재 판정+발송을 내부 처리하고 항상 { ok:true } 반환.
+    const { data, error } = await invokeFunction('send-find-account-mail', { body: { nickname: q } })
+    if (error || !data?.ok) {
+      // 존재 정보가 아니라 "처리 실패"만 사용자에게 알린다.
+      logger.warn('[findAccountByNickname] request failed')
+      return { ok: false, error: '현재 계정 찾기 요청을 처리할 수 없습니다. 잠시 후 다시 시도해 주세요.' }
     }
-    if (!data || !data.ok) {
-      return { ok: false, error: '요청 처리 중 오류가 발생했습니다.' }
-    }
-
-    // email_hashed가 있으면 실제 메일 발송 지시 (Edge Function에서)
-    if (data.email_hashed) {
-      try {
-        await invokeFunction('send-find-account-mail', {
-          nickname: q,
-          email_hashed: data.email_hashed,
-        })
-      } catch (e) {
-        logger.warn('[findAccountByNickname] mail invoke failed:', e.message)
-        // 메일 발송 실패해도 성공 응답 (사용자에게 숨김)
-      }
-    }
-
-    // 계정 존재 여부와 관계없이 동일한 성공 응답
     return { ok: true }
   }
 
-  // Mock mode
-  const user = readUsers().find(u =>
-    (u.nickname || '').toLowerCase() === q.toLowerCase()
-  )
-  if (user) {
-    // Mock에서는 실제 발송 시뮬레이션 (로그만)
-    logger.info(`[Mock] Account found for nickname: ${q}`)
-  }
-  // 계정 존재 여부와 관계없이 성공 응답
+  // Mock mode: 존재 여부와 무관하게 항상 동일 성공 응답(개발 환경에서도 enumeration 방지).
   return { ok: true }
 }
 
