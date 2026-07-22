@@ -7,15 +7,20 @@
 //
 // Mock 모드(Supabase 미설정)에서는 비동기 로딩이 없으며, 라우트 가드가
 // 동기 isAuthenticated() 를 그대로 사용한다(기존 동작 유지).
+//
+// PASSWORD_RECOVERY: 비밀번호 재설정 메일 링크가 만드는 임시 인증 세션.
+// 일반 SIGNED_IN과 다르게, /reset-password 화면에서만 허용하고,
+// 비밀번호 변경 후 signOut으로 세션을 종료한다.
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js'
 import { loadCurrentSupabaseUser, getCurrentUser } from '../lib/auth.js'
 
-const AuthContext = createContext({ user: null, loading: false })
+const AuthContext = createContext({ user: null, loading: false, isPasswordRecovery: false })
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => (isSupabaseConfigured ? null : getCurrentUser()))
   const [loading, setLoading] = useState(isSupabaseConfigured)
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
 
   useEffect(() => {
     if (!isSupabaseConfigured) return
@@ -29,7 +34,18 @@ export function AuthProvider({ children }) {
     })
 
     // 로그인/로그아웃/토큰갱신/OAuth 콜백 등 세션 변화 구독
-    const { data: sub } = supabase.auth.onAuthStateChange(async () => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event) => {
+      // PASSWORD_RECOVERY: 비밀번호 재설정 메일 링크에서 생성되는 임시 세션
+      // 일반 인증과 구분해 /reset-password 접근만 허용하고, 변경 후 signOut
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true)
+        const u = await loadCurrentSupabaseUser()
+        if (active) setUser(u)
+        return
+      }
+
+      // 일반 인증 이벤트 (SIGNED_IN, SIGNED_OUT, INITIAL_SESSION 등)
+      setIsPasswordRecovery(false)
       const u = await loadCurrentSupabaseUser()
       if (active) setUser(u)
     })
@@ -38,7 +54,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading, isPasswordRecovery }}>
       {children}
     </AuthContext.Provider>
   )

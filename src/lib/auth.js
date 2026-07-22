@@ -991,6 +991,7 @@ export async function requestPasswordReset(email) {
 
 // ── 비밀번호 재설정 완료 ── 재설정 메일 링크로 들어온 복구(recovery) 세션에서
 //    새 비밀번호를 저장한다. (현재 비밀번호 없이 — 복구 세션이 인증을 대신함)
+//    성공 후 recovery 세션을 signOut으로 명시적 종료.
 export async function completePasswordReset(newPassword) {
   if (!newPassword || newPassword.length < 4) return { ok: false, error: '비밀번호는 4자 이상이어야 합니다.' }
   if (isSupabaseConfigured) {
@@ -999,6 +1000,9 @@ export async function completePasswordReset(newPassword) {
     if (!session) return { ok: false, error: '재설정 링크가 만료되었거나 유효하지 않습니다. 다시 요청해 주세요.', code: 'no_session' }
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) return { ok: false, error: translateAuthError(error) }
+    // 비밀번호 변경 성공 → recovery 세션을 명시적으로 종료
+    // (사용자가 새 비밀번호로 다시 로그인하도록)
+    await supabase.auth.signOut()
     return { ok: true }
   }
   // Mock: 복구 링크 흐름이 없으므로 현재 세션 사용자의 비밀번호를 갱신.

@@ -13,7 +13,7 @@ import './LoginPage.css'
 export default function LoginPage() {
   const navigate = useNavigate()
   const { t } = useLang()
-  const { user: sessionUser } = useAuth()
+  const { user: sessionUser, isPasswordRecovery } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -57,6 +57,7 @@ export default function LoginPage() {
   // 환영 메시지는 "이번에 새로 세션이 생긴 경우(무→유 전이)"에만 표시한다.
   // 로그아웃 직후 stale 한 sessionUser 로 리마운트되어 환영이 재표시/잔존하는 것을 막고,
   // 세션이 없어지면(로그아웃) 로그인 성공 안내를 즉시 제거한다.
+  // PASSWORD_RECOVERY 상태에서는 /reset-password로 가야 하므로 routeAfterAuth 실행 금지.
   const prevUserRef = useRef(sessionUser)
   useEffect(() => {
     if (!isSupabaseConfigured) return
@@ -68,11 +69,13 @@ export default function LoginPage() {
       return
     }
     if (hadUser) return // 마운트 시 이미 세션이 있던(stale) 경우엔 환영 재표시 금지
+    // PASSWORD_RECOVERY 상태 → /reset-password 화면에서 처리, 여기선 무시
+    if (isPasswordRecovery) return
     setNotice({ kind: 'success', text: t('login.welcome') })
     const id = setTimeout(() => routeAfterAuth(sessionUser), 1000)
     return () => clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionUser])
+  }, [sessionUser, isPasswordRecovery])
 
   // 소셜 로그인(Mock) 성공 → 환영 메시지 짧게 표시 후 이동.
   function handleSocialSuccess(res) {

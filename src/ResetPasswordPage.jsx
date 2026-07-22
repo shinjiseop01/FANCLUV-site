@@ -4,10 +4,11 @@
 // Supabase 가 링크의 recovery 토큰을 세션으로 교환(detectSessionInUrl)하면,
 // 여기서 새 비밀번호를 입력받아 updateUser({ password }) 로 저장한다.
 // (현재 비밀번호는 묻지 않는다 — 복구 세션이 인증을 대신한다.)
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { completePasswordReset } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
+import { useAuth } from './contexts/AuthContext.jsx'
 import Icon from './components/Icon.jsx'
 import './SignupPage.css'
 import './RecoveryPages.css'
@@ -15,11 +16,21 @@ import './RecoveryPages.css'
 export default function ResetPasswordPage() {
   const { t } = useLang()
   const navigate = useNavigate()
+  const { isPasswordRecovery } = useAuth()
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+
+  // recovery 세션이 없으면 로그인 페이지로 리다이렉트
+  // (링크 만료 또는 직접 접근)
+  useEffect(() => {
+    if (!isPasswordRecovery && !loading && !done) {
+      // recovery 세션 없음 = 링크 만료 또는 이미 사용함
+      setError(t('resetPw.errGeneric'))
+    }
+  }, [isPasswordRecovery, loading, done, t])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -30,8 +41,13 @@ export default function ResetPasswordPage() {
     setLoading(true)
     const res = await completePasswordReset(next)
     setLoading(false)
-    if (res.ok) setDone(true)
-    else setError(res.error || t('resetPw.errGeneric'))
+    if (res.ok) {
+      setDone(true)
+      // 3초 후 로그인 페이지로 이동 (recovery 세션은 자동 종료됨)
+      setTimeout(() => navigate('/', { replace: true }), 3000)
+    } else {
+      setError(res.error || t('resetPw.errGeneric'))
+    }
   }
 
   return (
