@@ -210,6 +210,20 @@
 .tn-lead { font-weight: 700; }
 .tn-detail-cta { margin-top: 26px; }
 
+/* 상세 — 원문 보기 링크(수집 뉴스) */
+.tn-original-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 18px; padding: 10px 16px;
+  border: 1px solid var(--border); border-radius: 10px;
+  color: var(--team, #C9A84C); font-size: 14px; font-weight: 700;
+  text-decoration: none; transition: border-color .15s, background .15s;
+}
+.tn-original-link:hover { border-color: var(--team, #C9A84C); background: rgba(255,255,255,0.03); }
+
+/* AI 요약 — 핵심 키워드 */
+.tn-ai-keywords { margin: 10px 0 4px; }
+.tn-ai-kw-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .tn-grid { grid-template-columns: 1fr; }

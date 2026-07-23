@@ -27,6 +27,7 @@ function clientExtractive(item) {
     oneLiner: (item.title || clean).slice(0, 90),
     bullets: bullets.length ? bullets : [item.title || '요약할 내용이 충분하지 않습니다.'],
     fanPoint: sentences[0] ? sentences[0].slice(0, 90) : '',
+    keywords: [],
     model: 'extractive',
     cached: false,
   }
@@ -44,7 +45,10 @@ export async function getNewsSummary(teamId, item) {
         body: { cacheKey, teamId, title: item.title || '', text: [item.summary, ...(Array.isArray(item.body) ? item.body : [item.body])].filter(Boolean).join('\n') },
       })
       if (error || !data?.ok) throw new Error(error?.message || data?.code || 'summarize_failed')
-      result = { oneLiner: data.oneLiner, bullets: data.bullets || [], fanPoint: data.fanPoint || '', model: data.model, cached: !!data.cached }
+      result = { oneLiner: data.oneLiner, bullets: data.bullets || [], fanPoint: data.fanPoint || '', keywords: data.keywords || [], model: data.model, cached: !!data.cached }
+      // 다른 요청이 생성 중(generating)일 때의 임시 추출 요약은 메모리 캐시하지 않는다
+      // (다음 열람 시 완성된 AI 캐시를 받도록).
+      if (data.generating) { result.cacheKey = cacheKey; return result }
     } catch {
       // 함수 오류/미배포 시에도 화면이 비지 않도록 클라이언트 추출 폴백.
       result = clientExtractive(item)

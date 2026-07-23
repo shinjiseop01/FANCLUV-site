@@ -50,6 +50,14 @@ export default function NewsSummaryCard({ item, teamId, open, onClose }) {
           {data?.fanPoint && (
             <p className="tn-ai-fanpoint"><strong>{t('news.aiFanPoint')}</strong> {data.fanPoint}</p>
           )}
+          {(data?.keywords || []).length > 0 && (
+            <div className="tn-ai-keywords">
+              <strong className="tn-ai-kw-label">{t('news.aiKeywords')}</strong>
+              <div className="tn-tags">
+                {data.keywords.map(k => <span key={k} className="tn-tag">#{k}</span>)}
+              </div>
+            </div>
+          )}
           <div className="tn-ai-divider" />
           <p className="tn-ai-note">{t('news.aiNote')}</p>
           <div className="tn-ai-feedback">

@@ -11,18 +11,11 @@
 // 캐시 (요구사항 7): 구단별 5분. 실패 시 마지막 성공 데이터 → 그마저 없으면 Mock.
 // 에러 (요구사항 8): 각 소스 실패를 개별 catch → 페이지는 절대 깨지지 않는다.
 import { withCache } from '../cache.js'
-import { getNewsSource } from './newsSources.js'
-import { getEffectiveSource, reportFetchOutcome } from './newsSourcesRepo.js'
+import { isSupabaseConfigured } from '../supabase.js'
 import { listNews } from '../newsRepo.js'
-import { edgeNewsProvider } from './providers/edgeNewsProvider.js'
-import { rssProvider } from './providers/rssProvider.js'
-import { newsApiProvider } from './providers/newsApiProvider.js'
-import { officialWebsiteProvider } from './providers/officialWebsiteProvider.js'
 import { fetchMockNews } from './providers/mockNewsProvider.js'
 
-const TTL = 10 * 60 * 1000           // 10분 캐시(Edge Function 캐시 TTL 과 정렬)
-// 실제 뉴스 Provider 우선순위: Edge Function(운영 실연동) → RSS/뉴스API/공식(클라이언트 직접, CORS 로 보통 [])
-const REAL_PROVIDERS = [edgeNewsProvider, rssProvider, newsApiProvider, officialWebsiteProvider]
+const TTL = 10 * 60 * 1000           // 10분 캐시
 const lastGood = new Map()           // clubId -> 마지막 성공 표준 뉴스 배열
 
 function fmtDate(v) {
@@ -58,56 +51,31 @@ function standardize(n, clubId) {
   }
 }
 
-function dedupeById(items) {
-  const seen = new Set()
-  return items.filter(n => {
-    const k = String(n.id)
-    if (seen.has(k)) return false
-    seen.add(k)
-    return true
-  })
-}
-
-// 실제 Provider 를 우선순위대로 시도, 처음으로 결과가 있는 것을 사용. 전부 비면 [].
-async function fetchReal(source, clubId) {
-  for (const p of REAL_PROVIDERS) {
-    try {
-      const got = await p.fetch(source, clubId)
-      if (got && got.length) return got
-    } catch { /* 개별 provider 실패는 무시하고 다음 소스로 */ }
-  }
-  return []
-}
-
+// ── 0076 이후 데이터 경로 ─────────────────────────────────────────────────
+// 사용자 요청은 항상 Browser → Supabase(team_news)만 탄다. 공식 구단 사이트 수집은
+// 서버(news-fetcher collect, 스케줄)가 team_news 에 미리 적재하므로, 페이지를 열 때
+// 외부 구단 사이트로 요청이 전파되지 않는다(1,000 동시접속 안전).
+// Production(Supabase 설정됨)에서는 Mock 을 절대 섞지 않는다 — 수집/관리자 실데이터만.
+// Mock 은 Supabase 미설정(로컬 데모)에서만 사용.
 async function loadTeamNews(clubId) {
-  // 유효 소스(관리자 오버라이드 병합) — 조회 실패 시 코드 기본값으로 폴백.
-  const source = await getEffectiveSource(clubId).catch(() => getNewsSource(clubId))
-  // 사용 안 함(disabled)이면 실제 Provider 를 건너뛰고 저장 뉴스 + Mock 으로만 구성.
-  const sourceEnabled = !source || source.enabled !== false
   try {
-    const [real, stored] = await Promise.all([
-      sourceEnabled ? fetchReal(source, clubId).catch(() => []) : Promise.resolve([]),
-      listNews(clubId).catch(() => []),        // Supabase team_news / Mock 관리자 뉴스
-    ])
-    // Mock 모드 자동 실패 감지: 실제 Provider 가 활성인데 결과가 없으면 실패로 기록.
-    if (sourceEnabled && (source?.rssUrl || source?.sources?.length)) {
-      reportFetchOutcome(clubId, real.length > 0, real.length)
+    const stored = await listNews(clubId)              // team_news: 수집(origin=collected)+관리자
+    if (isSupabaseConfigured) {
+      const items = stored.map(n => standardize(n, clubId))
+      items.sort((a, b) => ts(b.publishedAt) - ts(a.publishedAt))
+      lastGood.set(clubId, items)
+      return items                                     // 비어 있어도 Mock 미혼합(빈 상태 UI)
     }
-    // 실제 Provider 결과가 있으면 우선, 없으면 Mock. 관리자(stored) 뉴스는 항상 병합.
-    // dedupe 시 stored(관리자 공지)를 앞에 둬 외부 뉴스가 관리자 공지를 덮어쓰지 못하게 한다(요구사항 6).
-    const external = real.length ? real : await fetchMockNews(clubId)
-    let items = dedupeById([...stored, ...external]).map(n => standardize(n, clubId))
-    if (items.length === 0) {
-      items = (await fetchMockNews(clubId)).map(n => standardize(n, clubId))
-    }
+    // Mock 모드(개발): 저장 뉴스 + 데모 뉴스
+    const mock = await fetchMockNews(clubId)
+    const items = [...stored, ...mock].map(n => standardize(n, clubId))
     items.sort((a, b) => ts(b.publishedAt) - ts(a.publishedAt))
-    lastGood.set(clubId, items)
     return items
   } catch {
-    // 완전 실패: 마지막 성공 데이터 → 없으면 Mock
+    // 완전 실패: 마지막 성공 데이터 → 없으면 빈 배열(Production)/Mock(개발)
     if (lastGood.has(clubId)) return lastGood.get(clubId)
-    const mock = (await fetchMockNews(clubId)).map(n => standardize(n, clubId))
-    return mock.sort((a, b) => ts(b.publishedAt) - ts(a.publishedAt))
+    if (isSupabaseConfigured) return []
+    return (await fetchMockNews(clubId)).map(n => standardize(n, clubId))
   }
 }
 

@@ -8,11 +8,12 @@ import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import { getClubLinks, CLUB_LINK_CHANNELS } from './clubLinks.js'
 import Icon from './components/Icon.jsx'
 import { getTeamNews } from './lib/news/teamNewsProvider.js'
+import { incrementNewsView } from './lib/newsRepo.js'
 import { getHomeContent, refreshHome } from './lib/homeRepo.js'
 import { listSurveys } from './lib/surveysRepo.js'
 import { subscribeChanges } from './lib/realtime.js'
 import { getNewsSource } from './lib/news/newsSources.js'
-import { isEdgeNewsEnabled } from './lib/news/providers/edgeNewsProvider.js'
+import { isSupabaseConfigured } from './lib/supabase.js'
 import DemoBadge from './components/DemoBadge.jsx'
 import NewsSummaryCard from './components/news/NewsSummaryCard.jsx'
 import EmptyState from './components/EmptyState.jsx'
@@ -76,11 +77,8 @@ export default function TeamNewsPage() {
     return () => { active = false; unsub && unsub() }
   }, [teamId, team])
 
-  // 뉴스 클릭: 외부(원본 URL 있음)는 새 탭, 관리자/내부 뉴스는 내부 상세로 이동.
-  const openNews = n => {
-    if (n.sourceUrl) window.open(n.sourceUrl, '_blank', 'noopener,noreferrer')
-    else navigate(`/club/${team.id}/news/${n.id}`)
-  }
+  // 뉴스 클릭: 항상 FANCLUV 내부 뉴스 상세로 이동(원문은 상세의 "원문 보기" 링크로).
+  const openNews = n => navigate(`/club/${team.id}/news/${n.id}`)
 
   const list = useMemo(() => {
     let filtered = category === '전체' ? news : news.filter(n => n.category === category)
@@ -96,9 +94,9 @@ export default function TeamNewsPage() {
     return sorted
   }, [news, category, sort, keyword])
 
-  // 주요 뉴스: 실제 지표만 사용(중요 표시 → 최신순). 가짜 조회 수 기준 정렬 제거.
+  // 인기 뉴스: 실제 조회수(view_count, news_increment_view 누적) 기준 → 동률이면 최신순.
   const popular = useMemo(() => [...news]
-    .sort((a, b) => (Number(b.important) - Number(a.important)) || (String(b.publishedAt || b.date).localeCompare(String(a.publishedAt || a.date))))
+    .sort((a, b) => ((b.views || 0) - (a.views || 0)) || (String(b.publishedAt || b.date).localeCompare(String(a.publishedAt || a.date))))
     .slice(0, 5), [news])
 
   if (!team) {
@@ -168,7 +166,7 @@ export default function TeamNewsPage() {
         ) : (
           <>
             <section className="tn-pagehead">
-              <h1>{t('news.title')} {!isEdgeNewsEnabled && <DemoBadge />}</h1>
+              <h1>{t('news.title')} {!isSupabaseConfigured && <DemoBadge />}</h1>
               <p>{t('news.subtitle')}</p>
             </section>
 
@@ -363,19 +361,37 @@ function Thumb({ team, category, hero, imageUrl }) {
 }
 
 function NewsDetail({ news, team, t, onBack, onWrite, onSurvey }) {
+  const [aiOpen, setAiOpen] = useState(true) // 상세에서는 AI 요약을 기본 펼침
+  // 상세 진입 시 조회수 +1 (인기 뉴스 실데이터의 근거. race-safe: 서버 RPC 원자 증가)
+  useEffect(() => { if (news?.id) incrementNewsView(news.id) }, [news?.id])
+  // 본문은 저장 시점에 plain text 문단으로 정규화되어 있어(수집기에서 태그 제거)
+  // innerHTML 없이 <p> 렌더만 사용한다(XSS 원천 차단).
+  const paras = (news.body || []).filter(p => p !== news.summary) // lead(요약)와 중복 문단 제거
   return (
     <article className="tn-detail">
       <button className="tn-back" onClick={onBack}>{t('news.backToList')}</button>
       <div className="tn-meta">
         <span className="tn-cat-pill">{news.category}</span>
         <span className="tn-date">{news.date}</span>
+        {news.source && news.source !== 'FANCLUV' && <span className="tn-source">{news.source}</span>}
       </div>
       <h1 className="tn-detail-title">{news.title}</h1>
       <Thumb team={team} category={news.category} imageUrl={news.imageUrl} hero />
       <div className="tn-detail-body">
-        <p className="tn-lead">{news.summary}</p>
-        {news.body.map((p, i) => <p key={i}>{p}</p>)}
+        {news.summary && <p className="tn-lead">{news.summary}</p>}
+        {paras.map((p, i) => <p key={i}>{p}</p>)}
       </div>
+
+      {/* ✨ AI 뉴스 요약 — 핵심 내용 + 핵심 키워드 (캐시 재사용, 실패 시 본문은 그대로) */}
+      <AiSummarySection item={news} teamId={team.id} open={aiOpen} onToggle={() => setAiOpen(v => !v)} t={t} />
+
+      {/* 원문 보기 ↗ — 수집 뉴스만(관리자 작성 뉴스는 원문 없음) */}
+      {news.sourceUrl && (
+        <a className="tn-original-link" href={news.sourceUrl} target="_blank" rel="noopener noreferrer">
+          {t('news.viewOriginal')} <Icon name="external" size={13} />
+        </a>
+      )}
+
       <div className="tn-cta tn-detail-cta">
         <button className="tn-cta-btn primary" onClick={onWrite}>{t('news.ctaWrite')}</button>
         <button className="tn-cta-btn secondary" onClick={onSurvey}>{t('news.ctaSurvey')}</button>

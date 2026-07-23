@@ -508,6 +508,8 @@ export default {
   'news.aiSummary': 'AI News Summary',
   'news.aiAnalyzing': 'AI is analyzing the news…',
   'news.aiFanPoint': 'What fans should know:',
+  'news.aiKeywords': 'Key keywords',
+  'news.viewOriginal': 'View original',
   'news.aiNote': 'This is an AI-generated news summary.',
   'news.aiHelpful': 'Helpful',
   'news.aiUnhelpful': 'Needs work',

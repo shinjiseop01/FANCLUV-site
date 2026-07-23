@@ -508,6 +508,8 @@ export default {
   'news.aiSummary': 'AI 뉴스 요약',
   'news.aiAnalyzing': 'AI가 뉴스를 분석하고 있습니다…',
   'news.aiFanPoint': '팬이 알아야 할 포인트:',
+  'news.aiKeywords': '핵심 키워드',
+  'news.viewOriginal': '원문 보기',
   'news.aiNote': 'AI가 자동 생성한 뉴스 요약입니다.',
   'news.aiHelpful': '도움됐어요',
   'news.aiUnhelpful': '개선이 필요해요',

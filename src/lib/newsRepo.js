@@ -26,10 +26,13 @@ let mockAdminNews = MOCK_NEWS.map(n => ({ status: 'published', pinned: false, ta
 
 // ── Supabase row → 화면 형태 ──
 function mapNews(row) {
+  // 수집 뉴스(origin='collected')는 원문 게시일(published_at)·출처(source_*)를 함께 노출.
+  const publishedAt = row.published_at || row.created_at
   return {
     id: row.id,
     category: row.category || '구단 공지',
-    date: fmtDate(row.created_at),
+    date: fmtDate(publishedAt),
+    publishedAt,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishAt: row.publish_at,
@@ -40,12 +43,19 @@ function mapNews(row) {
     opinions: 0, survey: 0,
     important: !!row.is_important,
     title: row.title,
-    summary: splitParas(row.content)[0] || '',
+    summary: row.excerpt || splitParas(row.content)[0] || '',
     body: splitParas(row.content),
     content: row.content,
     team: row.team_id,
+    clubId: row.team_id,
     image: row.image_url || '',
+    imageUrl: row.image_url || '',
     authorId: row.author_id,
+    // 수집 메타(0076)
+    origin: row.origin || 'admin',
+    source: row.source_name || 'FANCLUV',
+    sourceUrl: row.source_url || null,
+    isOfficial: (row.origin || 'admin') === 'collected',
   }
 }
 
@@ -55,14 +65,17 @@ function mapNews(row) {
 export async function listNews(teamId) {
   if (isSupabaseConfigured) {
     // cron 없이: 조회 시 예약분 자동 승격(권한/실패해도 조회는 계속).
-    await supabase.rpc('news_autopublish').catch(() => {})
+    // ⚠️ PostgrestBuilder 는 .catch 미구현(thenable만) → try/catch 로 감싼다.
+    try { await supabase.rpc('news_autopublish') } catch { /* noop */ }
     const { data, error } = await supabase
       .from('team_news').select('*')
       .eq('status', 'published')
       .or(teamOrFilter(teamId))
       .order('pinned', { ascending: false })
       .order('pinned_at', { ascending: false, nullsFirst: false })
+      .order('published_at', { ascending: false, nullsFirst: false }) // 원문 게시일 우선
       .order('created_at', { ascending: false })
+      .limit(100)                                                     // 전체 SELECT 금지(수집 누적 대비)
     if (error) return []
     return (data || []).map(mapNews)
   }
@@ -74,9 +87,9 @@ export async function listNews(teamId) {
       important: !!n.isImportant, pinned: !!n.pinned, tags: n.tags || [], views: n.view_count || 0, opinions: 0, survey: 0 }))
 }
 
-// 팬 상세 조회 시 조회수 +1 (published 만).
+// 팬 상세 조회 시 조회수 +1 (published 만). PostgREST 빌더는 .catch 미구현 → try/catch.
 export async function incrementNewsView(id) {
-  if (isSupabaseConfigured) { await supabase.rpc('news_increment_view', { p_id: id }).catch(() => {}) }
+  if (isSupabaseConfigured) { try { await supabase.rpc('news_increment_view', { p_id: id }) } catch { /* noop */ } }
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -85,7 +98,7 @@ export async function incrementNewsView(id) {
 export async function adminListNews({ filters = {}, sort = 'newest', page = 1, pageSize = 20 } = {}) {
   const f = normalizeFilters(filters)
   if (isSupabaseConfigured) {
-    await supabase.rpc('news_autopublish').catch(() => {})
+    try { await supabase.rpc('news_autopublish') } catch { /* noop */ }
     let query = supabase.from('team_news').select('*', { count: 'exact' })
     if (f.status) query = query.eq('status', f.status)
     if (f.team) query = query.eq('team_id', f.team)
