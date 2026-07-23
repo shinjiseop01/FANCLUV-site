@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from 'react'
-import QuickPollCard from './components/QuickPollCard.jsx'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
@@ -159,7 +158,6 @@ export default function TeamNewsPage() {
 
       {/* ── Main ── */}
       <main className="tn-main">
-        {detail && <QuickPollCard contextType="news" contextId={newsId} teamId={teamId} />}
         {detail ? (
           <NewsDetail news={detail} team={team} t={t} onBack={() => navigate(`/club/${team.id}/news`)}
             onWrite={goWrite} onSurvey={goSurvey} />
