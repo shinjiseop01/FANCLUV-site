@@ -225,3 +225,7 @@
   .ts-subtitle { font-size: 14px; }
   .ts-cta { min-width: 100%; width: 100%; height: 58px; }
 }
+
+/* 응원팀 시즌 변경 안내(보조 설명) + 정책 거부 메시지 */
+.ts-guide { margin: 14px 0 0; text-align: center; font-size: 13px; color: var(--text-muted, #6b7280); line-height: 1.5; }
+.ts-msg { margin: 12px 0 0; text-align: center; font-size: 13.5px; color: #DC2626; font-weight: 600; }

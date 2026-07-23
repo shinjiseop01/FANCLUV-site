@@ -843,3 +843,10 @@
   .nw-search { flex-basis: auto; width: 100%; }
 }
 
+
+/* 관리자 응원팀 변경(override) */
+.adm-team-dd { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.adm-btn-sm.primary { background: var(--accent, #2563eb); color: #fff; border-color: transparent; }
+.adm-team-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin: 12px 0; max-height: 44vh; overflow-y: auto; }
+.adm-team-opt { display: flex; align-items: center; gap: 7px; padding: 9px 11px; border: 1px solid var(--border, #e5e7eb); border-radius: 9px; background: var(--surface, #fff); color: var(--text, #111); font-size: 13px; font-weight: 600; cursor: pointer; }
+.adm-team-opt.on { border-color: var(--accent, #2563eb); box-shadow: 0 0 0 1px var(--accent, #2563eb) inset; }

@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useLang } from '../contexts/LanguageContext.jsx'
-import { getTeam, teamName } from '../teams.jsx'
+import { getTeam, teamName, TEAMS, TeamEmblem } from '../teams.jsx'
+import { adminChangeTeam } from '../lib/teamChangeRepo.js'
+import { teamChangeErrorKey } from '../lib/teamChangePolicy.js'
 import Avatar from '../components/Avatar.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import Pagination from '../components/Pagination.jsx'
@@ -56,6 +58,22 @@ export default function AdminMembers() {
   const [selectedId, setSelectedId] = useState(null)   // 회원 상세 패널 (운영자 전용)
   const [deleteTarget, setDeleteTarget] = useState(null) // 삭제 확인 모달 대상
   const [deleting, setDeleting] = useState(false)
+  // 관리자 응원팀 변경(override)
+  const [teamTarget, setTeamTarget] = useState(null)   // 변경 대상 회원
+  const [teamStage, setTeamStage] = useState('pick')   // 'pick' | 'confirm'
+  const [teamPick, setTeamPick] = useState(null)
+  const [teamBusy, setTeamBusy] = useState(false)
+
+  async function doAdminTeamChange() {
+    if (!teamTarget || !teamPick || teamBusy) return
+    setTeamBusy(true)
+    const r = await adminChangeTeam(teamTarget.id, teamPick)
+    setTeamBusy(false)
+    if (!r.ok) { toast.error(t(teamChangeErrorKey(r.code))); return }
+    toast.info(t('admin.mem.teamChanged'))
+    setTeamTarget(null); setTeamPick(null); setTeamStage('pick')
+    await refetch()
+  }
 
   // 앱 role → DB role (팬은 app 'fan' == db 'user'). 관리자 콘솔 사용자는 admin/superadmin/staff.
   const actorRole = me?.role === 'fan' ? 'user' : (me?.role || 'user')
@@ -278,7 +296,11 @@ export default function AdminMembers() {
             <div><dt>{t('admin.mem.colEmail')}</dt><dd>{selected.email}</dd></div>
             <div><dt>{t('admin.mem.colJoined')}</dt><dd>{selected.joinedAt}</dd></div>
             <div><dt>{t('admin.mem.fLogin')}</dt><dd>{loginLabel(selected.provider, t)}</dd></div>
-            <div><dt>{t('admin.mem.colTeam')}</dt><dd>{teamName(getTeam(selected.team), lang) || '-'}</dd></div>
+            <div><dt>{t('admin.mem.colTeam')}</dt>
+              <dd className="adm-team-dd">
+                {teamName(getTeam(selected.team), lang) || '-'}
+                <button className="adm-btn-sm" onClick={() => { setTeamTarget(selected); setTeamPick(null); setTeamStage('pick') }}>{t('admin.mem.teamChange')}</button>
+              </dd></div>
             <div><dt>{t('admin.mem.fGender')}</dt><dd>{genderLabel(selected.gender)}</dd></div>
             <div><dt>{t('admin.mem.fAge')}</dt><dd>{ageLabel(selected.ageGroup)}</dd></div>
             <div>
@@ -306,6 +328,42 @@ export default function AdminMembers() {
 
           <AdminNoteBox entityType="member" entityId={selected.id} />
         </section>
+      )}
+
+      {/* 관리자 응원팀 변경(override) 모달 */}
+      {teamTarget && (
+        <div className="adm-modal-overlay" role="dialog" aria-modal="true" aria-label={t('admin.mem.teamChange')}
+          onClick={e => { if (e.target === e.currentTarget) setTeamTarget(null) }}>
+          <div className="adm-modal">
+            {teamStage === 'pick' ? (
+              <>
+                <h3 className="adm-modal-title">{t('admin.mem.teamChangeTitle', { nickname: teamTarget.nickname })}</h3>
+                <div className="adm-team-grid" role="radiogroup">
+                  {TEAMS.filter(tm => tm.id !== teamTarget.team).map(tm => (
+                    <button type="button" key={tm.id} role="radio" aria-checked={teamPick === tm.id}
+                      className={`adm-team-opt${teamPick === tm.id ? ' on' : ''}`} onClick={() => setTeamPick(tm.id)}>
+                      <TeamEmblem color={tm.color} size={18} />{teamName(tm, lang)}
+                    </button>
+                  ))}
+                </div>
+                <div className="adm-modal-actions">
+                  <button className="adm-btn-sm" onClick={() => setTeamTarget(null)}>{t('common.cancel')}</button>
+                  <button className="adm-btn-sm primary" disabled={!teamPick} onClick={() => setTeamStage('confirm')}>{t('common.next')}</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="adm-modal-title">{t('admin.mem.teamChange')}</h3>
+                <p className="adm-modal-desc">{t('admin.mem.teamConfirm', { nickname: teamTarget.nickname, from: teamName(getTeam(teamTarget.team), lang) || '-', to: teamName(getTeam(teamPick), lang) })}</p>
+                <p className="adm-modal-note">{t('admin.mem.teamOverrideNote')}</p>
+                <div className="adm-modal-actions">
+                  <button className="adm-btn-sm" onClick={() => setTeamStage('pick')} disabled={teamBusy}>{t('common.cancel')}</button>
+                  <button className="adm-btn-sm primary" onClick={doAdminTeamChange} disabled={teamBusy}>{teamBusy ? t('common.processing') : t('team.confirmCta')}</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
 
       <MemberDeleteModal

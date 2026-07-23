@@ -7,8 +7,10 @@ import LazyImage from './components/LazyImage.jsx'
 import { useTheme } from './contexts/ThemeContext.jsx'
 import {
   logout, getCurrentUser, deleteAccount, identityInfo, isIdentityVerificationEnabled,
-  changeAgeGroup, changeGender, changeNickname, nicknameChangeInfo, setSelectedTeam, updateAvatar,
+  changeAgeGroup, changeGender, changeNickname, nicknameChangeInfo, updateAvatar,
 } from './lib/auth.js'
+import { getTeamChangeStatus, fanChangeTeam } from './lib/teamChangeRepo.js'
+import { teamChangeErrorKey, teamChangeUiState, nextWindowText } from './lib/teamChangePolicy.js'
 import { IDENTITY_AGENCY_LABELS } from './lib/identity/identityAdapter.js'
 import { getTeam, teamName, TeamEmblem, menuPath, TEAMS } from './teams.jsx'
 import { getCurrentDevice } from './lib/deviceInfo.js'
@@ -71,9 +73,14 @@ export default function SettingsPage() {
   const [nickEdit, setNickEdit] = useState(user?.nickname || '')
   const [genderEdit, setGenderEdit] = useState(user?.gender || '')
   const [ageEdit, setAgeEdit] = useState(user?.ageGroup || '')
-  const [teamEdit, setTeamEdit] = useState(team?.id || '')
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileMsg, setProfileMsg] = useState(null)
+  // 응원팀 시즌 변경(정책) — 상태/모달
+  const [teamStatus, setTeamStatus] = useState(null)
+  const [teamModal, setTeamModal] = useState(false)   // false | 'pick' | 'confirm'
+  const [teamPick, setTeamPick] = useState(null)
+  const [teamBusy, setTeamBusy] = useState(false)
+  useEffect(() => { getTeamChangeStatus().then(setTeamStatus) }, [])
 
   const nickInfo = nicknameChangeInfo() // { canChange, nextChangeAt }
   const nickCheck = useNicknameCheck(nickEdit, { exceptId: user?.id, exceptEmail: user?.email })
@@ -111,7 +118,7 @@ export default function SettingsPage() {
 
   // ── 프로필 수정 열기/닫기 ──
   function openEdit() {
-    setNickEdit(nickState); setGenderEdit(genderState); setAgeEdit(ageGroup); setTeamEdit(team.id)
+    setNickEdit(nickState); setGenderEdit(genderState); setAgeEdit(ageGroup)
     setProfileMsg(null); setEditing(true)
   }
   function cancelEdit() { setProfileMsg(null); setEditing(false) }
@@ -121,7 +128,6 @@ export default function SettingsPage() {
   const anyChanged = nickChanged
     || (genderEdit || '') !== (genderState || '')
     || ageEdit !== ageGroup
-    || (teamEdit && teamEdit !== team.id)
 
   async function onSaveProfile() {
     setProfileMsg(null); setProfileSaving(true)
@@ -144,15 +150,23 @@ export default function SettingsPage() {
       setAgeGroupState(ageEdit)
     }
     setProfileSaving(false)
-    // 저장 성공 → 항상 수정 모드 종료(읽기 모드로). 취소를 눌러야만 닫히던 문제 수정.
+    // 저장 성공 → 항상 수정 모드 종료(읽기 모드로).
     setEditing(false)
-    // 4) 응원팀 (변경 시 마지막 — 새 구단 설정 화면으로 이동. editing 은 이미 false 라 읽기 모드)
-    if (teamEdit && teamEdit !== team.id) {
-      await setSelectedTeam(teamEdit)
-      navigate(`/club/${teamEdit}/settings`, { replace: true })
-      return
-    }
     flash(t('set.profileSaved'))
+  }
+
+  // ── 응원팀 시즌 변경(정책 강제는 서버 RPC) ──
+  const teamUi = teamChangeUiState(teamStatus)
+  const nextWindow = nextWindowText(teamStatus, fmtDate)
+  async function confirmTeamChange() {
+    if (!teamPick || teamBusy) return
+    setTeamBusy(true)
+    const r = await fanChangeTeam(teamPick)
+    setTeamBusy(false)
+    if (!r.ok) { setTeamModal(false); flash(t(teamChangeErrorKey(r.code)), 'error'); return }
+    setTeamModal(false)
+    flash(t('team.changed'))                              // 즉시 성공 안내
+    navigate(`/club/${teamPick}/settings`, { replace: true })  // 새 팀 context 로 반영
   }
 
   // ── 프로필 사진 (인라인 변경/제거) ──
@@ -272,6 +286,19 @@ export default function SettingsPage() {
             <>
               <div className="st-row st-row-static"><span>{t('set.team')}</span>
                 <span className="st-team"><TeamEmblem color={team.color} size={22} className="st-team-emblem" />{teamName(team, lang)}</span></div>
+              {/* 응원팀 시즌 변경 */}
+              <div className="st-team-change">
+                {teamUi.canChange ? (
+                  <button className="st-btn-full" onClick={() => { setTeamPick(null); setTeamModal('pick') }}>{t('team.changeBtn')}</button>
+                ) : (
+                  <p className="st-team-reason">
+                    {t(teamUi.reasonKey)}
+                    {nextWindow
+                      ? <><br /><span className="st-muted">{t('team.nextWindow', { range: nextWindow })}</span></>
+                      : <><br /><span className="st-muted">{t('team.nextWindowTba')}</span></>}
+                  </p>
+                )}
+              </div>
               <div className="st-row st-row-static"><span>{t('set.infoGender')}</span><span className="st-muted">{genderLabel}</span></div>
               <div className="st-row st-row-static"><span>{t('set.infoAge')}</span><span className="st-muted">{ageLabel}</span></div>
               <div className="st-row st-row-static"><span>{t('set.infoJoined')}</span><span className="st-muted">{fmtDate(user?.joinedAt)}</span></div>
@@ -303,14 +330,6 @@ export default function SettingsPage() {
                 {!nickInfo.canChange
                   ? <p className="st-edit-hint">{t('profile.nicknameLocked')}</p>
                   : (nickChanged ? <NicknameStatus status={nickCheck} /> : null)}
-              </div>
-
-              {/* 응원팀 */}
-              <div className="st-edit-field">
-                <label className="st-edit-label">{t('set.team')}</label>
-                <select className="st-edit-input" value={teamEdit} onChange={e => { setTeamEdit(e.target.value); setProfileMsg(null) }}>
-                  {TEAMS.map(tm => <option key={tm.id} value={tm.id}>{teamName(tm, lang)}</option>)}
-                </select>
               </div>
 
               {/* 성별 */}
@@ -505,6 +524,46 @@ export default function SettingsPage() {
               <button className="st-modal-cancel" onClick={() => setShowWithdraw(false)}>{t('common.cancel')}</button>
               <button className="st-modal-confirm" disabled={withdrawText.trim() !== withdrawPhrase || withdrawing} onClick={handleWithdraw}>
                 {withdrawing ? t('set.withdrawing') : t('set.withdrawConfirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 응원팀 변경 — 팀 선택 */}
+      {teamModal === 'pick' && (
+        <div className="st-modal-overlay" role="dialog" aria-modal="true" aria-label={t('team.changeBtn')}
+          onClick={e => { if (e.target === e.currentTarget) setTeamModal(false) }}>
+          <div className="st-modal st-modal-team">
+            <h3 className="st-modal-title">{t('team.changeBtn')}</h3>
+            <div className="st-team-grid" role="radiogroup" aria-label={t('team.changeBtn')}>
+              {TEAMS.filter(tm => tm.id !== team.id).map(tm => (
+                <button type="button" key={tm.id} role="radio" aria-checked={teamPick === tm.id}
+                  className={`st-team-opt${teamPick === tm.id ? ' on' : ''}`} onClick={() => setTeamPick(tm.id)}>
+                  <TeamEmblem color={tm.color} size={20} />{teamName(tm, lang)}
+                </button>
+              ))}
+            </div>
+            <div className="st-modal-actions">
+              <button className="st-modal-cancel" onClick={() => setTeamModal(false)}>{t('common.cancel')}</button>
+              <button className="st-modal-confirm" disabled={!teamPick} onClick={() => setTeamModal('confirm')}>{t('common.next')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 응원팀 변경 — 확인 */}
+      {teamModal === 'confirm' && teamPick && (
+        <div className="st-modal-overlay" role="dialog" aria-modal="true" aria-label={t('team.confirmTitle')}
+          onClick={e => { if (e.target === e.currentTarget) setTeamModal(false) }}>
+          <div className="st-modal">
+            <h3 className="st-modal-title">{t('team.confirmTitle')}</h3>
+            <p className="st-modal-desc">{t('team.confirmDesc', { from: teamName(team, lang), to: teamName(getTeam(teamPick), lang) })}</p>
+            <p className="st-modal-phrase">{t('team.confirmWarn')}</p>
+            <div className="st-modal-actions">
+              <button className="st-modal-cancel" onClick={() => setTeamModal('pick')} disabled={teamBusy}>{t('common.cancel')}</button>
+              <button className="st-modal-confirm" onClick={confirmTeamChange} disabled={teamBusy}>
+                {teamBusy ? t('common.processing') : t('team.confirmCta')}
               </button>
             </div>
           </div>

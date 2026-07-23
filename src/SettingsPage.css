@@ -295,3 +295,11 @@ select.st-edit-input { cursor: pointer; }
 .st-noti-group { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .st-noti-group-name { font-size: 14px; font-weight: 500; color: var(--ink); }
 .st-noti-group-desc { font-size: 12px; color: var(--muted); }
+
+/* 응원팀 시즌 변경 */
+.st-team-change { margin: 4px 0 8px; }
+.st-team-reason { margin: 4px 0 0; font-size: 13px; line-height: 1.6; color: var(--text, #111); }
+.st-modal-team { max-width: 460px; }
+.st-team-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; max-height: 46vh; overflow-y: auto; }
+.st-team-opt { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border, #e5e7eb); border-radius: 10px; background: var(--surface, #fff); color: var(--text, #111); font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.st-team-opt.on { border-color: var(--team, #E60012); box-shadow: 0 0 0 1px var(--team, #E60012) inset; }

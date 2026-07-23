@@ -908,7 +908,12 @@ export async function changePassword(currentPassword, newPassword) {
   return { ok: true }
 }
 
-// ── 응원팀 저장 ──
+// 응원팀 변경 성공 후 동기 캐시(cachedUser) 즉시 반영 — 헤더/사이드바 stale 방지.
+export function setCachedTeam(teamId) {
+  if (cachedUser) cachedUser = { ...cachedUser, selectedTeam: teamId, clubId: teamId }
+}
+
+// ── 응원팀 저장 (최초 선택 전용: NULL→팀. 변경은 teamChangeRepo 정책 RPC 사용) ──
 export async function setSelectedTeam(teamId) {
   if (isSupabaseConfigured) {
     if (cachedUser) cachedUser = { ...cachedUser, selectedTeam: teamId } // 낙관적 반영
