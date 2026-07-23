@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { login } from './lib/auth.js'
 import { isValidEmail } from './lib/authForm.js'
 import { postAuthPath } from './lib/authRoute.js'
@@ -12,6 +12,7 @@ import './LoginPage.css'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { t } = useLang()
   const { user: sessionUser, recoveryStatus } = useAuth()
   const [email, setEmail] = useState('')
@@ -53,6 +54,16 @@ export default function LoginPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // 비밀번호 재설정 성공 후 리다이렉트(state.passwordResetSuccess) → "새 비밀번호로 로그인" 안내.
+  // 안내 표시 후 history state 를 비워, 새로고침/뒤로가기에서 재표시되지 않게 한다.
+  useEffect(() => {
+    if (location.state?.passwordResetSuccess) {
+      setNotice({ kind: 'success', text: t('resetPw.loginPrompt') })
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state])
 
   // recovery 세션(비밀번호 재설정 링크)이 Site URL fallback으로 '/'(로그인 화면)에
   // 떨어질 수 있다. 이 경우 홈으로 라우팅하지 말고 /reset-password로 넘긴다.

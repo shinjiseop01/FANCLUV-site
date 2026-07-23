@@ -119,6 +119,8 @@ export default {
   'resetPw.errGeneric': '비밀번호 변경에 실패했습니다. 다시 시도해 주세요.',
   'resetPw.doneTitle': '비밀번호가 변경되었습니다',
   'resetPw.doneDesc': '새 비밀번호로 로그인해 주세요.',
+  'resetPw.changedToast': '비밀번호가 성공적으로 변경되었습니다.',
+  'resetPw.loginPrompt': '새 비밀번호로 로그인해주세요.',
   'resetPw.checking': '비밀번호 재설정 링크를 확인하고 있습니다.',
   'resetPw.invalidTitle': '링크가 유효하지 않습니다',
   'resetPw.invalidDesc': '비밀번호 재설정 링크가 만료되었거나 유효하지 않습니다.',

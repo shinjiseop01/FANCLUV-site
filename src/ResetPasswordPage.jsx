@@ -20,6 +20,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { completePasswordReset } from './lib/auth.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import { useAuth } from './contexts/AuthContext.jsx'
+import { useToast } from './contexts/ToastContext.jsx'
 import Icon from './components/Icon.jsx'
 import './SignupPage.css'
 import './RecoveryPages.css'
@@ -27,6 +28,7 @@ import './RecoveryPages.css'
 export default function ResetPasswordPage() {
   const { t } = useLang()
   const navigate = useNavigate()
+  const toast = useToast()
   const { recoveryStatus } = useAuth()
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -55,8 +57,12 @@ export default function ResetPasswordPage() {
     setSubmitting(false)
     if (res.ok) {
       setDone(true)
-      // 3초 후 로그인 페이지로 이동 (recovery 세션은 이미 종료됨)
-      setTimeout(() => navigate('/', { replace: true }), 3000)
+      // 성공 Toast 표시
+      toast.success(t('resetPw.changedToast'))
+      // 약 1.5초 후 로그인 페이지(/)로 자동 이동 (recovery 세션은 이미 종료됨).
+      // replace: true → 뒤로가기 시 reset-password 성공 화면으로 복귀하지 않음.
+      // state.passwordResetSuccess → 로그인 페이지에서 "새 비밀번호로 로그인" 안내 표시.
+      setTimeout(() => navigate('/', { replace: true, state: { passwordResetSuccess: true } }), 1500)
     } else {
       // 복구 가능한 실패 → intent를 지우지 않고 재입력 허용
       setError(res.error || t('resetPw.errGeneric'))
@@ -102,7 +108,7 @@ export default function ResetPasswordPage() {
             <p className="rec-result-label">{t('resetPw.doneTitle')}</p>
             <p className="rec-result-note">{t('resetPw.doneDesc')}</p>
             <div className="rec-result-actions">
-              <button type="button" className="su-btn rec-btn-link" onClick={() => navigate('/', { replace: true })}>
+              <button type="button" className="su-btn rec-btn-link" onClick={() => navigate('/', { replace: true, state: { passwordResetSuccess: true } })}>
                 {t('findId.goLogin')}
               </button>
             </div>
