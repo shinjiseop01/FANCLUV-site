@@ -29,12 +29,29 @@ function sanitize(s: string, max: number): string {
 const AI_TIMEOUT_MS = 15000
 
 // 단순 빈도 기반 키워드(폴백/보강) — 별도 NLP 없이 2자+ 한글/영문 토큰 상위 N개.
-const KW_STOP = new Set(['있다', '했다', '이번', '오는', '위해', '통해', '대한', '함께', '경기', '이날', '지난', '오후', '오전', '선수', '구단', '뉴스', '기자', '진행', '예정', '관련', '모습', '가운데', '최근'])
+// 불용어: 흔한 동사/접속/부사 + 뉴스 상투어(키워드로 부적절).
+const KW_STOP = new Set([
+  '있다', '했다', '한다', '된다', '하는', '하고', '했고', '하며', '됐다', '이다', '없다',
+  '하지만', '그리고', '그러나', '또한', '이번', '오는', '위해', '위한', '통해', '대해', '대한',
+  '함께', '경기', '이날', '지난', '오후', '오전', '선수', '구단', '뉴스', '기자', '진행', '예정',
+  '관련', '모습', '가운데', '최근', '자신', '우리', '이라고', '라며', '면서', '통한', '따라',
+])
+// 보수적 조사 제거 — 3자+ 토큰의 흔한 후행 조사만 절단(고유명사 훼손 최소화).
+const JOSA = ['에서', '으로', '에게', '이라', '라는', '까지', '보다', '처럼', '만큼',
+  '은', '는', '이', '가', '을', '를', '의', '에', '로', '과', '와', '도', '만', '께', '고', '나']
+function stripJosa(tok: string): string {
+  if (tok.length < 3) return tok
+  for (const j of JOSA) {
+    if (tok.length - j.length >= 2 && tok.endsWith(j)) return tok.slice(0, -j.length)
+  }
+  return tok
+}
 function extractKeywords(title: string, text: string, max = 5): string[] {
   const tokens = (title + ' ' + text).match(/[가-힣A-Za-z]{2,}/g) || []
   const freq = new Map<string, number>()
-  for (const t of tokens) {
-    if (KW_STOP.has(t)) continue
+  for (const raw of tokens) {
+    const t = stripJosa(raw)
+    if (t.length < 2 || KW_STOP.has(t) || KW_STOP.has(raw)) continue
     freq.set(t, (freq.get(t) || 0) + (title.includes(t) ? 3 : 1)) // 제목 등장 가중
   }
   return [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, max).map(([k]) => k)
