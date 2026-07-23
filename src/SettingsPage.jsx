@@ -503,6 +503,10 @@ export default function SettingsPage() {
           <div className="st-row" role="button" tabIndex={0} onClick={() => navigate(`/club/${team.id}/terms`)}>
             <span>{t('set.terms')}</span><span className="st-chevron" aria-hidden="true">›</span>
           </div>
+          <div className="st-row" role="button" tabIndex={0} onClick={() => navigate('/support')}
+            onKeyDown={e => { if (e.key === 'Enter') navigate('/support') }}>
+            <span>{t('set.support')}</span><span className="st-chevron" aria-hidden="true">›</span>
+          </div>
         </section>
 
         {/* 로그아웃 / 회원탈퇴 — 카드 밖, 페이지 최하단 (회원탈퇴는 위험 작업이라 분리 스타일) */}

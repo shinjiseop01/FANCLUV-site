@@ -1,0 +1,38 @@
+/* 고객 문의 — 독립 페이지(모바일 우선). 팬 앱 토큰 사용, 다크/라이트 대응. */
+.sp-root { min-height: 100vh; background: var(--bg, #f6f7f9); padding: 24px 16px 64px; }
+.sp-container { max-width: 620px; margin: 0 auto; }
+.sp-head { margin-bottom: 18px; }
+.sp-back { background: none; border: none; color: var(--text-muted, #6b7280); font-size: 14px; cursor: pointer; padding: 4px 0; }
+.sp-title { margin: 8px 0 4px; font-size: 22px; font-weight: 800; color: var(--text, #111); }
+.sp-sub { margin: 0; font-size: 14px; color: var(--text-muted, #6b7280); line-height: 1.5; }
+
+.sp-form { display: flex; flex-direction: column; gap: 16px; }
+.sp-field { display: flex; flex-direction: column; gap: 6px; position: relative; }
+.sp-field label { font-size: 13px; font-weight: 700; color: var(--text, #111); }
+.sp-field select, .sp-field input, .sp-field textarea {
+  padding: 11px 12px; border: 1px solid var(--border, #e5e7eb); border-radius: 10px;
+  background: var(--surface, #fff); color: var(--text, #111); font-size: 15px; font-family: inherit; width: 100%; box-sizing: border-box;
+}
+.sp-field textarea { resize: vertical; line-height: 1.6; }
+.sp-count { align-self: flex-end; font-size: 12px; color: var(--text-muted, #9ca3af); }
+.sp-err { margin: 0; color: #DC2626; font-size: 13.5px; font-weight: 600; }
+.sp-submit { padding: 13px; border: none; border-radius: 10px; background: var(--team, #2563eb); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+.sp-submit:disabled { opacity: .6; cursor: default; }
+.sp-link { background: none; border: none; color: var(--team, #2563eb); font-size: 14px; font-weight: 600; cursor: pointer; padding: 6px; align-self: center; }
+
+/* 목록/상세 */
+.sp-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.sp-item { padding: 14px; border: 1px solid var(--border, #e5e7eb); border-radius: 12px; background: var(--surface, #fff); cursor: pointer; }
+.sp-item-top, .sp-detail-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.sp-item-subj { font-size: 15px; font-weight: 700; color: var(--text, #111); margin-bottom: 4px; }
+.sp-cat-chip { font-size: 12px; font-weight: 700; color: var(--team, #2563eb); background: color-mix(in srgb, var(--team, #2563eb) 12%, transparent); padding: 2px 8px; border-radius: 999px; }
+.sp-badge { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+.sp-badge.pending { background: rgba(107,114,128,.15); color: #6b7280; }
+.sp-badge.inprogress { background: rgba(37,99,235,.14); color: #2563eb; }
+.sp-badge.resolved { background: rgba(16,185,129,.15); color: #059669; }
+.sp-muted { color: var(--text-muted, #9ca3af); font-size: 12.5px; }
+.sp-empty { text-align: center; color: var(--text-muted, #9ca3af); padding: 40px 0; }
+.sp-block { margin-top: 18px; padding: 16px; border: 1px solid var(--border, #e5e7eb); border-radius: 12px; background: var(--surface, #fff); }
+.sp-block.sp-reply { background: color-mix(in srgb, var(--team, #2563eb) 5%, var(--surface, #fff)); }
+.sp-block-title { margin: 0 0 8px; font-size: 13px; font-weight: 800; color: var(--text-muted, #6b7280); }
+.sp-text { margin: 0; font-size: 15px; line-height: 1.7; color: var(--text, #111); white-space: pre-wrap; word-break: break-word; }

@@ -72,6 +72,9 @@ const AdminIdentity = lazy(() => import('./admin/AdminIdentity.jsx'))
 const AdminQuickPoll = lazy(() => import('./admin/AdminQuickPoll.jsx'))
 const AdminRealtimeDashboard = lazy(() => import('./admin/AdminRealtimeDashboard.jsx'))
 const AdminSettings = lazy(() => import('./admin/AdminSettings.jsx'))
+const AdminSupport = lazy(() => import('./admin/AdminSupport.jsx'))
+const SupportPage = lazy(() => import('./SupportPage.jsx'))
+const MySupportPage = lazy(() => import('./MySupportPage.jsx'))
 const AccessDenied = lazy(() => import('./admin/AccessDenied.jsx'))
 // 구단(고객) Executive Dashboard
 const ClubExecutiveDashboard = lazy(() => import('./club/ClubExecutiveDashboard.jsx'))
@@ -152,6 +155,10 @@ createRoot(document.getElementById('root')).render(
         <Route path="/onboarding" element={<RequireAuth><OnboardingPage /></RequireAuth>} />
         <Route path="/verify-identity" element={<RequireAuth><VerifyIdentityPage /></RequireAuth>} />
         <Route path="/team-select" element={<RequireAuth><TeamSelectPage /></RequireAuth>} />
+        {/* 고객 문의 — 독립 페이지(로그인 사용자) */}
+        <Route path="/support" element={<RequireAuth><SupportPage /></RequireAuth>} />
+        <Route path="/support/my" element={<RequireAuth><MySupportPage /></RequireAuth>} />
+        <Route path="/support/my/:id" element={<RequireAuth><MySupportPage /></RequireAuth>} />
         <Route path="/club/:teamId" element={<RequireAuth><ClubHomePage /></RequireAuth>} />
         <Route path="/club/:teamId/opinions" element={<RequireAuth><OpinionsPage /></RequireAuth>} />
         <Route path="/club/:teamId/opinions/:opinionId" element={<RequireAuth><OpinionDetailPage /></RequireAuth>} />
@@ -185,6 +192,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="news" element={<AdminNews />} />
           <Route path="news-sources" element={<AdminNewsSources />} />
           <Route path="notices" element={<AdminNotices />} />
+          <Route path="support" element={<AdminSupport />} />
           <Route path="reports" element={<AdminReports />} />
           <Route path="report-docs" element={<AdminReportDocs />} />
           <Route path="actions" element={<AdminClubActions />} />

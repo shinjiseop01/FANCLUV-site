@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { useTheme } from '../contexts/ThemeContext.jsx'
 import { getCurrentUser, getRole, logout } from '../lib/auth.js'
+import AdminTeamWindows from './AdminTeamWindows.jsx'
 
 // MVP settings — 표시(언어/테마) + 계정 정보 + 예정 역할 로드맵.
 const FUTURE_ROLES = [
@@ -60,6 +61,9 @@ export default function AdminSettings() {
           {t('common.logout')}
         </button>
       </section>
+
+      {/* 응원팀 변경 기간(시즌 window) 운영 관리 */}
+      <AdminTeamWindows />
 
       <section className="adm-card">
         <h2 className="adm-h2">{t('admin.set.rolesTitle')}</h2>
