@@ -227,3 +227,14 @@ export function statusOf(src) {
   if (!src.rssUrl) return 'no_rss'
   return 'ok'
 }
+
+// ── 자동 수집 Scheduler 상태(관리자 대시보드용) ──
+// news_collection_status RPC(0077): 최근 run + 소스 헬스 요약. Mock/미설정 시 null.
+export async function getSchedulerStatus() {
+  if (!isSupabaseConfigured) return null
+  try {
+    const { data, error } = await supabase.rpc('news_collection_status')
+    if (error || !data || data.ok === false) return null
+    return data   // { ok, last_run, sources[], healthy, total }
+  } catch { return null }
+}

@@ -5,6 +5,7 @@ import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
 import {
   adminListSources, updateSource, setEnabled, testSource, statusOf, FAILURE_THRESHOLD,
+  getSchedulerStatus,
 } from '../lib/news/newsSourcesRepo.js'
 
 // 상태 코드 → 아이콘/배지 클래스
@@ -31,12 +32,19 @@ export default function AdminNewsSources() {
   const [error, setError] = useState('')
   const [testing, setTesting] = useState(null)    // clubId being tested
   const [results, setResults] = useState({})      // clubId -> { ok, count, error, at }
+  const [sched, setSched] = useState(null)        // 자동 수집 Scheduler 상태(0077 RPC)
 
   useEffect(() => {
     let active = true
     adminListSources().then(list => { if (active) { setRows(list); setLoading(false) } })
+    getSchedulerStatus().then(s => { if (active) setSched(s) })
     return () => { active = false }
   }, [])
+
+  // 다음 실행 추정(20분 주기): 최근 시작 + 20분.
+  const nextRunAt = sched?.last_run?.started_at
+    ? new Date(new Date(sched.last_run.started_at).getTime() + 20 * 60000).toISOString()
+    : null
 
   const failing = rows.filter(r => (r.failureCount || 0) >= FAILURE_THRESHOLD)
 
@@ -100,6 +108,20 @@ export default function AdminNewsSources() {
         <h1 className="adm-h1">{t('admin.ns.title')}</h1>
         <p className="adm-sub">{t('admin.ns.sub', { n: rows.length })}</p>
       </header>
+
+      {/* 자동 수집 Scheduler 상태(20분 주기) */}
+      {sched?.last_run && (
+        <div className="ns-sched" role="status">
+          <Icon name={sched.last_run.status === 'failed' ? 'alert' : 'check'} size={18} />
+          <div className="ns-sched-grid">
+            <div><span className="ns-sched-k">{t('admin.ns.schedLast')}</span> {fmt(sched.last_run.finished_at || sched.last_run.started_at)}</div>
+            <div><span className="ns-sched-k">{t('admin.ns.schedNext')}</span> {fmt(nextRunAt)}</div>
+            <div><span className="ns-sched-k">{t('admin.ns.schedHealthy')}</span> {sched.healthy} / {sched.total}</div>
+            <div><span className="ns-sched-k">{t('admin.ns.schedWritten')}</span> {sched.last_run.articles_written ?? 0}</div>
+            <div><span className="ns-sched-k">{t('admin.ns.schedFailed')}</span> {sched.last_run.failed_sources ?? 0}</div>
+          </div>
+        </div>
+      )}
 
       {/* 실패 임계 알림 배너 */}
       {failing.length > 0 && (

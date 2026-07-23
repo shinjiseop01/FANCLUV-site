@@ -165,7 +165,7 @@ export function parseAnyangDetail(html) {
 }
 
 // ── PostgREST REST 클라이언트(service_role) — supabase-js/realtime 없이 fetch 직접. ──
-function makeDb(url, key) {
+export function makeDb(url, key) {
   const base = `${url.replace(/\/$/, '')}/rest/v1`
   const headers = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }
   return {
@@ -181,6 +181,26 @@ function makeDb(url, key) {
         body: JSON.stringify(rows),
       })
       if (!res.ok) throw new Error(`upsert_${res.status}:${(await res.text()).slice(0, 160)}`)
+    },
+    // INSERT 후 생성 행 반환. 충돌(23505) 시 status 409 → 호출부가 락 판정에 사용.
+    async insertReturning(table, row) {
+      const res = await fetch(`${base}/${table}`, {
+        method: 'POST',
+        headers: { ...headers, Prefer: 'return=representation' },
+        body: JSON.stringify(row),
+      })
+      if (res.status === 409) return { conflict: true }
+      if (!res.ok) throw new Error(`insert_${res.status}:${(await res.text()).slice(0, 160)}`)
+      const data = await res.json()
+      return { row: Array.isArray(data) ? data[0] : data }
+    },
+    async patch(table, filter, patch) {
+      const res = await fetch(`${base}/${table}?${filter}`, {
+        method: 'PATCH',
+        headers: { ...headers, Prefer: 'return=minimal' },
+        body: JSON.stringify(patch),
+      })
+      if (!res.ok) throw new Error(`patch_${res.status}:${(await res.text()).slice(0, 160)}`)
     },
   }
 }

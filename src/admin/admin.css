@@ -463,6 +463,10 @@
 
 /* ───────────── 뉴스 소스 관리 (AdminNewsSources) ───────────── */
 .ns-banner { display: flex; align-items: center; gap: 9px; background: rgba(220,38,38,0.1); border: 1px solid rgba(220,38,38,0.3); color: #DC2626; border-radius: 10px; padding: 11px 14px; font-size: 13.5px; font-weight: 600; margin-bottom: 16px; }
+.ns-sched { display: flex; align-items: flex-start; gap: 10px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.28); color: var(--text, #111); border-radius: 10px; padding: 11px 14px; margin-bottom: 16px; }
+.ns-sched > svg { color: #10B981; flex: 0 0 auto; margin-top: 1px; }
+.ns-sched-grid { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; }
+.ns-sched-k { color: var(--text-muted, #6b7280); margin-right: 4px; }
 .ns-table { min-width: 900px; }
 .ns-club { font-weight: 700; color: var(--ink); }
 .ns-link { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--team-deep, #863bff); text-decoration: none; margin-top: 3px; }
