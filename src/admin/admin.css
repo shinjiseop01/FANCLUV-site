@@ -140,6 +140,8 @@
 .adm-badge.vemail { color: #0E9F6E; background: rgba(16, 159, 110, 0.14); }
 .adm-badge.vphone { color: var(--team-deep); background: color-mix(in srgb, var(--team) 14%, var(--mix-base)); }
 .adm-badge.vnone { color: #C2410C; background: rgba(234, 88, 12, 0.14); }
+/* 테스트/QA 계정 배지 — 운영자 전용 식별(분석 제외 대상). */
+.adm-badge.test { color: #7C3AED; background: rgba(124, 58, 237, 0.14); margin-left: 6px; font-size: 10.5px; }
 
 /* Buttons */
 .adm-btn-sm { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 32px; font-size: 12.5px; font-weight: 700; padding: 6px 11px; border-radius: 8px; border: 1px solid var(--border); background: var(--canvas); color: var(--body); cursor: pointer; font-family: inherit; transition: border-color 0.14s, color 0.14s; }

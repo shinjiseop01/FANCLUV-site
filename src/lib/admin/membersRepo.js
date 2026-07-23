@@ -24,6 +24,7 @@ function mapRow(r) {
     gender: r.gender,
     ageGroup: r.age_group,
     lastActiveAt: String(r.last_active_at || '').slice(0, 10),
+    isTest: !!r.is_test_account,
   }
 }
 

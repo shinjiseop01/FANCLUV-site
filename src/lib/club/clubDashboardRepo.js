@@ -12,6 +12,16 @@ import { getLatestInsight } from '../ai/analyzeFanInsights.js'
 import { getClubActionEffects } from '../admin/actionTracker.js'
 import { listDeliveredReports } from '../admin/clubReportsRepo.js'
 import { isAdmin, isClub, getClubId } from '../auth.js'
+import { supabase, isSupabaseConfigured } from '../supabase.js'
+
+// Supabase 모드: 서버측 테넌트 격리 + 테스트 제외가 적용된 RPC 로 KPI 를 받는다.
+//   · 구단(고객)은 자기 구단만(서버 auth.uid→profiles 강제), 원본 의견을 클라이언트에서 읽지 않는다.
+//   · Mock 모드는 기존 로컬 계산으로 폴백(앱이 안 깨짐).
+async function serverKpi(clubId) {
+  const { data } = await supabase.rpc('club_kpi', { p_team: clubId })
+  if (!data || data.ok === false) return null
+  return data
+}
 
 // 접근 제어: 관리자(모든 구단 확인 가능) 또는 자기 구단 계정만.
 function canAccess(clubId) {
@@ -64,8 +74,12 @@ export async function getClubDashboard(clubId) {
   if (!clubId || !canAccess(clubId)) return { ok: false, code: 'forbidden' }
   const team = TEAMS.find(t => t.id === clubId)
   const teamName = team?.name || clubId
+  // KPI: Supabase 모드는 서버 RPC(테넌트 격리 + 테스트 제외). Mock 은 로컬 계산.
+  const kpiP = isSupabaseConfigured
+    ? serverKpi(clubId).catch(() => null)
+    : getKpisWithChange(clubId).catch(() => null)
   const [kpi, insightRaw, effects] = await Promise.all([
-    getKpisWithChange(clubId).catch(() => null),
+    kpiP,
     getLatestInsight(clubId).catch(() => null),
     getClubActionEffects(clubId, { periodDays: 90 }).catch(() => []),
   ])
@@ -89,8 +103,9 @@ export async function getKpiTrend(clubId, period = '3m') {
     complaintIndex: h.complaintIndex, engagement: h.engagement, participationRate: h.participationRate,
   }))
   // 히스토리가 비면 현재 KPI 1점이라도 반환(빈 화면 방지).
+  // Supabase 모드는 서버 RPC(테넌트/테스트 격리), Mock 은 로컬 계산.
   if (rows.length === 0) {
-    const cur = await getKpis(clubId).catch(() => null)
+    const cur = isSupabaseConfigured ? await serverKpi(clubId).catch(() => null) : await getKpis(clubId).catch(() => null)
     if (cur) rows.push({ week: cur.week, satisfaction: cur.satisfaction, nps: cur.nps, complaintIndex: cur.complaintIndex, engagement: cur.engagement, participationRate: cur.participationRate })
   }
   return rows
@@ -105,7 +120,13 @@ export async function getClubReports(clubId) {
 // ── Benchmark(요구사항 9): 우리 구단 vs 리그 평균 (다른 구단 상세 비공개) ──
 export async function getBenchmark(clubId) {
   if (!clubId || !canAccess(clubId)) return null
-  // 리그 평균 = 전 구단 KPI 평균(집계 수치만). 개별 구단 KPI 는 노출하지 않는다.
+  // Supabase 모드: 서버 RPC 가 리그 평균을 서버에서 집계(개별 타 구단 수치는 반환하지 않음).
+  //   → 클라이언트가 전 구단 데이터를 읽지 않는다(교차 열람 차단).
+  if (isSupabaseConfigured) {
+    const { data } = await supabase.rpc('club_league_benchmark', { p_team: clubId })
+    return (data && data.ok !== false) ? { metrics: data.metrics } : null
+  }
+  // Mock 모드: 로컬 계산(집계 수치만). 개별 구단 KPI 는 노출하지 않는다.
   const all = await Promise.all(TEAMS.map(async t => ({ id: t.id, kpi: await getKpis(t.id).catch(() => null) })))
   const valid = all.filter(x => x.kpi).map(x => x.kpi)
   const own = all.find(x => x.id === clubId)?.kpi || await getKpis(clubId).catch(() => null)

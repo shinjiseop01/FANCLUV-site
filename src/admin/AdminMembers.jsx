@@ -18,7 +18,7 @@ import { canDeleteRole, isProtectedTargetRole, deleteErrorKey } from '../lib/adm
 import MemberDeleteModal from './MemberDeleteModal.jsx'
 
 // 필터: 전체 / 정상 / 비활성 / 이메일 인증 / 본인인증 여부
-const FILTERS = ['all', 'active', 'inactive', 'email_verified', 'email_unverified', 'identity_verified', 'identity_unverified']
+const FILTERS = ['all', 'general', 'test', 'active', 'inactive', 'email_verified', 'email_unverified', 'identity_verified', 'identity_unverified']
 
 // Verification badge: class + label key per status.
 function vMeta(status) {
@@ -38,6 +38,8 @@ function loginLabel(provider, t) {
 // 필터 매칭 (상태 + 이메일 인증 여부)
 function matchFilter(m, f) {
   if (f === 'all') return true
+  if (f === 'test') return !!m.isTest
+  if (f === 'general') return !m.isTest
   if (f === 'active') return m.status === 'active'
   if (f === 'inactive') return m.status === 'inactive'
   if (f === 'email_verified') return m.verificationStatus === 'email_verified' || m.verificationStatus === 'phone_verified'
@@ -237,6 +239,7 @@ export default function AdminMembers() {
                       <div className="adm-user-cell">
                         <Avatar name={m.nickname} size={32} />
                         <span className="adm-cell-strong">{m.nickname}</span>
+                        {m.isTest && <span className="adm-badge test" title={t('admin.mem.testAccountHint')}>{t('admin.mem.testBadge')}</span>}
                       </div>
                     </td>
                     <td className="adm-cell-muted">{m.email}</td>
