@@ -54,10 +54,8 @@ export function AuthProvider({ children }) {
       if (!active) return
       setUser(u)
       setLoading(false)
-      setRecoveryStatus(prev => {
-        if (prev === 'active') return 'active'      // 이미 active면 유지
-        return hasRecoveryIntent() ? 'active' : 'inactive'
-      })
+      // bootstrap 완료: 보존된 recovery intent 유무로 확정(있으면 active, 없으면 inactive).
+      setRecoveryStatus(hasRecoveryIntent() ? 'active' : 'inactive')
     })
 
     // 로그인/로그아웃/토큰갱신/OAuth 콜백 등 세션 변화 구독
@@ -72,17 +70,21 @@ export function AuthProvider({ children }) {
         return
       }
 
-      // 일반 인증 이벤트(INITIAL_SESSION / SIGNED_IN / TOKEN_REFRESHED / SIGNED_OUT 등)
+      // 로그아웃(비번 변경 완료 후 signOut 포함)이면 recovery 종료 → inactive 확정.
+      // ⚠️ 과거엔 prev==='active'면 계속 active로 유지해, 비번 변경 후에도 recovery가
+      //    안 풀려 /reset-password로 바운스되는 버그가 있었다(→ 자동이동/뒤로가기 버튼 먹통).
+      if (event === 'SIGNED_OUT') {
+        setRecoveryStatus('inactive')
+        return
+      }
+
+      // 일반 인증 이벤트(INITIAL_SESSION / SIGNED_IN / TOKEN_REFRESHED 등)
       const u = await loadCurrentSupabaseUser()
       if (!active) return
       setUser(u)
-      // recovery intent가 보존돼 있으면 INITIAL_SESSION을 일반 로그인으로 오판하지 않는다.
-      if (hasRecoveryIntent()) {
-        setRecoveryStatus('active')
-      } else {
-        // 명시적 로그아웃 등으로 세션이 사라지면 inactive로 되돌린다.
-        setRecoveryStatus(prev => (prev === 'active' ? prev : 'inactive'))
-      }
+      // 보존된 recovery intent 유무로 확정. intent가 있으면 INITIAL_SESSION을 일반
+      // 로그인으로 오판하지 않고, 없으면(정상 로그인/정리 후) inactive로 둔다.
+      setRecoveryStatus(hasRecoveryIntent() ? 'active' : 'inactive')
     })
 
     return () => { active = false; sub.subscription.unsubscribe() }

@@ -76,7 +76,8 @@ export default {
   // 계정 복구 (아이디/비밀번호 찾기)
   'find.backToLogin': '로그인으로 돌아가기',
   'findId.title': '아이디 찾기',
-  'findId.subtitle': '가입 시 사용한 닉네임 또는 이메일 일부를 입력하면 가입된 이메일을 알려드립니다.',
+  'findId.subtitle': '가입 시 사용한 닉네임을 입력하면 등록된 이메일로 계정 안내를 보내드립니다.',
+  'findId.errRequired': '닉네임을 입력해 주세요.',
   'findId.inputLabel': '닉네임 또는 이메일',
   'findId.inputPh': '닉네임 또는 이메일 일부를 입력하세요',
   'findId.submit': '아이디 찾기',

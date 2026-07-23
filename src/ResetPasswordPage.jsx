@@ -18,9 +18,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { completePasswordReset } from './lib/auth.js'
+import { clearRecoveryIntent } from './lib/authRecoveryState.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { useToast } from './contexts/ToastContext.jsx'
+import Alert from './components/Alert.jsx'
 import Icon from './components/Icon.jsx'
 import './SignupPage.css'
 import './RecoveryPages.css'
@@ -45,6 +47,13 @@ export default function ResetPasswordPage() {
         ? 'ready'
         : 'invalid'
 
+  // "로그인/홈으로 돌아가기": recovery intent를 먼저 비우고 이동한다. 그래야 LoginPage가
+  // (hasRecoveryIntent 기반 판정으로) 다시 /reset-password로 바운스하지 않는다.
+  function leaveToLogin(state) {
+    clearRecoveryIntent()
+    navigate('/', { replace: true, state })
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
@@ -62,7 +71,7 @@ export default function ResetPasswordPage() {
       // 약 1.5초 후 로그인 페이지(/)로 자동 이동 (recovery 세션은 이미 종료됨).
       // replace: true → 뒤로가기 시 reset-password 성공 화면으로 복귀하지 않음.
       // state.passwordResetSuccess → 로그인 페이지에서 "새 비밀번호로 로그인" 안내 표시.
-      setTimeout(() => navigate('/', { replace: true, state: { passwordResetSuccess: true } }), 1500)
+      setTimeout(() => leaveToLogin({ passwordResetSuccess: true }), 1500)
     } else {
       // 복구 가능한 실패 → intent를 지우지 않고 재입력 허용
       setError(res.error || t('resetPw.errGeneric'))
@@ -87,15 +96,14 @@ export default function ResetPasswordPage() {
         )}
 
         {pageStatus === 'invalid' && (
-          <div className="rec-result" role="alert">
-            <span className="rec-result-icon" aria-hidden="true"><Icon name="warningTriangle" size={26} /></span>
-            <p className="rec-result-label">{t('resetPw.invalidTitle')}</p>
-            <p className="rec-result-note">{t('resetPw.invalidDesc')}</p>
+          <div className="rec-result">
+            {/* 항목1: 만료/무효 안내를 공용 Alert(통일 색상·아이콘 정렬·padding·radius·모바일 줄바꿈)로 */}
+            <Alert kind="error" boxed style={{ marginBottom: 16 }}>{t('resetPw.invalidDesc')}</Alert>
             <div className="rec-result-actions">
               <button type="button" className="su-btn rec-btn-link" onClick={() => navigate('/find-password', { replace: true })}>
                 {t('resetPw.requestNew')}
               </button>
-              <button type="button" className="su-btn rec-btn-link" onClick={() => navigate('/', { replace: true })}>
+              <button type="button" className="su-btn rec-btn-link" onClick={() => leaveToLogin()}>
                 {t('findId.goLogin')}
               </button>
             </div>
@@ -108,7 +116,7 @@ export default function ResetPasswordPage() {
             <p className="rec-result-label">{t('resetPw.doneTitle')}</p>
             <p className="rec-result-note">{t('resetPw.doneDesc')}</p>
             <div className="rec-result-actions">
-              <button type="button" className="su-btn rec-btn-link" onClick={() => navigate('/', { replace: true, state: { passwordResetSuccess: true } })}>
+              <button type="button" className="su-btn rec-btn-link" onClick={() => leaveToLogin({ passwordResetSuccess: true })}>
                 {t('findId.goLogin')}
               </button>
             </div>
@@ -153,13 +161,14 @@ export default function ResetPasswordPage() {
         )}
 
         <div className="rec-links">
-          <Link to="/" className="signup-login-link">{t('find.backToLogin')}</Link>
+          {/* 항목3: '/'로 나갈 때는 recovery intent를 비워 바운스를 막는다(button + leaveToLogin) */}
+          <button type="button" className="signup-login-link rec-linkbtn" onClick={() => leaveToLogin()}>{t('find.backToLogin')}</button>
           <span className="rec-sep">·</span>
           <Link to="/find-password" className="signup-login-link">{t('login.findPw')}</Link>
         </div>
       </div>
 
-      <Link to="/" className="signup-home-link">{t('common.backToHome')}</Link>
+      <button type="button" className="signup-home-link rec-linkbtn" onClick={() => leaveToLogin()}>{t('common.backToHome')}</button>
     </div>
   )
 }

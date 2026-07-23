@@ -76,7 +76,8 @@ export default {
   // Account recovery (find ID / password)
   'find.backToLogin': 'Back to login',
   'findId.title': 'Find your ID',
-  'findId.subtitle': 'Enter the nickname or part of the email you signed up with, and we\'ll show your registered email.',
+  'findId.subtitle': 'Enter the nickname you signed up with, and we\'ll send account info to your registered email.',
+  'findId.errRequired': 'Please enter a nickname.',
   'findId.inputLabel': 'Nickname or email',
   'findId.inputPh': 'Enter your nickname or part of your email',
   'findId.submit': 'Find ID',

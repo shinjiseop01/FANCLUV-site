@@ -4,6 +4,7 @@ import { login } from './lib/auth.js'
 import { isValidEmail } from './lib/authForm.js'
 import { postAuthPath } from './lib/authRoute.js'
 import { isSupabaseConfigured, isProdMisconfigured } from './lib/supabase.js'
+import { hasRecoveryIntent } from './lib/authRecoveryState.js'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { useLang } from './contexts/LanguageContext.jsx'
 import Alert from './components/Alert.jsx'
@@ -67,9 +68,12 @@ export default function LoginPage() {
 
   // recovery 세션(비밀번호 재설정 링크)이 Site URL fallback으로 '/'(로그인 화면)에
   // 떨어질 수 있다. 이 경우 홈으로 라우팅하지 말고 /reset-password로 넘긴다.
+  // ⚠️ 판정은 recoveryStatus(컨텍스트 상태)가 아니라 hasRecoveryIntent()(보존된
+  //    intent)로 한다. 사용자가 /reset-password에서 "로그인으로 돌아가기"로 나오면
+  //    핸들러가 intent를 먼저 비우므로, 여기서 다시 /reset-password로 바운스되지 않는다.
   useEffect(() => {
     if (!isSupabaseConfigured) return
-    if (recoveryStatus === 'active') {
+    if (hasRecoveryIntent()) {
       navigate('/reset-password', { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

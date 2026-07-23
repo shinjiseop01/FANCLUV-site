@@ -75,6 +75,16 @@
 .rec-links .signup-login-link { margin-left: 0; }
 .rec-sep { color: var(--border); }
 
+/* 링크처럼 보이는 버튼(뒤로가기 등) — 기본 버튼 스타일 제거해 <Link>와 동일 외형 */
+.rec-linkbtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  line-height: inherit;
+}
+
 /* Email verification page */
 .ve-badge {
   display: inline-flex; align-items: center; justify-content: center;
