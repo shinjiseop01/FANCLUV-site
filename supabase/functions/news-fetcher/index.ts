@@ -46,6 +46,11 @@ function decodeEntities(s: string) {
     .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(parseInt(n, 10)))
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'").replace(/&apos;/g, "'").replace(/&nbsp;/g, ' ')
+    // 자주 쓰이는 명명 엔티티(따옴표/대시/생략 등) — 미처리 시 본문에 &lsquo; 등이 노출된다.
+    .replace(/&lsquo;/g, '‘').replace(/&rsquo;/g, '’').replace(/&ldquo;/g, '“').replace(/&rdquo;/g, '”')
+    .replace(/&hellip;/g, '…').replace(/&middot;/g, '·').replace(/&bull;/g, '•')
+    .replace(/&ndash;/g, '–').replace(/&mdash;/g, '—').replace(/&trade;/g, '™')
+    .replace(/&reg;/g, '®').replace(/&copy;/g, '©').replace(/&deg;/g, '°').replace(/&times;/g, '×')
     .replace(/&amp;/g, '&')
 }
 function clean(s: string, max = 300) {
@@ -204,12 +209,21 @@ async function collectFetch(url: string, hosts: string[], asJson = false): Promi
 }
 
 // HTML → plain text 문단 배열 → '\n\n' 결합. 태그/스크립트 완전 제거(XSS 원천 차단).
+// 일부 사이트는 본문을 이중 인코딩(&amp;lt;img&amp;gt;)하거나 HTML 주석을 남긴다 →
+// 주석 제거 + 디코드↔태그제거를 최대 2회 반복해 숨은 태그까지 환원·제거한다.
 function htmlToParagraphs(html: string): string {
   let s = String(html || '')
-  s = s.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ')
-  s = s.replace(/<\/(p|div|h[1-6]|li|tr)>/gi, '\n').replace(/<br\s*\/?>/gi, '\n')
-  s = stripTags(s)
-  s = decodeEntities(s)
+  s = s.replace(/<!--[\s\S]*?-->/g, ' ')                         // HTML 주석 제거
+  for (let i = 0; i < 2; i++) {
+    s = s.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    s = s.replace(/<\/(p|div|h[1-6]|li|tr)>/gi, '\n').replace(/<br\s*\/?>/gi, '\n')
+    s = stripTags(s)
+    const dec = decodeEntities(s)
+    if (dec === s) break                                          // 더 디코드할 게 없으면 종료
+    s = dec                                                       // 디코드로 드러난 태그를 다음 루프에서 제거
+  }
+  s = s.replace(/<[^>]*>/g, ' ')                                  // 완전한 태그 제거
+  s = s.replace(/<[a-zA-Z/!][^<]*$/, ' ')                         // 슬라이스가 태그 중간을 잘라 남긴 미완결 <tag 제거(끝단)
   const paras = s.split(/\n+/).map(x => x.replace(/\s+/g, ' ').trim()).filter(x => x.length > 1)
   return paras.join('\n\n').slice(0, 20000)
 }
@@ -234,6 +248,34 @@ function contentHash(s: string): string {
 
 function absUrl(href: string, base: string): string {
   try { return new URL(href, base).href } catch { return '' }
+}
+// URL 내 공백 등 안전 인코딩(이미지 src 저장용) — 이미 인코딩된 경우 중복 인코딩 방지.
+function safeUrl(u: string): string {
+  const s = String(u || '')
+  if (!s) return ''
+  try { return /%[0-9a-fA-F]{2}/.test(s) ? s : encodeURI(s) } catch { return s }
+}
+// 특정 컨테이너의 내부 HTML을 대략 추출(중첩 div 정밀 매칭 대신 시작~경계 슬라이스).
+// 헤더/푸터/댓글/버튼 영역이 뒤따르면 endRes 중 가장 가까운 경계에서 자른다.
+function sliceBlock(html: string, startRe: RegExp, endRes: RegExp[] = [], max = 16000): string {
+  const m = html.match(startRe)
+  if (!m || m.index == null) return ''
+  const from = m.index + m[0].length
+  const seg = html.slice(from, from + max)
+  let cut = seg.length
+  for (const er of endRes) { const e = seg.search(er); if (e >= 0 && e < cut) cut = e }
+  return seg.slice(0, cut)
+}
+// 블록 내 첫 콘텐츠 이미지(상대경로 허용) — 사이트 로고/아이콘은 최대한 회피.
+function firstImg(block: string): string {
+  const re = /<img[^>]+(?:data-src|src)=["']([^"']+\.(?:jpe?g|png|webp|gif)[^"']*)["']/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(block))) {
+    const u = m[1]
+    if (/logo|icon|blank|spacer|btn_|sns|footer|common\//i.test(u)) continue
+    return u
+  }
+  return ''
 }
 function isoDate(dateStr: string, timeStr = ''): string | null {
   const m = String(dateStr || '').match(/(20\d{2})[-./](\d{1,2})[-./](\d{1,2})/)
@@ -358,11 +400,359 @@ async function gwangjuDetail(id: string): Promise<{ content: string; image: stri
   return { content: htmlToParagraphs(decodeEntities(desc)), image: /^https?:\/\//.test(img) ? img : '' }
 }
 
-// 활성 Provider 레지스트리 — 실측 조사에서 목록/상세/이미지/날짜 파싱이 검증된 구단만.
-// (다른 구단은 세션기반/JS렌더/마크업 상이로 이번 단계 미활성 — NEWS_COLLECTION.md 참고)
-const CLUB_PROVIDERS: ClubProvider[] = [jeonbukProvider, gimcheonProvider, gwangjuProvider]
-const DETAIL_FETCHERS: Record<string, (id: string) => Promise<string | { content: string; image: string }>> = {
+type DetailResult = string | { content: string; image?: string; date?: string | null }
+
+// ── Provider: FC서울 (서버렌더 HTML — /media/newsList, 상세 /media/newsView) ──
+// 목록: newsView?seq=ID 앵커(그리드=span.news+제목 / 프리뷰=p.txt). 이미지는 상세에서 보강.
+const seoulProvider: ClubProvider = {
+  clubId: 'seoul', clubName: 'FC서울',
+  allowedHosts: ['www.fcseoul.com'],
+  async collect() {
+    const html = await collectFetch('https://www.fcseoul.com/media/newsList', this.allowedHosts)
+    const out: CollectedItem[] = []
+    const seen = new Set<string>()
+    const re = /<a href="(\/media\/newsView[^"]*?seq=(\d+)[^"]*)">([\s\S]*?)<\/a>/gi
+    let m: RegExpExecArray | null
+    while ((m = re.exec(html)) && out.length < MAX_COLLECT_ITEMS) {
+      const id = m[2], inner = m[3]
+      if (seen.has(id)) continue
+      // 제목: p.txt(프리뷰) 또는 span.news 뒤 <span>제목</span>(그리드)
+      const title = clean(inner.match(/<p class="txt">([\s\S]*?)<\/p>/i)?.[1]
+        || inner.match(/<span class="news">[\s\S]*?<\/span>\s*<span>([\s\S]*?)<\/span>/i)?.[1] || '', 300)
+      if (!title) continue
+      seen.add(id)
+      const img = inner.match(/<img src="([^"]+)"/i)?.[1] || ''
+      out.push({
+        team_id: 'seoul', source_article_id: id, title, content: '', excerpt: '',
+        image_url: img ? safeUrl(absUrl(img, 'https://www.fcseoul.com/')) : '',
+        source_name: 'FC서울',
+        source_url: `https://www.fcseoul.com/media/newsView?seq=${id}&resultPart=News`,
+        published_at: null, category: categorize(title),
+      })
+    }
+    return out
+  },
+}
+async function seoulDetail(id: string): Promise<DetailResult> {
+  const html = await collectFetch(`https://www.fcseoul.com/media/newsView?seq=${id}&resultPart=News`, seoulProvider.allowedHosts)
+  const block = sliceBlock(html, /<div class="txtWrap"[^>]*>/i, [/<div class="(?:btn|sns|list|paging)/i])
+  const dateReg = sliceBlock(html, /<div class="txtTit"[^>]*>|<div class="tit"[^>]*>/i, [], 800) + block.slice(0, 200)
+  const d = dateReg.match(/20\d{2}[-.]\s?\d{1,2}[-.]\s?\d{1,2}/)?.[0] || ''
+  return { content: htmlToParagraphs(block), image: safeUrl(absUrl(firstImg(block), 'https://www.fcseoul.com/')), date: isoDate(d) }
+}
+
+// ── Provider: 울산 HD (서버렌더 HTML 게시판, 2개 소스 news_g/presskits) ──
+// source_article_id 에 buid 프리픽스 → 두 게시판 no_seq 충돌 방지.
+// 울산 news_g: 표(table) 게시판. no_seq 프리픽스로 게시판 구분(충돌 방지).
+async function ulsanNewsBoard(): Promise<CollectedItem[]> {
+  const html = await collectFetch('https://www.uhdfc.com/board/board.php?buid=news_g', ['www.uhdfc.com'])
+  const out: CollectedItem[] = []
+  const re = /<a href="board_view\.php\?[^"]*no_seq=(\d+)[^"]*buid=news_g[^"]*">([^<]+)<\/a>[\s\S]{0,80}?<td>(\d{4}-\d{2}-\d{2})/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(html)) && out.length < 6) {
+    const id = m[1], title = clean(m[2], 300)
+    if (!title) continue
+    out.push({
+      team_id: 'ulsan', source_article_id: `news_g:${id}`, title, content: '', excerpt: '',
+      image_url: '', source_name: '울산 HD',
+      source_url: `https://www.uhdfc.com/board/board_view.php?no_seq=${id}&buid=news_g`,
+      published_at: isoDate(m[3]), category: '구단 공지',
+    })
+  }
+  return out
+}
+// 울산 presskits(리뷰·프리뷰): 썸네일 갤러리(board_thum). h3 제목 + 대표 이미지.
+async function ulsanPressBoard(): Promise<CollectedItem[]> {
+  const html = await collectFetch('https://www.uhdfc.com/board/board.php?buid=presskits', ['www.uhdfc.com'])
+  const out: CollectedItem[] = []
+  const re = /<div class="box">\s*<div class="img">\s*<a href="board_view\.php\?[^"]*no_seq=(\d+)[^"]*buid=presskits[^"]*">\s*<img src="([^"]*)"[\s\S]*?<h3>([\s\S]*?)<\/h3>/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(html)) && out.length < 6) {
+    const id = m[1], img = m[2], title = clean((m[3] || '').replace(/<span>[\s\S]*?<\/span>/gi, ''), 300)
+    if (!title) continue
+    out.push({
+      team_id: 'ulsan', source_article_id: `presskits:${id}`, title, content: '', excerpt: '',
+      image_url: img ? safeUrl(absUrl(img, 'https://www.uhdfc.com/')) : '',
+      source_name: '울산 HD (프리뷰·리뷰)',
+      source_url: `https://www.uhdfc.com/board/board_view.php?no_seq=${id}&buid=presskits`,
+      published_at: null, category: '경기',
+    })
+  }
+  return out
+}
+const ulsanProvider: ClubProvider = {
+  clubId: 'ulsan', clubName: '울산 HD',
+  allowedHosts: ['www.uhdfc.com'],
+  async collect() {
+    // 2개 소스 각각 실패 격리 후 인터리브(둘 다 노출되도록 번갈아 합침).
+    const parts = await Promise.allSettled([ulsanNewsBoard(), ulsanPressBoard()])
+    const a = parts[0].status === 'fulfilled' ? parts[0].value : []
+    const b = parts[1].status === 'fulfilled' ? parts[1].value : []
+    const merged: CollectedItem[] = []
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+      if (a[i]) merged.push(a[i]); if (b[i]) merged.push(b[i])
+    }
+    if (!merged.length) throw new Error('empty_list')
+    return merged.slice(0, MAX_COLLECT_ITEMS)
+  },
+}
+async function ulsanDetail(sid: string): Promise<DetailResult> {
+  const [buid, id] = sid.split(':')
+  const html = await collectFetch(`https://www.uhdfc.com/board/board_view.php?no_seq=${id}&buid=${buid}`, ulsanProvider.allowedHosts)
+  // 본문은 .txt_area(에디터 영역)에 있다(.board_view 는 제목/메타 래퍼).
+  const block = sliceBlock(html, /<div class="txt_area"[^>]*>/i, [/<div class="board_(?:view_bottom|reply|btn|share|list)/i])
+  const d = html.match(/작성일[\s\S]{0,40}?(20\d{2}-\d{1,2}-\d{1,2})/)?.[1] || ''
+  return { content: htmlToParagraphs(block), image: safeUrl(absUrl(firstImg(block), 'https://www.uhdfc.com/')), date: isoDate(d) }
+}
+
+// ── Provider: 포항 스틸러스 ──
+// 레거시 notice_list API 는 2020 아카이브로 고정 → 사용 불가. 공식 페이지 SSR 의 최신
+// feedBox(data-feed=카테고리, data-link=notice_detail?id=) 를 수집(사이트가 노출하는 최신분).
+const pohangProvider: ClubProvider = {
+  clubId: 'pohang', clubName: '포항 스틸러스',
+  allowedHosts: ['www.steelers.co.kr'],
+  async collect() {
+    const html = await collectFetch('https://www.steelers.co.kr/board/notice?to=notice', this.allowedHosts)
+    const out: CollectedItem[] = []
+    const seen = new Set<string>()
+    const re = /data-feed="([^"]*)"\s+data-link="\/board\/notice_detail\?id=(\d+)"[^>]*>([\s\S]*?)<\/a>/gi
+    let m: RegExpExecArray | null
+    while ((m = re.exec(html)) && out.length < MAX_COLLECT_ITEMS) {
+      const feed = m[1], id = m[2], inner = m[3]
+      if (seen.has(id)) continue
+      seen.add(id)
+      const title = clean(inner.match(/<p class="title">([\s\S]*?)<\/p>/i)?.[1] || '', 300)
+      if (!title) continue
+      const bg = inner.match(/url\((?:&quot;|["'])?([^)"'&]+)/i)?.[1] || ''
+      const cat = /보도/.test(feed) ? '경기' : '구단 공지'
+      out.push({
+        team_id: 'pohang', source_article_id: id, title, content: '', excerpt: '',
+        image_url: bg ? safeUrl(bg) : '',
+        source_name: /보도/.test(feed) ? '포항 스틸러스 (보도자료)' : '포항 스틸러스',
+        source_url: `https://www.steelers.co.kr/board/notice_detail?id=${id}`,
+        published_at: null, category: cat,
+      })
+    }
+    if (!out.length) throw new Error('empty_list')
+    return out
+  },
+}
+async function pohangDetail(id: string): Promise<DetailResult> {
+  const html = await collectFetch(`https://www.steelers.co.kr/board/notice_detail?id=${id}`, pohangProvider.allowedHosts)
+  const block = sliceBlock(html, /<div class="contBox whiteType"[^>]*>/i, [/<div class="(?:contBtm|listBtn|prevNext|reply)/i])
+  // 작성일 라벨과 날짜 사이에 태그가 있으므로 태그 허용 매칭.
+  const d = html.match(/작성일[\s\S]{0,60}?(20\d{2}[.-]\d{1,2}[.-]\d{1,2})/)?.[1] || ''
+  return { content: htmlToParagraphs(block), image: safeUrl(firstImg(block)), date: isoDate(d) }
+}
+
+// ── Provider: 대전 하나 시티즌 (서버렌더 HTML — bd_l/bd_v, 김천과 유사하나 selector 상이) ──
+const daejeonProvider: ClubProvider = {
+  clubId: 'daejeon', clubName: '대전하나시티즌',
+  allowedHosts: ['www.dhcfc.kr'],
+  async collect() {
+    const html = await collectFetch('https://www.dhcfc.kr/bd/bd_l.php?buid=g_news', this.allowedHosts)
+    const out: CollectedItem[] = []
+    const seen = new Set<string>()
+    const re = /<a href="\/bd\/bd_v\.php\?buid=g_news&(?:amp;)?no_seq=(\d+)">([\s\S]*?)<\/a>/gi
+    let m: RegExpExecArray | null
+    while ((m = re.exec(html)) && out.length < MAX_COLLECT_ITEMS) {
+      const id = m[1], inner = m[2]
+      if (seen.has(id)) continue
+      const title = clean(inner.match(/<div class="txt">([\s\S]*?)<\/div>/i)?.[1] || '', 300)
+      if (!title) continue
+      seen.add(id)
+      const img = inner.match(/<img src="([^"]+)"/i)?.[1] || ''
+      out.push({
+        team_id: 'daejeon', source_article_id: id, title, content: '', excerpt: '',
+        image_url: img ? safeUrl(absUrl(img, 'https://www.dhcfc.kr/')) : '',
+        source_name: '대전하나시티즌',
+        source_url: `https://www.dhcfc.kr/bd/bd_v.php?buid=g_news&no_seq=${id}`,
+        published_at: null, category: categorize(title),
+      })
+    }
+    if (!out.length) throw new Error('empty_list')
+    return out
+  },
+}
+async function daejeonDetail(id: string): Promise<DetailResult> {
+  const html = await collectFetch(`https://www.dhcfc.kr/bd/bd_v.php?buid=g_news&no_seq=${id}`, daejeonProvider.allowedHosts)
+  const block = sliceBlock(html, /<div class="bd_v_cont"[^>]*>/i, [/<div class="bd_v_(?:file|btn|move)/i])
+  // 날짜는 .bd_v_info 의 .right(작성자 다음)에 있다 → 첫 </div> 로 자르지 말고 넓게 슬라이스.
+  const info = sliceBlock(html, /<div class="bd_v_info"[^>]*>/i, [/<div class="bd_v_cont"/i], 600)
+  const d = info.match(/20\d{2}[.-]\d{1,2}[.-]\d{1,2}/)?.[0] || ''
+  return { content: htmlToParagraphs(block), image: safeUrl(absUrl(firstImg(block), 'https://www.dhcfc.kr/')), date: isoDate(d) }
+}
+
+// ── Provider: 강원FC (서버렌더 HTML — /news 목록에 img/제목/날짜, 상세 /news/:id) ──
+const gangwonProvider: ClubProvider = {
+  clubId: 'gangwon', clubName: '강원FC',
+  allowedHosts: ['gangwon-fc.com'],
+  async collect() {
+    const html = await collectFetch('https://gangwon-fc.com/news', this.allowedHosts)
+    const out: CollectedItem[] = []
+    const re = /<div class="item">\s*<a href="\/news\/(\d+)"[\s\S]*?<img src="([^"]+)"[\s\S]*?<p class="subject[^"]*">([\s\S]*?)<\/p>[\s\S]*?<span class="date">([^<]+)<\/span>/gi
+    let m: RegExpExecArray | null
+    while ((m = re.exec(html)) && out.length < MAX_COLLECT_ITEMS) {
+      const id = m[1], img = m[2], title = clean(m[3], 300), date = m[4].trim()
+      if (!title) continue
+      out.push({
+        team_id: 'gangwon', source_article_id: id, title, content: '', excerpt: '',
+        image_url: img ? safeUrl(absUrl(img, 'https://gangwon-fc.com/')) : '',
+        source_name: '강원FC', source_url: `https://gangwon-fc.com/news/${id}`,
+        published_at: isoDate(date), category: categorize(title),
+      })
+    }
+    if (!out.length) throw new Error('empty_list')
+    return out
+  },
+}
+async function gangwonDetail(id: string): Promise<DetailResult> {
+  const html = await collectFetch(`https://gangwon-fc.com/news/${id}`, gangwonProvider.allowedHosts)
+  const block = sliceBlock(html, /<div class="boardView"[^>]*>/i, [/<span class="viewmore"|<div class="board(?:Btn|List)|<div class="prevNext"/i])
+  return { content: htmlToParagraphs(block), image: safeUrl(absUrl(firstImg(block), 'https://gangwon-fc.com/')) }
+}
+
+// ── Provider: 제주 SK FC (서버렌더 HTML — 목록 table tr onclick bbsSn, 상세 oldImage) ──
+const jejuProvider: ClubProvider = {
+  clubId: 'jeju', clubName: '제주SK FC',
+  allowedHosts: ['www.jejuskfc.com'],
+  async collect() {
+    const html = await collectFetch('https://www.jejuskfc.com/board/news/list', this.allowedHosts)
+    const out: CollectedItem[] = []
+    const re = /<tr onclick="location\.href=[^"]*bbsSn=(\d+)[^"]*"[^>]*>([\s\S]*?)<\/tr>/gi
+    let m: RegExpExecArray | null
+    while ((m = re.exec(html)) && out.length < MAX_COLLECT_ITEMS) {
+      const id = m[1], inner = m[2]
+      const title = clean(inner.match(/<div class="subjectWrap">\s*<p>([\s\S]*?)<\/p>/i)?.[1] || '', 300)
+      if (!title) continue
+      const date = inner.match(/<td>(\d{4}-\d{2}-\d{2})<\/td>/i)?.[1] || ''
+      out.push({
+        team_id: 'jeju', source_article_id: id, title, content: '', excerpt: '',
+        image_url: '', source_name: '제주SK FC',
+        source_url: `https://www.jejuskfc.com/board/news/detail?bbsSn=${id}`,
+        published_at: isoDate(date), category: categorize(title),
+      })
+    }
+    if (!out.length) throw new Error('empty_list')
+    return out
+  },
+}
+async function jejuDetail(id: string): Promise<DetailResult> {
+  const html = await collectFetch(`https://www.jejuskfc.com/board/news/detail?bbsSn=${id}`, jejuProvider.allowedHosts)
+  const block = sliceBlock(html, /<div class="oldImage"[^>]*>/i, [/<div class="(?:detail_close|views|btnArea|paging)/i])
+  return { content: htmlToParagraphs(block), image: safeUrl(absUrl(firstImg(block), 'https://www.jejuskfc.com/')) }
+}
+
+// ── Provider: FC안양 (ASP — 목록 goDetail(seq)+제목, 상세 newsDetail.asp view_data) ──
+const anyangProvider: ClubProvider = {
+  clubId: 'anyang', clubName: 'FC안양',
+  allowedHosts: ['www.fc-anyang.com'],
+  async collect() {
+    const html = await collectFetch('https://www.fc-anyang.com/news/news.asp?menu=TNews', this.allowedHosts)
+    const out: CollectedItem[] = []
+    const seen = new Set<string>()
+    const re = /goDetail\((\d+)\)[^>]*>([\s\S]{0,220}?)<\/a>/gi
+    let m: RegExpExecArray | null
+    while ((m = re.exec(html)) && out.length < MAX_COLLECT_ITEMS) {
+      const id = m[1], title = clean(m[2], 300)
+      if (!title || seen.has(id)) continue
+      seen.add(id)
+      out.push({
+        team_id: 'anyang', source_article_id: id, title, content: '', excerpt: '',
+        image_url: '', source_name: 'FC안양',
+        source_url: `https://www.fc-anyang.com/news/newsDetail.asp?menu=TNews&seq=${id}`,
+        published_at: null, category: categorize(title),
+      })
+    }
+    if (!out.length) throw new Error('empty_list')
+    return out
+  },
+}
+async function anyangDetail(id: string): Promise<DetailResult> {
+  const html = await collectFetch(`https://www.fc-anyang.com/news/newsDetail.asp?menu=TNews&seq=${id}`, anyangProvider.allowedHosts)
+  const block = sliceBlock(html, /<div class="view_data"[^>]*>/i, [/<div class="btn_center"|<div class="submenu"/i])
+  const d = sliceBlock(html, /<div class="sub_content"[^>]*>/i, [], 1500).match(/20\d{2}[-.]\d{1,2}[-.]\d{1,2}/)?.[0] || ''
+  return { content: htmlToParagraphs(block), image: safeUrl(absUrl(firstImg(block), 'https://www.fc-anyang.com/')), date: isoDate(d) }
+}
+
+// ── Provider: 인천 유나이티드 (서버렌더 HTML — feedBox feeds_view?idx, 상세 boardView) ──
+const incheonProvider: ClubProvider = {
+  clubId: 'incheon', clubName: '인천 유나이티드',
+  allowedHosts: ['www.incheonutd.com'],
+  async collect() {
+    const html = await collectFetch('https://www.incheonutd.com/fanzone/feeds_news.php', this.allowedHosts)
+    const out: CollectedItem[] = []
+    const re = /<div class="feedBox" data-feeds="news">\s*<a href="[^"]*feeds_view\.php\?idx=(\d+)[^"]*">([\s\S]*?)<\/a>/gi
+    let m: RegExpExecArray | null
+    while ((m = re.exec(html)) && out.length < MAX_COLLECT_ITEMS) {
+      const id = m[1], inner = m[2]
+      const title = clean(inner.match(/<p class="subject">([\s\S]*?)<\/p>/i)?.[1] || '', 300)
+      if (!title) continue
+      const img = inner.match(/<img src="([^"]+)"/i)?.[1] || ''
+      out.push({
+        team_id: 'incheon', source_article_id: id, title, content: '', excerpt: '',
+        image_url: img ? safeUrl(absUrl(img, 'https://www.incheonutd.com/')) : '',
+        source_name: '인천 유나이티드',
+        source_url: `https://www.incheonutd.com/fanzone/feeds_view.php?idx=${id}&tgbn=feeds_news`,
+        published_at: null, category: categorize(title),
+      })
+    }
+    if (!out.length) throw new Error('empty_list')
+    return out
+  },
+}
+async function incheonDetail(id: string): Promise<DetailResult> {
+  const html = await collectFetch(`https://www.incheonutd.com/fanzone/feeds_view.php?idx=${id}&tgbn=feeds_news`, incheonProvider.allowedHosts)
+  const block = sliceBlock(html, /<div class="boardView"[^>]*>/i, [/<div class="(?:boardBtn|boardList|reply|paging)/i])
+  const head = block.slice(0, 400)
+  const d = head.match(/20\d{2}[-.]\d{1,2}[-.]\d{1,2}/)?.[0] || ''
+  return { content: htmlToParagraphs(block), image: safeUrl(absUrl(firstImg(block), 'https://www.incheonutd.com/')), date: isoDate(d) }
+}
+
+// ── Provider: 부천FC1995 (SPA — 공개 JSON API clubNewsList + clubNews/{seq}/detail) ──
+const bucheonProvider: ClubProvider = {
+  clubId: 'bucheon', clubName: '부천FC1995',
+  allowedHosts: ['bfc1995.com'],
+  async collect() {
+    const raw = await collectFetch('https://bfc1995.com/api/media/clubNewsList?page=1', this.allowedHosts, true)
+    const data = JSON.parse(raw)?.data
+    const list = (Array.isArray(data) ? data : (data?.list || [])).slice(0, MAX_COLLECT_ITEMS)
+    const out: CollectedItem[] = []
+    for (const it of list) {
+      const seq = String(it.seq || '')
+      const title = decodeEntities(String(it.Title || '')).trim()
+      if (!seq || !title) continue
+      out.push({
+        team_id: 'bucheon', source_article_id: seq, title: title.slice(0, 300),
+        content: '', excerpt: '',
+        image_url: /^https?:\/\//.test(String(it.TopImage || '')) ? safeUrl(String(it.TopImage)) : '',
+        source_name: '부천FC1995',
+        source_url: `https://bfc1995.com/media/clubNews/${seq}`,
+        published_at: isoDate(String(it.regDate || '').replace(/-/g, '.'), String(it.regDate || '').slice(11)),
+        category: categorize(title),
+      })
+    }
+    return out
+  },
+}
+async function bucheonDetail(seq: string): Promise<DetailResult> {
+  const raw = await collectFetch(`https://bfc1995.com/api/media/clubNews/${seq}/detail`, bucheonProvider.allowedHosts, true)
+  const cur = JSON.parse(raw)?.data?.current
+  const html = String(cur?.Content || '')
+  const img = firstImg(html)
+  return { content: htmlToParagraphs(html), image: img ? safeUrl(/^https?:\/\//.test(img) ? img : absUrl(img, 'https://bfc1995.com/')) : '' }
+}
+
+// 활성 Provider 레지스트리 — 실측 조사에서 목록/상세 파싱이 검증된 12개 구단.
+const CLUB_PROVIDERS: ClubProvider[] = [
+  jeonbukProvider, gimcheonProvider, gwangjuProvider,
+  seoulProvider, ulsanProvider, pohangProvider, daejeonProvider,
+  gangwonProvider, jejuProvider, anyangProvider, incheonProvider, bucheonProvider,
+]
+const DETAIL_FETCHERS: Record<string, (id: string) => Promise<DetailResult>> = {
   jeonbuk: jeonbukDetail, gimcheon: gimcheonDetail, gwangju: gwangjuDetail,
+  seoul: seoulDetail, ulsan: ulsanDetail, pohang: pohangDetail, daejeon: daejeonDetail,
+  gangwon: gangwonDetail, jeju: jejuDetail, anyang: anyangDetail, incheon: incheonDetail, bucheon: bucheonDetail,
 }
 
 // 한 구단 수집 → team_news upsert. 반환: { collected, inserted, updated }
@@ -382,13 +772,20 @@ async function collectClub(admin: ReturnType<typeof createClient>, p: ClubProvid
   // 신규/본문누락 기사만 상세 본문 fetch(실행당 상한 + 요청 간 짧은 지연 — 원 사이트 보호)
   let detailFetched = 0
   const detailErrors: string[] = []
+  const fetcher = DETAIL_FETCHERS[p.clubId]
   for (const it of items) {
+    if (it.content) continue                               // Provider 가 이미 본문 확보(예: inline)
     if (known.get(it.source_article_id) === true) continue // 실본문 이미 보유 → skip
+    if (!fetcher) continue                                 // 상세 fetcher 없음(목록 메타만)
     if (detailFetched >= MAX_DETAIL_FETCH) break
     try {
-      const d = await DETAIL_FETCHERS[p.clubId](it.source_article_id)
+      const d = await fetcher(it.source_article_id)
       if (typeof d === 'string') it.content = d
-      else { it.content = d.content; if (!it.image_url && d.image) it.image_url = d.image }
+      else {
+        it.content = d.content
+        if (!it.image_url && d.image) it.image_url = d.image
+        if (!it.published_at && d.date) it.published_at = d.date  // 목록에 날짜 없으면 상세에서 보강
+      }
       if (!it.content) detailErrors.push(`${it.source_article_id}:empty`)
       detailFetched++
       await new Promise(r => setTimeout(r, 400))
