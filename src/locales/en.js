@@ -952,12 +952,16 @@ export default {
   'admin.deniedTitle': 'Access denied',
   'admin.deniedMsg': 'This page is for FANCLUV administrators only.',
   'admin.deniedHome': 'Back to Home',
+  // Menu groups (sidebar section headers)
+  'admin.group.ops': 'Operations',
+  'admin.group.support': 'Support',
+  'admin.group.analytics': 'Analytics / B2B',
+  'admin.group.infra': 'Infra / Ops',
   // Menu
   'admin.menu.dashboard': 'Dashboard',
   'admin.menu.members': 'Members',
   'admin.menu.opinions': 'Fan Opinions',
   'admin.menu.surveys': 'Surveys',
-  'admin.menu.quickpoll': 'Quick Poll',
   // Quick Poll — fan embed
   'qp.title': 'Quick Poll', 'qp.loadError': 'Failed to load.', 'qp.retry': 'Retry',
   'qp.totalVotes': '{n} participated', 'qp.st.active': 'Active', 'qp.st.closed': 'Closed', 'qp.st.archived': 'Archived', 'qp.st.draft': 'Draft',
@@ -1887,8 +1891,7 @@ export default {
   'set.profileSaved': 'Your profile has been saved.',
 
 
-  // ── Realtime statistics (Phase 19) ──
-  'admin.menu.realtimeStats': 'Realtime Stats',
+  // ── Realtime statistics (Phase 19) — fan stats infra; standalone admin menu removed (duplicate of Dashboard). ──
   'stats.chartSummary': 'Trend over the selected period.',
   'stats.noActivity': 'No recent activity.',
   'stats.justNow': 'just now',

@@ -69,8 +69,6 @@ const AdminCustomers = lazy(() => import('./admin/AdminCustomers.jsx'))
 const AdminLeagueApi = lazy(() => import('./admin/AdminLeagueApi.jsx'))
 const AdminSystemStatus = lazy(() => import('./admin/AdminSystemStatus.jsx'))
 const AdminIdentity = lazy(() => import('./admin/AdminIdentity.jsx'))
-const AdminQuickPoll = lazy(() => import('./admin/AdminQuickPoll.jsx'))
-const AdminRealtimeDashboard = lazy(() => import('./admin/AdminRealtimeDashboard.jsx'))
 const AdminSettings = lazy(() => import('./admin/AdminSettings.jsx'))
 const AdminSupport = lazy(() => import('./admin/AdminSupport.jsx'))
 const SupportPage = lazy(() => import('./SupportPage.jsx'))
@@ -201,9 +199,10 @@ createRoot(document.getElementById('root')).render(
           <Route path="league" element={<AdminLeagueApi />} />
           <Route path="system" element={<AdminSystemStatus />} />
           <Route path="identity" element={<AdminIdentity />} />
-          <Route path="quickpoll" element={<AdminQuickPoll />} />
-          <Route path="realtime" element={<AdminRealtimeDashboard />} />
           <Route path="settings" element={<AdminSettings />} />
+          {/* 제품 범위에서 제외된 구 라우트(quickpoll/realtime)나 오타 경로는
+              빈 관리자 셸(죽은 화면) 대신 대시보드로 되돌린다. */}
+          <Route path="*" element={<Navigate to="/admin" replace />} />
         </Route>
 
         {/* ── Club Executive Dashboard (B2B 구단 고객 전용) ── */}

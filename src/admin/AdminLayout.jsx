@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LanguageContext.jsx'
 import { logout, getCurrentUser, getRole } from '../lib/auth.js'
 import NotificationBell from '../components/NotificationBell.jsx'
-import { visibleMenu } from './adminData.js'
+import { groupedMenu } from './adminData.js'
 import './admin.css'
 
 // Inline icons per menu key.
@@ -22,9 +22,7 @@ const ICONS = {
   league: <path d="M12 3l7 3v5c0 4.4-3 8.2-7 9-4-.8-7-4.6-7-9V6l7-3zM9.5 12l1.7 1.7L15 10" />,
   systemStatus: <path d="M22 12h-4l-3 9L9 3l-3 9H2" />,
   identity: <path d="M12 3l7 3v5c0 4.4-3 8.2-7 9-4-.8-7-4.6-7-9V6l7-3z M9 12l2 2 4-4" />,
-  quickpoll: <path d="M9 11l3 3 8-8 M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" />,
-  realtimeStats: <path d="M3 3v18h18M7 14l3-3 3 2 4-5" />,
-  settings: <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />,
+  settings: <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />,
 }
 
 export default function AdminLayout() {
@@ -32,7 +30,7 @@ export default function AdminLayout() {
   const { t } = useLang()
   const user = getCurrentUser()
   const role = getRole()
-  const menu = visibleMenu(role)
+  const groups = groupedMenu(role)
 
   return (
     <div className="ch-root admin-shell">
@@ -42,17 +40,22 @@ export default function AdminLayout() {
           FANCLUV <span>Admin</span>
         </div>
         <nav className="adm-nav" aria-label="Admin menu">
-          {menu.map(item => (
-            <NavLink
-              key={item.key}
-              to={item.path}
-              end={item.key === 'dashboard'}
-              className={({ isActive }) => `adm-nav-item${isActive ? ' on' : ''}`}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"
-                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{ICONS[item.key]}</svg>
-              <span>{t(item.labelKey)}</span>
-            </NavLink>
+          {groups.map(group => (
+            <div className="adm-nav-group" key={group.key}>
+              <p className="adm-nav-group-label">{t(group.labelKey)}</p>
+              {group.items.map(item => (
+                <NavLink
+                  key={item.key}
+                  to={item.path}
+                  end={item.key === 'dashboard'}
+                  className={({ isActive }) => `adm-nav-item${isActive ? ' on' : ''}`}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"
+                    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{ICONS[item.key]}</svg>
+                  <span>{t(item.labelKey)}</span>
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
         <div className="adm-sidebar-foot">

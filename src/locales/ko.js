@@ -952,12 +952,16 @@ export default {
   'admin.deniedTitle': '접근 권한이 없습니다',
   'admin.deniedMsg': '이 페이지는 FANCLUV 운영자만 사용할 수 있습니다.',
   'admin.deniedHome': '홈으로 돌아가기',
+  // 메뉴 그룹(사이드바 섹션 헤더)
+  'admin.group.ops': '운영',
+  'admin.group.support': '고객 지원',
+  'admin.group.analytics': '분석 / B2B',
+  'admin.group.infra': '인프라 / 운영',
   // 메뉴
   'admin.menu.dashboard': '대시보드',
   'admin.menu.members': '회원 관리',
   'admin.menu.opinions': '팬 의견 관리',
   'admin.menu.surveys': '설문 관리',
-  'admin.menu.quickpoll': 'Quick Poll',
   // Quick Poll — 팬 임베드
   'qp.title': '빠른 투표', 'qp.loadError': '불러오지 못했습니다.', 'qp.retry': '다시 시도',
   'qp.totalVotes': '총 {n}명 참여', 'qp.st.active': '진행중', 'qp.st.closed': '종료', 'qp.st.archived': '보관', 'qp.st.draft': '임시',
@@ -1887,8 +1891,7 @@ export default {
   'set.profileSaved': '프로필이 저장되었습니다.',
 
 
-  // ── 실시간 통계(Phase 19) ──
-  'admin.menu.realtimeStats': '실시간 통계',
+  // ── 실시간 통계(Phase 19) — 팬 통계 인프라. 독립 Admin 메뉴는 대시보드와 중복되어 제거. ──
   'stats.chartSummary': '기간별 추이 차트입니다.',
   'stats.noActivity': '최근 활동이 없습니다.',
   'stats.justNow': '방금',

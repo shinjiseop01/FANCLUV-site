@@ -25,11 +25,23 @@
   flex-direction: column;
   position: sticky;
   top: 0;
+  /* 뷰포트 높이 고정 + 내부(메뉴)만 스크롤 → 세로 높이가 부족한 화면에서도
+     로고/역할 배지는 고정되고 마지막 「설정」까지 스크롤로 접근 가능. */
   height: 100vh;
+  overflow: hidden;
 }
-.adm-brand { font-size: 18px; font-weight: 800; letter-spacing: 0.4px; padding: 22px; color: var(--ink); cursor: pointer; }
+.adm-brand { flex-shrink: 0; font-size: 18px; font-weight: 800; letter-spacing: 0.4px; padding: 22px; color: var(--ink); cursor: pointer; }
 .adm-brand span { color: var(--team-deep); }
-.adm-nav { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; flex: 1; }
+/* 메뉴 영역만 세로 스크롤(브랜드/푸터는 고정). min-height:0 이 flex 자식 overflow 활성화. */
+.adm-nav { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+/* 스크롤바가 UI를 크게 해치지 않도록 얇게(Firefox + WebKit). */
+.adm-nav { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.adm-nav::-webkit-scrollbar { width: 8px; }
+.adm-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+.adm-nav::-webkit-scrollbar-track { background: transparent; }
+.adm-nav-group { display: flex; flex-direction: column; gap: 2px; }
+.adm-nav-group + .adm-nav-group { margin-top: 10px; }
+.adm-nav-group-label { margin: 0; padding: 6px 14px 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); }
 .adm-nav-item {
   display: flex; align-items: center; gap: 11px;
   padding: 11px 14px; border-radius: 10px;
@@ -39,7 +51,7 @@
 .adm-nav-item svg { width: 19px; height: 19px; flex-shrink: 0; }
 .adm-nav-item:hover { background: var(--page-bg); color: var(--ink); }
 .adm-nav-item.on { background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); color: var(--team-deep); }
-.adm-sidebar-foot { padding: 16px; border-top: 1px solid var(--border); }
+.adm-sidebar-foot { flex-shrink: 0; padding: 16px; border-top: 1px solid var(--border); }
 .adm-role-badge { font-size: 11.5px; font-weight: 700; color: var(--team-deep); background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); padding: 5px 10px; border-radius: 100px; }
 
 /* ── Main ── */
@@ -178,10 +190,14 @@
   .adm-sidebar {
     width: 100%; height: auto; position: sticky; top: 0; z-index: 30;
     flex-direction: row; align-items: center;
-    border-right: none; border-bottom: 1px solid var(--border); overflow-x: auto;
+    border-right: none; border-bottom: 1px solid var(--border); overflow: hidden;
   }
   .adm-brand { padding: 14px 16px; white-space: nowrap; }
-  .adm-nav { flex-direction: row; padding: 8px; gap: 4px; }
+  /* 모바일: 아이콘 바(가로 스크롤). 그룹 헤더는 숨기고 항목만 가로로 흐르게. */
+  .adm-nav { flex-direction: row; padding: 8px; gap: 4px; overflow-x: auto; overflow-y: hidden; min-height: 0; }
+  .adm-nav-group { flex-direction: row; gap: 4px; }
+  .adm-nav-group + .adm-nav-group { margin-top: 0; }
+  .adm-nav-group-label { display: none; }
   .adm-nav-item span { display: none; }
   .adm-nav-item { padding: 10px; }
   .adm-sidebar-foot { display: none; }

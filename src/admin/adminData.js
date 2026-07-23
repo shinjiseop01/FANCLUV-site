@@ -5,32 +5,54 @@
 
 import { ROLES } from '../lib/auth.js'
 
-// Left navigation. `roles` lets future Super Admin / staff / club-admin builds
-// filter items per role from a single source of truth.
+// Left navigation, grouped by operational purpose so operators can locate a
+// screen by intent. `roles` lets Super Admin / staff / club-admin builds filter
+// items per role from a single source of truth. `group` keys into ADMIN_GROUPS.
+//
+// 현재 제품 범위에서 제외된 메뉴(Quick Poll / 실시간 통계 독립 대시보드)는 제거했다.
+//   · Quick Poll: 제품 범위 밖(팬 임베드는 별도) — Admin 관리 화면/라우트 제거.
+//   · 실시간 통계: 대시보드(운영)의 실시간 KPI 와 중복 → 독립 메뉴 제거.
+export const ADMIN_GROUPS = [
+  { key: 'ops',       labelKey: 'admin.group.ops' },
+  { key: 'support',   labelKey: 'admin.group.support' },
+  { key: 'analytics', labelKey: 'admin.group.analytics' },
+  { key: 'infra',     labelKey: 'admin.group.infra' },
+]
+
 export const ADMIN_MENU = [
-  { key: 'dashboard', path: '/admin',          labelKey: 'admin.menu.dashboard', roles: null },
-  { key: 'members',   path: '/admin/members',  labelKey: 'admin.menu.members',   roles: null },
-  { key: 'opinions',  path: '/admin/opinions', labelKey: 'admin.menu.opinions',  roles: null },
-  { key: 'surveys',   path: '/admin/surveys',  labelKey: 'admin.menu.surveys',   roles: null },
-  { key: 'quickpoll', path: '/admin/quickpoll', labelKey: 'admin.menu.quickpoll', roles: null },
-  { key: 'realtimeStats', path: '/admin/realtime', labelKey: 'admin.menu.realtimeStats', roles: null },
-  { key: 'news',      path: '/admin/news',     labelKey: 'admin.menu.news',      roles: null },
-  { key: 'newsSources', path: '/admin/news-sources', labelKey: 'admin.menu.newsSources', roles: null },
-  { key: 'notices',   path: '/admin/notices',  labelKey: 'admin.menu.notices',   roles: null },
-  { key: 'support',   path: '/admin/support',  labelKey: 'admin.menu.support',   roles: null },
-  { key: 'reports',   path: '/admin/reports',  labelKey: 'admin.menu.reports',   roles: null },
-  { key: 'reportDocs', path: '/admin/report-docs', labelKey: 'admin.menu.reportDocs', roles: null },
-  { key: 'actions', path: '/admin/actions', labelKey: 'admin.menu.actions', roles: null },
-  { key: 'tracker', path: '/admin/tracker', labelKey: 'admin.menu.tracker', roles: null },
-  { key: 'customers', path: '/admin/customers', labelKey: 'admin.menu.customers', roles: null },
-  { key: 'league',    path: '/admin/league',  labelKey: 'admin.menu.league',    roles: null },
-  { key: 'systemStatus', path: '/admin/system', labelKey: 'admin.menu.systemStatus', roles: null },
-  { key: 'identity',  path: '/admin/identity', labelKey: 'admin.menu.identity',  roles: null },
-  { key: 'settings',  path: '/admin/settings', labelKey: 'admin.menu.settings',  roles: null },
+  // 운영
+  { key: 'dashboard',   path: '/admin',             labelKey: 'admin.menu.dashboard',    group: 'ops',       roles: null },
+  { key: 'members',     path: '/admin/members',     labelKey: 'admin.menu.members',      group: 'ops',       roles: null },
+  { key: 'opinions',    path: '/admin/opinions',    labelKey: 'admin.menu.opinions',     group: 'ops',       roles: null },
+  { key: 'surveys',     path: '/admin/surveys',     labelKey: 'admin.menu.surveys',      group: 'ops',       roles: null },
+  { key: 'news',        path: '/admin/news',        labelKey: 'admin.menu.news',         group: 'ops',       roles: null },
+  { key: 'newsSources', path: '/admin/news-sources',labelKey: 'admin.menu.newsSources',  group: 'ops',       roles: null },
+  // 고객 지원
+  { key: 'support',     path: '/admin/support',     labelKey: 'admin.menu.support',      group: 'support',   roles: null },
+  { key: 'reports',     path: '/admin/reports',     labelKey: 'admin.menu.reports',      group: 'support',   roles: null },
+  { key: 'notices',     path: '/admin/notices',     labelKey: 'admin.menu.notices',      group: 'support',   roles: null },
+  // 분석 / B2B
+  { key: 'reportDocs',  path: '/admin/report-docs', labelKey: 'admin.menu.reportDocs',   group: 'analytics', roles: null },
+  { key: 'actions',     path: '/admin/actions',     labelKey: 'admin.menu.actions',      group: 'analytics', roles: null },
+  { key: 'tracker',     path: '/admin/tracker',     labelKey: 'admin.menu.tracker',      group: 'analytics', roles: null },
+  { key: 'customers',   path: '/admin/customers',   labelKey: 'admin.menu.customers',    group: 'analytics', roles: null },
+  // 인프라 / 운영
+  { key: 'league',      path: '/admin/league',      labelKey: 'admin.menu.league',       group: 'infra',     roles: null },
+  { key: 'systemStatus',path: '/admin/system',      labelKey: 'admin.menu.systemStatus', group: 'infra',     roles: null },
+  { key: 'identity',    path: '/admin/identity',    labelKey: 'admin.menu.identity',     group: 'infra',     roles: null },
+  { key: 'settings',    path: '/admin/settings',    labelKey: 'admin.menu.settings',     group: 'infra',     roles: null },
 ]
 
 export function visibleMenu(role) {
   return ADMIN_MENU.filter(m => !m.roles || m.roles.includes(role))
+}
+
+// 사이드바 렌더용: 그룹 순서대로 묶고, 항목이 없는 그룹은 제외.
+export function groupedMenu(role) {
+  const items = visibleMenu(role)
+  return ADMIN_GROUPS
+    .map(g => ({ ...g, items: items.filter(m => m.group === g.key) }))
+    .filter(g => g.items.length > 0)
 }
 
 // ── Members ──
