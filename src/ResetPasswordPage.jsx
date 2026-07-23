@@ -19,6 +19,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { completePasswordReset } from './lib/auth.js'
 import { clearRecoveryIntent } from './lib/authRecoveryState.js'
+import { validateNewPassword } from './lib/passwordPolicy.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { useToast } from './contexts/ToastContext.jsx'
@@ -57,9 +58,10 @@ export default function ResetPasswordPage() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (!next) { setError(t('resetPw.errNew')); return }
-    if (next.length < 8) { setError(t('resetPw.errLen')); return }
-    if (next !== confirm) { setError(t('resetPw.errMatch')); return }
+    if (submitting) return // 제출 중 중복 클릭 방지
+    // 우선순위 명확한 순수 검증(미입력 → 8자 미만 → 확인 미입력 → 불일치).
+    const check = validateNewPassword(next, confirm)
+    if (!check.ok) { setError(t(check.errorKey)); return }
     setSubmitting(true)
     // completePasswordReset: updateUser → signOut → recovery intent 정리(auth.js)
     const res = await completePasswordReset(next)
@@ -126,29 +128,37 @@ export default function ResetPasswordPage() {
         {pageStatus === 'ready' && (
           <form onSubmit={handleSubmit} noValidate>
             <div className="su-field">
-              <label className="su-label">{t('resetPw.new')}</label>
+              <label className="su-label" htmlFor="rp-new">{t('resetPw.new')}</label>
               <input
+                id="rp-new"
                 type="password"
                 className="su-input"
                 placeholder={t('resetPw.newPh')}
                 value={next}
-                onChange={e => { setNext(e.target.value); setError('') }}
+                onChange={e => { setNext(e.target.value); if (error) setError('') }}
                 autoComplete="new-password"
+                aria-invalid={!!error}
+                aria-describedby={error ? 'rp-error' : 'rp-hint'}
               />
+              <p id="rp-hint" className="su-hint">{t('resetPw.hint')}</p>
             </div>
             <div className="su-field">
-              <label className="su-label">{t('resetPw.confirm')}</label>
+              <label className="su-label" htmlFor="rp-confirm">{t('resetPw.confirm')}</label>
               <input
+                id="rp-confirm"
                 type="password"
                 className="su-input"
                 placeholder={t('resetPw.confirmPh')}
                 value={confirm}
-                onChange={e => { setConfirm(e.target.value); setError('') }}
+                onChange={e => { setConfirm(e.target.value); if (error) setError('') }}
                 autoComplete="new-password"
+                aria-invalid={!!error}
+                aria-describedby={error ? 'rp-error' : undefined}
               />
             </div>
 
-            {error && <div className="su-error" role="alert"><Icon name="warningTriangle" size={14} className="fc-inline-ico" />{error}</div>}
+            {/* 항목4: 공용 Alert(에러 색상·아이콘 정렬·padding·radius·모바일 줄바꿈) 재사용 */}
+            {error && <Alert kind="error" boxed id="rp-error" style={{ marginBottom: 16 }}>{error}</Alert>}
 
             <button type="submit" className="su-btn" disabled={submitting}>
               {submitting ? (

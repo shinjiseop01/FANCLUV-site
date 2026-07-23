@@ -25,7 +25,7 @@ const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...cors, 'Content-Type': 'application/json' } })
 
 const VERIFY_WINDOW_MIN = 15 // OTP 인증(verified_at) 유효 시간
-const MIN_PASSWORD = 4
+const MIN_PASSWORD = 8 // FANCLUV 최소 비밀번호 길이(클라이언트 passwordPolicy.MIN_PASSWORD_LENGTH 와 통일)
 
 function isValidEmail(s: string): boolean {
   if (!s || s.length > 254) return false

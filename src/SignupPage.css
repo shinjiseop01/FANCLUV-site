@@ -88,6 +88,14 @@
   letter-spacing: 0.2px;
 }
 
+/* 입력 아래 도움말(비밀번호 정책 등). 저채도 muted, 오류 아님. */
+.su-hint {
+  margin: 8px 2px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
 .su-input {
   width: 100%;
   height: 52px;

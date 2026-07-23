@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { signup, issueEmailCode, confirmEmailCode, needsOnboarding, requiresIdentityVerification, isIdentityVerificationEnabled } from './lib/auth.js'
 import { signupErrorPolicy } from './lib/signupErrorPolicy.js'
 import { isValidEmail, resendButtonState, RESEND_COOLDOWN_SEC } from './lib/authForm.js'
+import { MIN_PASSWORD_LENGTH } from './lib/passwordPolicy.js'
 import { logger } from './lib/logger.js'
 import { useLang } from './contexts/LanguageContext.jsx'
 import Alert from './components/Alert.jsx'
@@ -147,7 +148,7 @@ export default function SignupPage() {
     if (!emailVerified) { setError(t('signup.errEmailVerify')); return }
     if (!ageGroup) { setError(t('signup.errAge')); return }
     if (!password) { setError(t('signup.errPw')); return }
-    if (password.length < 8) { setError(t('signup.errPwLen')); return }
+    if (password.length < MIN_PASSWORD_LENGTH) { setError(t('signup.errPwLen')); return }
     if (password !== passwordConfirm) { setError(t('signup.errPwMatch')); return }
 
     completingRef.current = true

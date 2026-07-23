@@ -4,6 +4,7 @@ import { useLang, NAV_KEYS } from './contexts/LanguageContext.jsx'
 import Icon from './components/Icon.jsx'
 import NotificationBell from './components/NotificationBell.jsx'
 import { logout, getCurrentUser, changePassword } from './lib/auth.js'
+import { MIN_PASSWORD_LENGTH } from './lib/passwordPolicy.js'
 import { getTeam, teamName, TeamEmblem, menuPath } from './teams.jsx'
 import './ClubHomePage.css'
 import './SettingsPage.css'
@@ -41,7 +42,7 @@ export default function ChangePasswordPage() {
     setError('')
     if (!current) { setError(t('pw.errCurrent')); return }
     if (!next) { setError(t('pw.errNew')); return }
-    if (next.length < 8) { setError(t('pw.errLen')); return }
+    if (next.length < MIN_PASSWORD_LENGTH) { setError(t('pw.errLen')); return }
     if (next !== confirm) { setError(t('pw.errMatch')); return }
     if (next === current) { setError(t('pw.errSame')); return }
     const res = await changePassword(current, next)

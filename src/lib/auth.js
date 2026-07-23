@@ -17,6 +17,7 @@ import { getProvider, SUPABASE_PROVIDER_CONFIG } from './oauth.js'
 import { sendWelcomeEmail } from './welcomeEmail.js'
 import { validateNicknameFormat } from './nicknameValidation.js'
 import { clearRecoveryIntent } from './authRecoveryState.js'
+import { MIN_PASSWORD_LENGTH } from './passwordPolicy.js'
 
 const USERS_KEY = 'fancluv_users'
 const SESSION_KEY = 'fancluv_session' // (Mock) 현재 로그인한 사용자의 email
@@ -142,7 +143,25 @@ function translateAuthError(error) {
   // 소셜 로그인 provider 가 Supabase 대시보드에서 아직 활성화되지 않은 경우.
   if (msg.includes('provider is not enabled') || msg.includes('unsupported provider'))
     return '이 소셜 로그인은 아직 활성화되지 않았습니다. 관리자에게 문의해 주세요. (Supabase Providers 설정 필요)'
-  if (msg.includes('password')) return '비밀번호는 6자 이상이어야 합니다.'
+  // 비밀번호 관련 오류는 사유별로 정확히 구분한다.
+  // ⚠️ 과거엔 password 를 포함하면 무조건 "6자 이상" 으로 매핑해, 길이와 무관한
+  //    오류(예: 이전과 동일한 비밀번호)까지 잘못된 길이 오류로 표시되는 버그가 있었다.
+  if (msg.includes('password')) {
+    // 길이 부족(서버 정책) — 실제 길이 기준 문구로.
+    if (msg.includes('at least') || msg.includes('too short') || msg.includes('should be at least')) {
+      return `비밀번호는 ${MIN_PASSWORD_LENGTH}자 이상이어야 합니다.`
+    }
+    // 이전 비밀번호와 동일.
+    if (msg.includes('different from') || msg.includes('should be different') || msg.includes('same as')) {
+      return '이전과 다른 새 비밀번호를 입력해 주세요.'
+    }
+    // 취약/유출된 비밀번호(HIBP 등).
+    if (msg.includes('weak') || msg.includes('known to be') || msg.includes('easy to guess') || msg.includes('pwned')) {
+      return '더 안전한 비밀번호를 사용해 주세요.'
+    }
+    // 그 외 비밀번호 오류 — 길이 오류로 오인시키지 않는 일반 문구.
+    return '비밀번호를 변경하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+  }
   return error?.message || '요청을 처리하지 못했습니다. 다시 시도해 주세요.'
 }
 
@@ -970,7 +989,7 @@ export async function requestPasswordReset(email) {
 //    새 비밀번호를 저장한다. (현재 비밀번호 없이 — 복구 세션이 인증을 대신함)
 //    성공 후 recovery 세션을 signOut으로 명시적 종료.
 export async function completePasswordReset(newPassword) {
-  if (!newPassword || newPassword.length < 8) return { ok: false, error: '비밀번호는 8자 이상이어야 합니다.' }
+  if (!newPassword || newPassword.length < MIN_PASSWORD_LENGTH) return { ok: false, error: `비밀번호는 ${MIN_PASSWORD_LENGTH}자 이상이어야 합니다.` }
   if (isSupabaseConfigured) {
     // 복구 링크가 심어준 세션이 있어야 성공한다(없으면 링크 만료/무효).
     const { data: { session } } = await supabase.auth.getSession()
