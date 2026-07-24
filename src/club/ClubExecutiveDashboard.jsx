@@ -77,7 +77,9 @@ export default function ClubExecutiveDashboard() {
   ] : []
 
   return (
-    <div className="ch-root exec-root">
+    // 팀 브랜드 컬러 토큰 적용(팬 페이지와 동일 방식) — 그동안 exec 대시보드만 누락되어
+    // KPI Trend 등 accent 가 기본 폴백(보라)로 렌더되던 불일치를 구조적으로 통일한다(§2~4).
+    <div className="ch-root exec-root" style={team ? { '--team': team.color, '--team-deep': team.colorDeep } : undefined}>
       {/* Executive 헤더 (관리자 콘솔/팬 헤더와 별개) */}
       <header className="exec-header">
         <div className="exec-brand">FANCLUV <span>Executive</span></div>
@@ -164,7 +166,7 @@ export default function ClubExecutiveDashboard() {
                 </div>
                 {trend.length > 0 ? (
                   <>
-                    <LineChart data={trend.map(r => ({ label: r.week?.replace(/^\d+-/, '') || '', value: r.satisfaction }))} />
+                    <LineChart data={trend.map(r => ({ label: r.week?.replace(/^\d+-/, '') || '', value: r.satisfaction }))} color="var(--exec-accent, var(--team-deep, #863bff))" />
                     <p className="exec-trend-note">{t('exec.trendNote')}</p>
                   </>
                 ) : <EmptyState iconName="chart" title={t('exec.noTrend')} message={t('exec.noTrendMsg')} compact />}

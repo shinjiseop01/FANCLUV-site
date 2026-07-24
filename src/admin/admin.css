@@ -64,6 +64,16 @@
 .adm-topbar-title { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: 0.3px; }
 .adm-topbar-actions { display: flex; align-items: center; gap: 14px; }
 .adm-user { font-size: 14px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+/* 로그아웃 — Admin 디자인 시스템에 맞춘 중립(subtle) 스타일. hover 시에만 destructive 의미가 약하게. */
+.adm-logout {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border: 1px solid var(--border); border-radius: 9px;
+  background: var(--canvas); color: var(--body); font-size: 13px; font-weight: 700;
+  font-family: inherit; cursor: pointer; transition: background .14s, color .14s, border-color .14s;
+}
+.adm-logout svg { width: 16px; height: 16px; flex-shrink: 0; }
+.adm-logout:hover { background: color-mix(in srgb, #DC2626 8%, var(--canvas)); color: #DC2626; border-color: color-mix(in srgb, #DC2626 40%, var(--border)); }
+.adm-logout:focus-visible { outline: 2px solid var(--team); outline-offset: 2px; }
 .adm-content { padding: 28px; flex: 1; }
 
 /* ── Page ── */
@@ -91,11 +101,17 @@
 .adm-toolbar { margin-bottom: 18px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; }
 .adm-search { display: flex; align-items: center; gap: 8px; background: var(--canvas); border: 1px solid var(--border); border-radius: 10px; padding: 0 14px; max-width: 360px; flex: 1; min-width: 220px; }
 .adm-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+/* 필터 그룹: [라벨] + 칩들(§15). 라벨은 secondary, 칩은 동일 높이. */
+.adm-filter-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.adm-filter-row .adm-filters { flex: 1; min-width: 0; }
+.adm-filter-label { flex: 0 0 auto; min-width: 34px; padding-top: 8px; font-size: 12.5px; font-weight: 800; color: var(--muted); white-space: nowrap; }
 .adm-filter {
+  display: inline-flex; align-items: center; min-height: 34px; box-sizing: border-box;
   border: 1px solid var(--border); background: var(--canvas); color: var(--body);
-  font-size: 13px; font-weight: 700; padding: 8px 13px; border-radius: 100px;
+  font-size: 13px; font-weight: 700; padding: 6px 13px; border-radius: 100px; line-height: 1.2;
   cursor: pointer; font-family: inherit; transition: all 0.14s; white-space: nowrap;
 }
+.adm-filter:focus-visible { outline: 2px solid var(--team); outline-offset: 2px; }
 .adm-filter:hover { border-color: var(--team); color: var(--team-deep); }
 .adm-filter.on { background: var(--team-deep); border-color: var(--team-deep); color: #fff; }
 .adm-search svg { width: 18px; height: 18px; color: var(--muted); }
@@ -481,10 +497,12 @@
 
 /* ───────────── 뉴스 소스 관리 (AdminNewsSources) ───────────── */
 .ns-banner { display: flex; align-items: center; gap: 9px; background: rgba(220,38,38,0.1); border: 1px solid rgba(220,38,38,0.3); color: #DC2626; border-radius: 10px; padding: 11px 14px; font-size: 13.5px; font-weight: 600; margin-bottom: 16px; }
-.ns-sched { display: flex; align-items: flex-start; gap: 10px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.28); color: var(--text, #111); border-radius: 10px; padding: 11px 14px; margin-bottom: 16px; }
+/* 자동 수집 상태 카드 — 값(숫자/날짜)은 primary high-contrast(--ink), 라벨은 secondary(--muted).
+   기존엔 프로젝트에 없는 토큰(--text/--text-muted)을 써서 다크모드에서 값이 #111 로 묻혔다(§9~11). */
+.ns-sched { display: flex; align-items: flex-start; gap: 10px; background: color-mix(in srgb, #10B981 9%, var(--canvas)); border: 1px solid color-mix(in srgb, #10B981 28%, var(--border)); color: var(--ink); border-radius: 10px; padding: 11px 14px; margin-bottom: 16px; }
 .ns-sched > svg { color: #10B981; flex: 0 0 auto; margin-top: 1px; }
-.ns-sched-grid { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; }
-.ns-sched-k { color: var(--text-muted, #6b7280); margin-right: 4px; }
+.ns-sched-grid { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; font-weight: 700; color: var(--ink); }
+.ns-sched-k { color: var(--muted); margin-right: 4px; font-weight: 600; }
 .ns-table { min-width: 900px; }
 .ns-club { font-weight: 700; color: var(--ink); }
 .ns-link { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--team-deep, #863bff); text-decoration: none; margin-top: 3px; }

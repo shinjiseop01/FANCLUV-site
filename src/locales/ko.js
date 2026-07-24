@@ -798,6 +798,8 @@ export default {
   'admin.sup.sub': '총 {n}건의 문의',
   'admin.sup.filterStatus': '상태 필터',
   'admin.sup.filterCategory': '유형 필터',
+  'admin.sup.filterStatusShort': '상태',
+  'admin.sup.filterCategoryShort': '유형',
   'admin.sup.fAll': '전체',
   'admin.sup.catAll': '유형 전체',
   'admin.sup.searchPh': '제목 검색',

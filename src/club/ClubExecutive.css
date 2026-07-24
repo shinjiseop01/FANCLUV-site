@@ -1,9 +1,14 @@
 /* FANCLUV — Club Executive Dashboard (B2B 구단 고객). 테마 토큰 기반 → 라이트/다크 자동. */
-.exec-root { min-height: 100vh; background: var(--page-bg, #F6F7F9); font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif; }
+/* --exec-accent: 카드 accent(차트 라인·기간 버튼·강조 숫자)에 쓰는 팀 컬러.
+   라이트는 흰 배경용 진한 변형(--team-deep), 다크는 배경에 묻히지 않도록 밝은 브랜드 컬러(--team).
+   → 12개 구단 모두 동일 구조 + 각 팀 브랜드 유지 + 라이트/다크 접근성(§4~6). */
+.exec-root { min-height: 100vh; background: var(--page-bg, #F6F7F9); font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+  --exec-accent: var(--team-deep, #863bff); }
+html[data-theme="dark"] .exec-root { --exec-accent: var(--team, #a78bff); }
 
 .exec-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 24px; background: var(--canvas, #fff); border-bottom: 1px solid var(--border, #E5E7EB); }
 .exec-brand { font-size: 18px; font-weight: 900; color: var(--ink, #15171C); letter-spacing: -0.5px; }
-.exec-brand span { color: var(--team-deep, #863bff); }
+.exec-brand span { color: var(--exec-accent, #863bff); }
 .exec-head-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .exec-club { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; color: var(--ink); }
 .exec-club-select { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; background: var(--canvas); color: var(--ink); font-family: inherit; font-size: 13px; }
@@ -16,8 +21,8 @@
 .exec-sub { font-size: 14px; color: var(--muted, #8A909C); margin: 4px 0 0; }
 
 /* Executive Brief */
-.exec-brief { background: linear-gradient(135deg, color-mix(in srgb, var(--team-deep, #863bff) 12%, var(--canvas)), var(--canvas)); border: 1px solid color-mix(in srgb, var(--team-deep, #863bff) 30%, transparent); border-radius: 16px; padding: 20px 22px; margin-bottom: 20px; }
-.exec-brief-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 900; color: var(--team-deep, #863bff); letter-spacing: 0.3px; margin-bottom: 10px; }
+.exec-brief { background: linear-gradient(135deg, color-mix(in srgb, var(--exec-accent, #863bff) 12%, var(--canvas)), var(--canvas)); border: 1px solid color-mix(in srgb, var(--exec-accent, #863bff) 30%, transparent); border-radius: 16px; padding: 20px 22px; margin-bottom: 20px; }
+.exec-brief-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 900; color: var(--exec-accent, #863bff); letter-spacing: 0.3px; margin-bottom: 10px; }
 .exec-brief-line { font-size: 16px; line-height: 1.7; color: var(--ink); margin: 0 0 4px; font-weight: 600; }
 
 /* KPI 카드 */
@@ -27,8 +32,8 @@
 .exec-kpi-chg { font-size: 14px; font-weight: 800; }
 .exec-kpi-chg.up { color: #16A34A; } .exec-kpi-chg.down { color: #DC2626; } .exec-kpi-chg.flat { color: var(--muted); }
 .exec-kpi-label { font-size: 12.5px; color: var(--muted); font-weight: 700; margin-top: 4px; }
-.exec-intel { background: linear-gradient(135deg, color-mix(in srgb, var(--team-deep, #863bff) 14%, var(--canvas)), var(--canvas)); border-color: color-mix(in srgb, var(--team-deep, #863bff) 30%, transparent); }
-.exec-intel .exec-kpi-val { color: var(--team-deep, #863bff); }
+.exec-intel { background: linear-gradient(135deg, color-mix(in srgb, var(--exec-accent, #863bff) 14%, var(--canvas)), var(--canvas)); border-color: color-mix(in srgb, var(--exec-accent, #863bff) 30%, transparent); }
+.exec-intel .exec-kpi-val { color: var(--exec-accent, #863bff); }
 .exec-intel-max { font-size: 15px; color: var(--muted); font-weight: 800; }
 
 .exec-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
@@ -38,14 +43,14 @@
 .exec-panel-head .exec-panel-title { margin: 0; }
 .exec-summary { font-size: 14px; line-height: 1.7; color: var(--body); margin: 0 0 10px; }
 .exec-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-.exec-kw { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--team-deep, #863bff) 10%, transparent); color: var(--team-deep, #863bff); }
+.exec-kw { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--exec-accent, #863bff) 10%, transparent); color: var(--exec-accent, #863bff); }
 .exec-sub2 { font-size: 13px; font-weight: 800; color: var(--ink); margin: 6px 0 8px; }
 .exec-issues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .exec-issues li { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--body); }
 
 .tr-period { display: inline-flex; gap: 3px; background: var(--page-bg); border: 1px solid var(--border); border-radius: 9px; padding: 3px; }
 .tr-period-btn { border: none; background: none; padding: 5px 11px; border-radius: 7px; font-size: 12.5px; font-weight: 700; color: var(--muted); cursor: pointer; font-family: inherit; }
-.tr-period-btn.on { background: var(--team-deep, #863bff); color: #fff; }
+.tr-period-btn.on { background: var(--exec-accent, #863bff); color: #fff; }
 .exec-trend-note { font-size: 11.5px; color: var(--muted); margin: 8px 0 0; }
 
 .exec-actions { display: flex; flex-direction: column; gap: 10px; }
@@ -67,13 +72,13 @@
 .exec-report { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: 10px; }
 .exec-report-title { font-weight: 700; color: var(--ink); font-size: 14px; }
 .exec-report-date { font-size: 12px; color: var(--muted); margin-left: 8px; }
-.exec-dl { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; background: var(--canvas); color: var(--team-deep, #863bff); font-size: 12.5px; font-weight: 800; cursor: pointer; font-family: inherit; }
+.exec-dl { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; background: var(--canvas); color: var(--exec-accent, #863bff); font-size: 12.5px; font-weight: 800; cursor: pointer; font-family: inherit; }
 
 .exec-bench { display: flex; flex-direction: column; gap: 8px; }
 .exec-bench-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
 .exec-bench-row:last-of-type { border-bottom: none; }
 .exec-bench-name { flex: 1; font-size: 13.5px; font-weight: 700; color: var(--body); }
-.exec-bench-own { font-size: 18px; font-weight: 900; color: var(--team-deep, #863bff); font-variant-numeric: tabular-nums; }
+.exec-bench-own { font-size: 18px; font-weight: 900; color: var(--exec-accent, #863bff); font-variant-numeric: tabular-nums; }
 .exec-bench-vs { font-size: 11px; color: var(--muted); }
 .exec-bench-league { font-size: 15px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
 .exec-bench-delta { font-size: 13px; font-weight: 800; }

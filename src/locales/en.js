@@ -798,6 +798,8 @@ export default {
   'admin.sup.sub': '{n} inquiries total',
   'admin.sup.filterStatus': 'Status filter',
   'admin.sup.filterCategory': 'Category filter',
+  'admin.sup.filterStatusShort': 'Status',
+  'admin.sup.filterCategoryShort': 'Type',
   'admin.sup.fAll': 'All',
   'admin.sup.catAll': 'All types',
   'admin.sup.searchPh': 'Search subject',

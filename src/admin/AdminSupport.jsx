@@ -64,17 +64,23 @@ export default function AdminSupport() {
         <p className="adm-sub">{t('admin.sup.sub', { n: total })}</p>
       </header>
 
-      <div className="adm-filters" role="group" aria-label={t('admin.sup.filterStatus')}>
-        <button className={`adm-filter${status === '' ? ' on' : ''}`} onClick={() => { setStatus(''); setPage(1) }}>{t('admin.sup.fAll')}</button>
-        {INQUIRY_STATUSES.map(s => (
-          <button key={s} className={`adm-filter${status === s ? ' on' : ''}`} onClick={() => { setStatus(s); setPage(1) }}>{t(statusKey(s))}</button>
-        ))}
+      <div className="adm-filter-row">
+        <span className="adm-filter-label">{t('admin.sup.filterStatusShort')}</span>
+        <div className="adm-filters" role="group" aria-label={t('admin.sup.filterStatus')}>
+          <button className={`adm-filter${status === '' ? ' on' : ''}`} aria-pressed={status === ''} onClick={() => { setStatus(''); setPage(1) }}>{t('admin.sup.fAll')}</button>
+          {INQUIRY_STATUSES.map(s => (
+            <button key={s} className={`adm-filter${status === s ? ' on' : ''}`} aria-pressed={status === s} onClick={() => { setStatus(s); setPage(1) }}>{t(statusKey(s))}</button>
+          ))}
+        </div>
       </div>
-      <div className="adm-filters" role="group" aria-label={t('admin.sup.filterCategory')}>
-        <button className={`adm-filter${category === '' ? ' on' : ''}`} onClick={() => { setCategory(''); setPage(1) }}>{t('admin.sup.catAll')}</button>
-        {INQUIRY_CATEGORIES.map(c => (
-          <button key={c} className={`adm-filter${category === c ? ' on' : ''}`} onClick={() => { setCategory(c); setPage(1) }}>{t(categoryKey(c))}</button>
-        ))}
+      <div className="adm-filter-row">
+        <span className="adm-filter-label">{t('admin.sup.filterCategoryShort')}</span>
+        <div className="adm-filters" role="group" aria-label={t('admin.sup.filterCategory')}>
+          <button className={`adm-filter${category === '' ? ' on' : ''}`} aria-pressed={category === ''} onClick={() => { setCategory(''); setPage(1) }}>{t('admin.sup.catAll')}</button>
+          {INQUIRY_CATEGORIES.map(c => (
+            <button key={c} className={`adm-filter${category === c ? ' on' : ''}`} aria-pressed={category === c} onClick={() => { setCategory(c); setPage(1) }}>{t(categoryKey(c))}</button>
+          ))}
+        </div>
       </div>
       <input className="adm-search" type="search" value={q} placeholder={t('admin.sup.searchPh')}
         onChange={e => { setQ(e.target.value); setPage(1) }} />
