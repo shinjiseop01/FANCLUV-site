@@ -175,7 +175,7 @@ export default function AdminLeagueApi() {
             <div><dt>{t('admin.lg.kSeason')}</dt><dd>{health.season || '—'}</dd></div>
             <div><dt>{t('admin.lg.kStandings')}</dt><dd>{health.standingsTeams ?? 0}{t('admin.lg.kTeamsUnit')}</dd></div>
             <div><dt>{t('admin.lg.kMatches')}</dt><dd>{health.matches ?? 0}</dd></div>
-            {(health.sync || []).map(s => (
+            {(health.sync || []).filter(s => s.resource === 'standings' || s.resource === 'matches').map(s => (
               <div key={s.resource}>
                 <dt>{s.resource === 'standings' ? t('admin.lg.kStandingsSync') : t('admin.lg.kMatchesSync')}</dt>
                 <dd>
