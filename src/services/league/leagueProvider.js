@@ -18,20 +18,24 @@ import { isSupabaseConfigured } from '../../lib/supabase.js'
 import * as mock from './mockLeagueProvider.js'
 import * as api from './apiLeagueProvider.js'
 import * as edge from './edgeLeagueProvider.js'
+import * as db from './dbLeagueProvider.js'
 
 const STANDINGS_TTL = 5 * 60 * 1000  // 순위 5분
 const FIXTURES_TTL = 5 * 60 * 1000   // 경기(일정+결과) 5분 — 결과 신선도 우선(일정 10분 요건 포함)
 
 const MODE = String(import.meta.env?.LEAGUE_PROVIDER || import.meta.env?.VITE_LEAGUE_PROVIDER || '').toLowerCase()
-// 우선순위: edge(명시 또는 가능+미지정) → api(명시 또는 base 설정) → mock
+// 우선순위(명시 MODE 우선): db(K리그 공식→DB, 프로덕션 기본) → edge → api → mock.
+//   미지정 + Supabase 설정 = db(동기화된 league_* 테이블). Supabase 없음(DEV) = mock.
 const active =
-  (MODE === 'edge' && edge.isEdgeLeagueEnabled) ? edge
-  : (MODE !== 'mock' && MODE !== 'api' && edge.isEdgeLeagueEnabled) ? edge
-  : (MODE === 'api' || (MODE !== 'mock' && api.isApiConfigured)) ? api
+  MODE === 'mock' ? mock
+  : MODE === 'db' ? db
+  : (MODE === 'edge' && edge.isEdgeLeagueEnabled) ? edge
+  : MODE === 'api' ? api
+  : isSupabaseConfigured ? db
   : mock
 
-// 현재 활성 Provider 종류 ('edge' | 'api' | 'mock')
-export function leagueMode() { return active === edge ? 'edge' : active === api ? 'api' : 'mock' }
+// 현재 활성 Provider 종류 ('db' | 'edge' | 'api' | 'mock')
+export function leagueMode() { return active === db ? 'db' : active === edge ? 'edge' : active === api ? 'api' : 'mock' }
 // 실데이터(비-Mock) 활성 여부 — 화면의 실시간 배지 등에 사용.
 export const isLeagueApiActive = active !== mock
 

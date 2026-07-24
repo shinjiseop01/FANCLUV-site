@@ -245,3 +245,11 @@ export async function forceSyncLeague() {
   const ok = Object.values(results).some(r => r.ok)
   return { ok, results, at: new Date().toISOString() }
 }
+
+// K리그 공식 소스(kleague-sync) 수집 상태 — 관리자용(§24). league_sync_health RPC.
+//   { season, standingsTeams, matches, sync:[{resource,lastSuccessAt,lastErrorAt,lastError,lastRows}] }
+export async function getLeagueSyncHealth() {
+  if (!isAdmin() || !isSupabaseConfigured) return null
+  const { data, error } = await supabase.rpc('league_sync_health')
+  return (!error && data && data.ok !== false) ? data : null
+}

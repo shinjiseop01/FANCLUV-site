@@ -4,8 +4,10 @@ import Icon from '../components/Icon.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import {
   getLeagueStatus, testLeagueApi, resetLeagueOps, getApiQuota, forceSyncLeague,
-  STANDING_FIELDS, MATCH_FIELDS, FAILURE_THRESHOLD,
+  getLeagueSyncHealth, STANDING_FIELDS, MATCH_FIELDS, FAILURE_THRESHOLD,
 } from '../lib/admin/leagueOpsRepo.js'
+
+function fmtTs(ts) { if (!ts) return '—'; const d = new Date(ts); return isNaN(d) ? '—' : d.toLocaleString() }
 
 // 데이터 출처(fallback 단계) → 표시 라벨 키.
 const SOURCE_KEY = {
@@ -80,12 +82,15 @@ export default function AdminLeagueApi() {
   const [syncing, setSyncing] = useState(false)
   const [simulate, setSimulate] = useState(false)
   const [test, setTest] = useState(null)
+  const [health, setHealth] = useState(null)
 
   async function refresh() {
     const s = await getLeagueStatus()
     setStatus(s); setLoading(false)
     // 실 Provider(edge/api)일 때만 계정 quota/응답시간 조회.
     if (s && s.mode !== 'mock') getApiQuota().then(setQuota)
+    // K리그 공식 소스(kleague-sync) 수집 상태.
+    getLeagueSyncHealth().then(setHealth)
   }
   useEffect(() => { refresh() }, [])
 
@@ -132,6 +137,31 @@ export default function AdminLeagueApi() {
           </button>
         </div>
       </header>
+
+      {/* K리그 공식 소스(kleague-sync) 수집 상태 — §24 Source Health */}
+      {health && (
+        <section className="lg-status-card">
+          <h2 className="adm-h2 lg-section-title">{t('admin.lg.kleagueTitle')}</h2>
+          <dl className="lg-status-grid">
+            <div><dt>{t('admin.lg.kSeason')}</dt><dd>{health.season || '—'}</dd></div>
+            <div><dt>{t('admin.lg.kStandings')}</dt><dd>{health.standingsTeams ?? 0}{t('admin.lg.kTeamsUnit')}</dd></div>
+            <div><dt>{t('admin.lg.kMatches')}</dt><dd>{health.matches ?? 0}</dd></div>
+            {(health.sync || []).map(s => (
+              <div key={s.resource}>
+                <dt>{s.resource === 'standings' ? t('admin.lg.kStandingsSync') : t('admin.lg.kMatchesSync')}</dt>
+                <dd>
+                  {s.lastSuccessAt
+                    ? <span className="lg-src-badge lg-src-api">{t('admin.lg.kOk')}</span>
+                    : <span className="lg-src-badge lg-src-mock">{t('admin.lg.kFail')}</span>}
+                  <span className="lg-mono"> {fmtTs(s.lastSuccessAt)}</span>
+                  {s.lastRows != null && <span className="lg-mono"> · {s.lastRows}</span>}
+                  {s.lastError && <span className="lg-err"> · {s.lastError}</span>}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
 
       {/* API 계정 상태 / quota (실 Provider 일 때) */}
       {status.mode !== 'mock' && (
