@@ -1062,6 +1062,8 @@ export default {
   'admin.lg.providerTitle': 'Provider 상태',
   'admin.lg.provider': '현재 Provider',
   'admin.lg.mode': 'Provider Mode',
+  'admin.lg.modeDb': 'K리그 공식 데이터(서버 수집 · DB)',
+  'admin.lg.dbSource': 'K리그 공식(kleague-sync → DB)',
   'admin.lg.modeEdge': 'edge — Edge Function(league-fetcher, API 키 서버 보관)',
   'admin.lg.modeApi': 'api — 클라이언트 직접 API',
   'admin.lg.modeMock': 'mock — 데모 데이터',

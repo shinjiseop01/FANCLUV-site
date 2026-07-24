@@ -1062,6 +1062,8 @@ export default {
   'admin.lg.providerTitle': 'Provider status',
   'admin.lg.provider': 'Current provider',
   'admin.lg.mode': 'Provider mode',
+  'admin.lg.modeDb': 'K League official data (server-collected · DB)',
+  'admin.lg.dbSource': 'K League official (kleague-sync → DB)',
   'admin.lg.modeEdge': 'edge — Edge Function (league-fetcher, key kept server-side)',
   'admin.lg.modeApi': 'api — direct client API',
   'admin.lg.modeMock': 'mock — demo data',

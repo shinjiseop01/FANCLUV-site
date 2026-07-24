@@ -137,7 +137,7 @@ export default function AdminLeagueApi() {
 
   if (loading) return <div className="adm-page"><SkeletonList count={4} lines={1} /></div>
 
-  const modeKey = { edge: 'admin.lg.modeEdge', api: 'admin.lg.modeApi', mock: 'admin.lg.modeMock' }[status.mode] || 'admin.lg.modeMock'
+  const modeKey = { db: 'admin.lg.modeDb', edge: 'admin.lg.modeEdge', api: 'admin.lg.modeApi', mock: 'admin.lg.modeMock' }[status.mode] || 'admin.lg.modeMock'
   // 레거시 API-FOOTBALL 진단 UI(quota/test/normalize/simulate)는 그 provider 가 실제 활성일 때만 노출.
   //   현재 소스는 K리그 공식(db) → 아래 legacy 블록은 숨김(코드는 보존, DB 미변경 — §18).
   const legacyApi = status.mode === 'edge' || status.mode === 'api'
@@ -288,7 +288,8 @@ export default function AdminLeagueApi() {
           <div><dt>{t('admin.lg.baseUrl')}</dt><dd className="lg-url">
             {status.mode === 'api' ? (status.baseUrl || t('admin.lg.notSet'))
               : status.mode === 'edge' ? t('admin.lg.serverSecret')
-                : t('admin.lg.na')}
+                : status.mode === 'db' ? t('admin.lg.dbSource')
+                  : t('admin.lg.na')}
           </dd></div>
           <div><dt>{t('admin.lg.lastSuccess')}</dt><dd>{fmt(status.lastSuccessAt)}</dd></div>
           <div><dt>{t('admin.lg.lastFailure')}</dt><dd>{fmt(status.lastFailureAt)}{status.consecutiveFailures > 0 && <span className="sys-fcount"> ×{status.consecutiveFailures}</span>}</dd></div>
