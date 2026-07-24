@@ -99,6 +99,30 @@ export async function getLatestInsight(clubId = 'all') {
   return readMock(clubId)
 }
 
+// ── Fan 전용 sanitize 인사이트 조회 ──
+// Fan 은 raw ai_insights 를 읽을 수 없다(RLS). fan_team_insight() RPC 가 current_user_team()
+// 의 최신 인사이트를 안전 집계 필드만 반환한다(summary/recommendations/staffMemo/future 필드 제외).
+// Mock 모드에서는 로컬 분석을 sanitize 형태로 변환해 화면 동작을 유지한다.
+export async function getFanInsight(clubId = 'all') {
+  if (isSupabaseConfigured) {
+    const { data } = await supabase.rpc('fan_team_insight')
+    if (!data?.ok) return null
+    return data // { ok, club_id, period, created_at, sentiment{}, keywords[], sample{}, category_sat[], trend[] }
+  }
+  // Mock: 로컬 인사이트를 sanitize 형태로 매핑(내부 필드 제외).
+  const ins = readMock(clubId)
+  if (!ins) return null
+  const d = ins.details || {}
+  return {
+    ok: true, club_id: ins.club_id, period: ins.period, created_at: ins.created_at,
+    sentiment: { positive: ins.sentiment_positive || 0, neutral: ins.sentiment_neutral || 0, negative: ins.sentiment_negative || 0 },
+    keywords: (ins.keywords || []).map(k => (typeof k === 'string' ? k : k.tag)).filter(Boolean).slice(0, 8),
+    sample: { opinions: d.opinionsCount || 0, surveys: d.surveysCount || 0 },
+    category_sat: (d.categorySat || []).map(c => ({ name: c.name, score: c.score })).slice(0, 6),
+    trend: (d.trend || []).map(tp => ({ label: tp.label, value: tp.value })).slice(0, 12),
+  }
+}
+
 // ── 분석 대상 의견 수 (Empty State 판단용) ──
 export async function countOpinions(clubId) {
   if (isSupabaseConfigured) {
