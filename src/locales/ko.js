@@ -471,6 +471,7 @@ export default {
   'survey.errRequired': 'Q{n} 은 필수 응답 항목입니다.',
   'survey.errSubmit': '제출에 실패했습니다. 잠시 후 다시 시도해 주세요.',
   'survey.closedMsg': '종료되었거나 참여할 수 없는 설문입니다.',
+  'survey.notStartedMsg': '아직 시작되지 않은 설문입니다.',
   'survey.noQuestions': '아직 등록된 질문이 없는 설문입니다.',
   'survey.goOpinions': '팬 의견 보러 가기',
   // 설문 목록

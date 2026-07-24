@@ -24,6 +24,14 @@ function daysUntil(dateStr) {
   if (!dateStr) return 0
   return Math.max(0, Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000))
 }
+// 서버(submit_survey_response)는 end_date < current_date 이면 'closed' 로 응답을 거부한다.
+// 팬 화면의 '진행중/종료' 판정도 동일 기준을 따라야 마감된 설문이 진행중으로 노출되지 않는다.
+function isPastEnd(endDate) {
+  if (!endDate) return false
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const ed = new Date(`${endDate}T00:00:00`)
+  return !Number.isNaN(ed.getTime()) && ed < today
+}
 function isHidden(closedAt) {
   if (!closedAt) return false
   return (Date.now() - new Date(closedAt).getTime()) / 86400000 >= SURVEY_HIDE_DAYS
@@ -38,6 +46,8 @@ function mapSurveyMeta(row) {
     title: row.title,
     desc: row.description || '',
     status: row.status,               // draft | published | closed
+    // 팬 화면용 파생 상태: published 이면서 end_date 가 지나지 않았을 때만 '진행중(open)'.
+    open: row.status === 'published' && !isPastEnd(row.end_date),
     isPublic: row.is_public !== false,
     teamId: row.team_id || null,
     startDate: row.start_date || '',
@@ -47,7 +57,9 @@ function mapSurveyMeta(row) {
     participants: Number(row.response_count) || 0, // 팬 목록 호환 별칭
     participated: !!row.has_responded,
     dday: daysUntil(row.end_date),
-    closedAt: row.status === 'closed' ? (row.closed_at || row.end_date || null) : null,
+    closedAt: row.status === 'closed'
+      ? (row.closed_at || row.end_date || null)
+      : (isPastEnd(row.end_date) ? row.end_date : null),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

@@ -92,6 +92,9 @@ export default function SurveyDetailPage() {
     setSubmitting(false)
     if (!res.ok) {
       if (res.code === 'duplicate') { setSurvey(s => ({ ...s, participated: true })); return }
+      // 로드 후 마감된 경우(레이스): 재시도 유도 문구 대신 마감/시작전 상태를 명확히 안내.
+      if (res.code === 'closed') { setSurvey(s => ({ ...s, open: false, status: 'closed' })); return }
+      if (res.code === 'not_started') { setError(t('survey.notStartedMsg')); return }
       setError(res.error || t('survey.errSubmit'))
       return
     }
@@ -159,7 +162,7 @@ export default function SurveyDetailPage() {
               <button className="sv-btn-primary" onClick={backToList}>{t('survey.backList')}</button>
             </div>
           </div>
-        ) : survey.status !== 'published' ? (
+        ) : !survey.open ? (
           <div className="sv-notfound" role="status">
             <p>{t('survey.closedMsg')}</p>
             <button className="sv-btn-primary" onClick={backToList}>{t('survey.backList')}</button>

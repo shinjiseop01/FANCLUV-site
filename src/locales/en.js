@@ -471,6 +471,7 @@ export default {
   'survey.errRequired': 'Q{n} is required.',
   'survey.errSubmit': 'Failed to submit. Please try again shortly.',
   'survey.closedMsg': 'This survey is closed or not available.',
+  'survey.notStartedMsg': 'This survey has not started yet.',
   'survey.noQuestions': 'This survey has no questions yet.',
   'survey.goOpinions': 'Go to Fan Opinions',
   // survey list
