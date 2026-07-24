@@ -1,0 +1,77 @@
+/* FANCLUV — 경기 상세. MatchCenterPage 디자인 토큰 재사용(--ink/--muted/--border/--canvas/--team…). */
+.md-main { max-width: 860px; }
+
+.md-back {
+  display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px;
+  padding: 7px 12px; border: 1px solid var(--border); border-radius: 9px;
+  background: var(--canvas); color: var(--body); font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.md-back svg { width: 16px; height: 16px; }
+.md-back:hover { background: color-mix(in srgb, var(--team) 8%, var(--mix-base)); border-color: color-mix(in srgb, var(--team) 40%, var(--border)); }
+.md-back:focus-visible { outline: 2px solid var(--team); outline-offset: 2px; }
+
+/* Scoreboard */
+.md-scoreboard {
+  background: var(--canvas); border: 1px solid var(--border); border-radius: 16px;
+  padding: 22px 20px; margin-bottom: 18px;
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--team) 6%, var(--canvas)), var(--canvas));
+}
+.md-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; justify-content: center; margin-bottom: 18px; font-size: 12.5px; color: var(--muted); }
+.md-league { font-weight: 800; color: var(--team-deep); }
+.md-meta .ic-txt { display: inline-flex; align-items: center; gap: 4px; }
+
+.md-teams { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
+.md-team { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.md-team-name { font-size: 15px; font-weight: 700; color: var(--ink); text-align: center; word-break: keep-all; }
+.md-ha { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; color: var(--muted); padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); }
+.md-ha.away { background: color-mix(in srgb, var(--muted) 14%, var(--mix-base)); }
+.md-center { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 8px; }
+.md-score { font-size: 34px; font-weight: 800; color: var(--ink); white-space: nowrap; }
+.md-colon { color: var(--muted); margin: 0 2px; }
+.md-vs { font-size: 22px; font-weight: 800; color: var(--muted); }
+.md-status { font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+.md-status.finished { background: color-mix(in srgb, var(--muted) 16%, var(--mix-base)); color: var(--muted); }
+.md-status.scheduled { background: color-mix(in srgb, var(--team) 14%, var(--mix-base)); color: var(--team-deep); }
+.md-status.live { background: #DC2626; color: #fff; }
+.md-status.postponed, .md-status.cancelled { background: color-mix(in srgb, #DC2626 14%, var(--mix-base)); color: #DC2626; }
+
+/* Goals */
+.md-goals { display: flex; flex-direction: column; gap: 8px; }
+.md-goal { display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--mix-base); }
+.md-goal-min { font-weight: 800; color: var(--team-deep); font-variant-numeric: tabular-nums; }
+.md-goal-player { color: var(--ink); font-weight: 600; }
+.md-assist { color: var(--muted); font-weight: 500; font-size: 12.5px; }
+.md-og { color: #DC2626; font-style: normal; font-weight: 700; }
+.md-goal-side { font-size: 12px; color: var(--muted); }
+
+/* Stats */
+.md-stats { display: flex; flex-direction: column; gap: 12px; }
+.md-stat { display: grid; grid-template-columns: 46px 1fr 46px; align-items: center; gap: 10px; }
+.md-stat-v { font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.md-stat-v.home { text-align: right; }
+.md-stat-v.away { text-align: left; }
+.md-stat-mid { display: flex; flex-direction: column; gap: 5px; }
+.md-stat-label { text-align: center; font-size: 12px; color: var(--muted); font-weight: 600; }
+.md-stat-bar { display: flex; height: 6px; border-radius: 999px; overflow: hidden; background: var(--border-soft); }
+.md-stat-bar i.home { background: var(--team); }
+.md-stat-bar i.away { background: color-mix(in srgb, var(--muted) 55%, var(--mix-base)); }
+
+/* Timeline */
+.md-timeline { display: flex; flex-direction: column; gap: 6px; }
+.md-tl { display: grid; grid-template-columns: 42px 24px 1fr; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid var(--border-soft); }
+.md-tl:last-child { border-bottom: 0; }
+.md-tl-min { font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
+.md-tl-ic { text-align: center; font-size: 14px; }
+.md-tl-txt { font-size: 13.5px; color: var(--body); }
+.md-tl-txt strong { color: var(--ink); font-weight: 700; }
+
+.md-cta { margin-top: 20px; }
+.md-cta .mc-cta-btn { width: 100%; }
+
+@media (max-width: 560px) {
+  .md-teams { grid-template-columns: 1fr auto 1fr; gap: 6px; }
+  .md-team-name { font-size: 13px; }
+  .md-score { font-size: 28px; }
+  .md-goal { grid-template-columns: 38px 1fr; }
+  .md-goal-side { display: none; }
+}

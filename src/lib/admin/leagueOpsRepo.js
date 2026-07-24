@@ -270,3 +270,13 @@ export async function runLeagueSync(mode = 'incremental') {
   if (error) return { ok: false, code: 'error', message: error.message }
   return data || { ok: false, code: 'error' }
 }
+
+// 관리자 수동 경기 상세 동기화(§22) — is_admin 게이트 + rate limit 서버(admin_league_match_detail_sync).
+//   mode: 'recent'(최근 종료·미수집) | 'backfill'(시즌 전체·미수집). 브라우저는 시크릿 미접촉.
+export async function runLeagueMatchDetailSync(mode = 'recent') {
+  if (!isAdmin()) return { ok: false, code: 'forbidden' }
+  if (!isSupabaseConfigured) return { ok: false, code: 'not_configured' }
+  const { data, error } = await supabase.rpc('admin_league_match_detail_sync', { p_mode: mode })
+  if (error) return { ok: false, code: 'error', message: error.message }
+  return data || { ok: false, code: 'error' }
+}

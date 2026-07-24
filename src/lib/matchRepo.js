@@ -5,6 +5,7 @@
 // 실제 API↔Mock 전환·5분 캐시·폴백은 leagueProvider(facade)가 담당한다.
 import { getTeam } from '../teams.jsx'
 import { getStandings, getFixtures, getTeamSeason, refreshLeague, leagueMode, leagueConfigState, isLeagueProdUnconfigured } from '../services/league/leagueProvider.js'
+import { getMatchDetail } from '../services/league/dbLeagueProvider.js'
 import { stadiumOf } from '../services/league/mockLeagueProvider.js'
 
 export { stadiumOf, getTeamSeason, leagueMode, leagueConfigState, isLeagueProdUnconfigured }
@@ -57,6 +58,31 @@ export async function loadMatchData(teamId) {
     live: toDisplayMatch(live),
     upcoming: (upcoming || []).map(toDisplayMatch),
     recent: (recent || []).map(toDisplayMatch),
+  }
+}
+
+// ── 경기 단건 상세 (DB read RPC — 외부 호출 0, finished 상세는 immutable/cacheable) ──
+//   반환: 코어(팀 객체 포함) + detail{goals,cards,subs,timeline,stats}. null=미존재.
+const fallbackTeam = (id, name) => getTeam(id) || (id || name ? { id: id || name, name: name || id, color: '#888', colorDeep: '#888' } : null)
+export async function loadMatchDetail(externalId) {
+  const d = await getMatchDetail(externalId)
+  if (!d) return null
+  return {
+    externalId: d.externalId,
+    round: d.round,
+    status: d.status,
+    finished: d.status === 'finished',
+    kickoffAt: d.kickoffAt,
+    date: d.gameDate,
+    time: d.gameTime,
+    stadium: d.stadium,
+    home: fallbackTeam(d.homeClubId, d.homeTeamName),
+    away: fallbackTeam(d.awayClubId, d.awayTeamName),
+    homeTeamName: d.homeTeamName,
+    awayTeamName: d.awayTeamName,
+    homeScore: d.homeScore,
+    awayScore: d.awayScore,
+    detail: d.detail || null,   // { events:{goals,cards,subs,timeline}, stats:{home,away}, status, syncedAt }
   }
 }
 

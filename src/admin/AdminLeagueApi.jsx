@@ -4,7 +4,7 @@ import Icon from '../components/Icon.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import {
   getLeagueStatus, testLeagueApi, resetLeagueOps, getApiQuota,
-  getLeagueSyncHealth, getLeagueSeasons, runLeagueSync, STANDING_FIELDS, MATCH_FIELDS, FAILURE_THRESHOLD,
+  getLeagueSyncHealth, getLeagueSeasons, runLeagueSync, runLeagueMatchDetailSync, STANDING_FIELDS, MATCH_FIELDS, FAILURE_THRESHOLD,
 } from '../lib/admin/leagueOpsRepo.js'
 import { useToast } from '../contexts/ToastContext.jsx'
 
@@ -87,6 +87,8 @@ export default function AdminLeagueApi() {
   const [health, setHealth] = useState(null)
   const [seasons, setSeasons] = useState([])
   const [confirmBackfill, setConfirmBackfill] = useState(false)
+  const [detailSyncing, setDetailSyncing] = useState(false)
+  const [confirmDetailBackfill, setConfirmDetailBackfill] = useState(false)
 
   async function refresh() {
     const s = await getLeagueStatus()
@@ -121,6 +123,16 @@ export default function AdminLeagueApi() {
     resetLeagueOps()
     setTest(null)
     refresh()
+  }
+  // 경기 상세 수동 동기화(§22) — recent(최근 종료·미수집) / backfill(시즌 전체·미수집).
+  async function onDetailSync(mode) {
+    if (detailSyncing) return
+    setDetailSyncing(true); setConfirmDetailBackfill(false)
+    const r = await runLeagueMatchDetailSync(mode)
+    setDetailSyncing(false)
+    if (!r?.ok) { toast.error(r?.code === 'RATE_LIMITED' ? t('admin.lg.syncRate') : t('admin.lg.syncFail')); return }
+    toast.info(t('admin.lg.syncQueued'))
+    setTimeout(refresh, 8000)
   }
 
   if (loading) return <div className="adm-page"><SkeletonList count={4} lines={1} /></div>
@@ -199,7 +211,44 @@ export default function AdminLeagueApi() {
               ))}
             </div>
           )}
+
+          {/* 경기 상세 수집 현황(§22) — 상세 데이터(득점/기록/타임라인) */}
+          {health.detail && (
+            <div className="lg-detail-block">
+              <div className="lg-detail-head">
+                <span className="lg-seasons-label">{t('admin.lg.detailTitle')}</span>
+                <div className="lg-detail-actions">
+                  <button className="adm-btn-ghost" onClick={() => onDetailSync('recent')} disabled={detailSyncing}>
+                    <Icon name="refresh" size={14} className={detailSyncing ? 'adm-spin' : ''} /> {detailSyncing ? t('admin.lg.syncing') : t('admin.lg.detailSyncRecent')}
+                  </button>
+                  <button className="adm-btn-ghost" onClick={() => setConfirmDetailBackfill(true)} disabled={detailSyncing}>
+                    <Icon name="refresh" size={14} /> {t('admin.lg.detailSyncBackfill')}
+                  </button>
+                </div>
+              </div>
+              <dl className="lg-status-grid">
+                <div><dt>{t('admin.lg.detailCollected')}</dt><dd><strong>{health.detail.collected ?? 0}</strong> / {health.detail.finished ?? 0}</dd></div>
+                <div><dt>{t('admin.lg.detailPending')}</dt><dd>{health.detail.pending ?? 0}</dd></div>
+                <div><dt>{t('admin.lg.detailFailed')}</dt><dd>{health.detail.failed ? <span className="lg-err">{health.detail.failed}</span> : 0}</dd></div>
+                <div><dt>{t('admin.lg.detailLastSync')}</dt><dd className="lg-mono">{fmtTs(health.detail.lastSyncedAt)}</dd></div>
+              </dl>
+            </div>
+          )}
         </section>
+      )}
+
+      {confirmDetailBackfill && (
+        <div className="adm-modal-overlay" role="dialog" aria-modal="true"
+          onClick={e => { if (e.target === e.currentTarget) setConfirmDetailBackfill(false) }}>
+          <div className="adm-modal">
+            <h2 className="adm-h2">{t('admin.lg.detailSyncBackfill')}</h2>
+            <p className="adm-sub">{t('admin.lg.detailBackfillConfirm')}</p>
+            <div className="adm-sup-actions">
+              <button className="adm-btn-sm" onClick={() => setConfirmDetailBackfill(false)}>{t('common.cancel')}</button>
+              <button className="adm-btn-sm primary" onClick={() => onDetailSync('backfill')}>{t('admin.lg.detailSyncBackfill')}</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* (레거시) API-FOOTBALL 계정 상태 / quota — 해당 provider 활성 시에만 */}

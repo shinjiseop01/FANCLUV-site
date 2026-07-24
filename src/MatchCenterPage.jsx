@@ -63,6 +63,9 @@ export default function MatchCenterPage() {
   // 경기의견 작성 — 선택적으로 상대팀 context(vs=)를 전달해 작성 화면 제목을 프리필한다.
   const goWrite = (vs) => navigate(`/club/${team.id}/write${vs ? `?vs=${encodeURIComponent(vs)}` : ''}`)
   const goOpinions = () => navigate(`/club/${team.id}/opinions`)
+  // 경기 카드 클릭 → FANCLUV 내부 경기 상세(외부 gameId=externalId=m.id).
+  const goDetail = (id) => { if (id != null) navigate(`/club/${team.id}/matches/${id}`) }
+  const cardKey = (e, id) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goDetail(id) } }
 
   const { next, live, upcoming, recent } = data || {}
 
@@ -188,7 +191,9 @@ export default function MatchCenterPage() {
               <h2 className="mc-panel-title">{t('match.schedule')}</h2>
               <ul className="mc-list">
                 {upcoming.map(m => (
-                  <li key={m.id} className="mc-match">
+                  <li key={m.id} className="mc-match clickable" role="button" tabIndex={0}
+                    aria-label={`${teamName(m.home, lang)} vs ${teamName(m.away, lang)} ${t('match.viewDetail')}`}
+                    onClick={() => goDetail(m.id)} onKeyDown={e => cardKey(e, m.id)}>
                     <div className="mc-match-date">
                       <span className="mc-date">{m.date}</span>
                       <span className="mc-time">{m.time}</span>
@@ -219,7 +224,9 @@ export default function MatchCenterPage() {
                 {recent.map(m => {
                   const o = outcome(m)
                   return (
-                    <li key={m.id} className="mc-match">
+                    <li key={m.id} className="mc-match clickable" role="button" tabIndex={0}
+                      aria-label={`${teamName(m.home, lang)} ${m.homeScore}:${m.awayScore} ${teamName(m.away, lang)} ${t('match.viewDetail')}`}
+                      onClick={() => goDetail(m.id)} onKeyDown={e => cardKey(e, m.id)}>
                       <div className="mc-match-date">
                         <span className="mc-date">{m.date}</span>
                         <span className={`mc-outcome ${o.cls}`}>{o.label}</span>
@@ -231,7 +238,7 @@ export default function MatchCenterPage() {
                       </div>
                       <div className="mc-match-info">
                         <span className="mc-stadium ic-txt"><Icon name="pin" size={13} /> {m.stadium}</span>
-                        <button className="mc-op-btn" onClick={goOpinions}>{t('match.viewOpinion')}</button>
+                        <button className="mc-op-btn" onClick={e => { e.stopPropagation(); goOpinions() }}>{t('match.viewOpinion')}</button>
                       </div>
                     </li>
                   )

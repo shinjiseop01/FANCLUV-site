@@ -133,6 +133,9 @@
   border-top: 1px solid var(--border-soft);
 }
 .mc-match:first-child { padding-top: 0; border-top: none; }
+.mc-match.clickable { cursor: pointer; padding-left: 10px; padding-right: 10px; border-radius: 10px; transition: background .12s ease; }
+.mc-match.clickable:hover { background: color-mix(in srgb, var(--team) 6%, var(--mix-base)); }
+.mc-match.clickable:focus-visible { outline: 2px solid var(--team); outline-offset: -2px; }
 .mc-match-date { display: flex; flex-direction: column; gap: 4px; }
 .mc-date { font-size: 13.5px; font-weight: 700; color: var(--ink); }
 .mc-time { font-size: 12.5px; color: var(--muted); }

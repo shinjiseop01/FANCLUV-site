@@ -56,4 +56,12 @@ export async function getFixtures(teamId) {
   return { next: upcoming[0] || null, live, upcoming: upcoming.slice(0, 5), recent }
 }
 
-export const dbLeagueProvider = { key: 'db', getStandings, getFixtures }
+// 경기 단건 상세 — read RPC(league_match_detail) 만 조회(외부 호출 0). null=미존재.
+export async function getMatchDetail(externalId) {
+  if (!isSupabaseConfigured || !externalId) return null
+  const { data, error } = await supabase.rpc('league_match_detail', { p_external_id: String(externalId) })
+  if (error || !data) return null
+  return data
+}
+
+export const dbLeagueProvider = { key: 'db', getStandings, getFixtures, getMatchDetail }
