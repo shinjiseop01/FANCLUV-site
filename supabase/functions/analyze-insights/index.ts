@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     if (existing) return json({ ok: true, insight: existing, deduped: true })
   }
 
-  let oq = admin.from('opinions').select('category, rating, title, body').eq('status', 'visible')
+  let oq = admin.from('opinions').select('id, author_id, category, rating, title, body').eq('status', 'visible')
   if (clubId && clubId !== 'all') oq = oq.eq('team_id', clubId)
   const { data: opinions = [] } = await oq.order('created_at', { ascending: false }).limit(300)
 
@@ -166,6 +166,22 @@ Deno.serve(async (req) => {
 
   const { data: saved, error: insErr } = await admin.from('ai_insights').insert(record).select().single()
   if (insErr) return json({ ok: false, code: 'save_failed', error: insErr.message })
+
+  // Provenance(§9): 이 insight 가 실제 어떤 팬 의견에서 나왔는지 생성 당시 기록한다.
+  //   · 테스트 계정(profiles.is_test_account) 작성 의견은 제외(§17).
+  //   · 실패해도 insight 생성은 성공으로 유지(guarded).
+  try {
+    const authorIds = [...new Set(opinions.map((o: any) => o.author_id).filter(Boolean))]
+    let testIds = new Set<string>()
+    if (authorIds.length) {
+      const { data: testProfiles } = await admin.from('profiles').select('id').in('id', authorIds).eq('is_test_account', true)
+      testIds = new Set((testProfiles || []).map((p: any) => p.id))
+    }
+    const rows = opinions
+      .filter((o: any) => o.id && o.author_id && !testIds.has(o.author_id))
+      .map((o: any) => ({ ai_insight_id: saved.id, source_type: 'opinion', opinion_id: o.id }))
+    if (rows.length) await admin.from('ai_insight_sources').upsert(rows, { onConflict: 'ai_insight_id,opinion_id', ignoreDuplicates: true })
+  } catch (_e) { /* provenance 기록 실패는 insight 생성을 막지 않는다 */ }
 
   return json({ ok: true, insight: saved })
 })

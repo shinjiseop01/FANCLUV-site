@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   isFanVisible, canPublish, validatePublicFields, toFanFeedback,
   FAN_PUBLIC_FIELDS, INTERNAL_FIELDS, nonEmpty,
+  hasVisibleProvenance, toPublicProvenance, PROVENANCE_PUBLIC_FIELDS,
 } from './feedbackVisibility.js'
 
 const base = (over = {}) => ({
@@ -90,4 +91,38 @@ test('nonEmpty handles null/whitespace', () => {
 test('isFanVisible null-safe', () => {
   assert.equal(isFanVisible(null), false)
   assert.equal(isFanVisible(undefined), false)
+})
+
+// ── Provenance (Phase 2) ──
+// 14) level 0 (no insight link) → provenance 숨김
+test('provenance level 0 hidden', () => {
+  assert.equal(hasVisibleProvenance({ level: 0, opinion_count: 0, keywords: [] }), false)
+})
+// 15) level 1 but no counts/keywords → 숨김(정직한 hidden)
+test('provenance level 1 with no data hidden', () => {
+  assert.equal(hasVisibleProvenance({ level: 1, opinion_count: 0, survey_count: 0, survey_response_count: 0, keywords: [] }), false)
+})
+// 16) level>=1 with real count → 표시
+test('provenance with real opinion count shown', () => {
+  assert.equal(hasVisibleProvenance({ level: 2, opinion_count: 43, keywords: [] }), true)
+})
+// 17) level>=1 with keywords only → 표시
+test('provenance with keywords only shown', () => {
+  assert.equal(hasVisibleProvenance({ level: 1, opinion_count: 0, keywords: ['#매점'] }), true)
+})
+// 18) null-safe
+test('hasVisibleProvenance null-safe', () => {
+  assert.equal(hasVisibleProvenance(null), false)
+  assert.equal(hasVisibleProvenance(undefined), false)
+})
+// 19) toPublicProvenance strips non-whitelist (e.g. source IDs)
+test('toPublicProvenance strips source ids', () => {
+  const out = toPublicProvenance({ level: 2, opinion_count: 2, keywords: ['#a'], opinion_ids: [1, 2], internal: 'x' })
+  assert.equal('opinion_ids' in out, false)
+  assert.equal('internal' in out, false)
+  assert.equal(out.opinion_count, 2)
+})
+// 20) provenance whitelist has no source-id fields
+test('provenance whitelist excludes ids', () => {
+  assert.equal(PROVENANCE_PUBLIC_FIELDS.some(f => /_id/.test(f)), false)
 })

@@ -47,6 +47,7 @@ const MyActivityPage = lazy(() => import('./MyActivityPage.jsx'))
 const MatchCenterPage = lazy(() => import('./MatchCenterPage.jsx'))
 const MatchDetailPage = lazy(() => import('./MatchDetailPage.jsx'))
 const TeamNewsPage = lazy(() => import('./TeamNewsPage.jsx'))
+const FeedbackDetailPage = lazy(() => import('./FeedbackDetailPage.jsx'))
 const AIInsightsPage = lazy(() => import('./AIInsightsPage.jsx'))
 const FanRankingPage = lazy(() => import('./FanRankingPage.jsx'))
 const SettingsPage = lazy(() => import('./SettingsPage.jsx'))
@@ -171,6 +172,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/club/:teamId/matches/:matchId" element={<RequireAuth><MatchDetailPage /></RequireAuth>} />
         <Route path="/club/:teamId/news" element={<RequireAuth><TeamNewsPage /></RequireAuth>} />
         <Route path="/club/:teamId/news/:newsId" element={<RequireAuth><TeamNewsPage /></RequireAuth>} />
+        <Route path="/club/:teamId/feedback/:feedbackId" element={<RequireAuth><FeedbackDetailPage /></RequireAuth>} />
         <Route path="/club/:teamId/insights" element={<RequireAuth><AIInsightsPage /></RequireAuth>} />
         <Route path="/club/:teamId/ranking" element={<RequireAuth><FanRankingPage /></RequireAuth>} />
         <Route path="/club/:teamId/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />

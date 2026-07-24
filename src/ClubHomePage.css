@@ -519,3 +519,37 @@
 @media (max-width: 520px) {
   .ch-feedback-list { grid-template-columns: 1fr; }
 }
+
+/* ── 구단 피드백 카드 클릭 가능 ── */
+.ch-feedback-card.is-link { cursor: pointer; transition: border-color .14s, transform .14s; }
+.ch-feedback-card.is-link:hover { border-color: color-mix(in srgb, var(--team) 45%, var(--border)); transform: translateY(-1px); }
+.ch-feedback-card.is-link:focus-visible { outline: 2px solid var(--team); outline-offset: 2px; }
+
+/* ── 구단 피드백 상세(FeedbackDetailPage) ── */
+.fbd-main { max-width: 760px; margin: 0 auto; padding-top: 24px; }
+.fbd-back { background: none; border: none; color: var(--muted); font-size: 14px; cursor: pointer; padding: 6px 0; margin-bottom: 14px; }
+.fbd-back:hover { color: var(--ink); }
+.fbd-notfound { text-align: center; padding: 48px 16px; color: var(--muted); display: flex; flex-direction: column; gap: 16px; align-items: center; }
+.fbd-article { border: 1px solid var(--border); border-radius: 16px; padding: 26px 24px; background: var(--card, var(--canvas)); }
+.fbd-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.fbd-team { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; color: var(--team-deep); }
+.fbd-title { font-size: 23px; font-weight: 800; color: var(--ink); margin: 0 0 12px; line-height: 1.35; overflow-wrap: anywhere; }
+.fbd-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; font-size: 12.5px; }
+.fbd-cat { font-weight: 700; color: var(--team-deep); background: color-mix(in srgb, var(--team) 12%, var(--mix-base)); padding: 3px 10px; border-radius: 999px; }
+.fbd-date { color: var(--muted); }
+.fbd-summary { font-size: 15px; color: var(--body); line-height: 1.75; margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.fbd-prov { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--border-soft); }
+.fbd-prov-title { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 800; color: var(--ink); margin: 0 0 6px; }
+.fbd-prov-title .fc-inline-ico { color: var(--team-deep); }
+.fbd-prov-lead { font-size: 13.5px; color: var(--muted); margin: 0 0 16px; line-height: 1.6; }
+.fbd-prov-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.fbd-stat { flex: 1; min-width: 130px; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: color-mix(in srgb, var(--team) 4%, transparent); }
+.fbd-stat b { display: block; font-size: 24px; font-weight: 800; color: var(--team-deep); line-height: 1.1; }
+.fbd-stat span { font-size: 12.5px; color: var(--muted); }
+.fbd-keywords { display: flex; flex-direction: column; gap: 8px; }
+.fbd-kw-label { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.fbd-kw-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.fbd-kw { font-size: 13px; font-weight: 600; color: var(--ink); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; background: var(--mix-base); }
+.fbd-noprov { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border-soft); font-size: 13px; color: var(--muted); line-height: 1.6; }
+.fbd-pub { opacity: .85; }
+@media (max-width: 520px) { .fbd-title { font-size: 20px; } .fbd-article { padding: 20px 16px; } }

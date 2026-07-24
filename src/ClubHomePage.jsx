@@ -151,7 +151,9 @@ export default function ClubHomePage() {
           ) : (
             <ul className="ch-feedback-list">
               {feedback.map(f => (
-                <li key={f.id} className="ch-feedback-card">
+                <li key={f.id} className="ch-feedback-card is-link" role="button" tabIndex={0}
+                  onClick={() => navigate(`/club/${team.id}/feedback/${f.id}`)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/club/${team.id}/feedback/${f.id}`) } }}>
                   <span className="ch-feedback-badge"><Icon name="check" size={13} className="fc-inline-ico" /> {t('feedback.reflected')}</span>
                   <h3 className="ch-feedback-card-title">{f.public_title}</h3>
                   <p className="ch-feedback-card-summary">{f.public_summary}</p>

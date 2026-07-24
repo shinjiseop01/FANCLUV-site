@@ -16,6 +16,23 @@ export async function getFanFeedback(teamId, limit = 5) {
   return (data || []).map(toFanFeedback)
 }
 
+// ── Fan: 공개 피드백 상세 + provenance(검증된 source aggregate만) ──
+export async function getFanFeedbackDetail(feedbackId, teamId) {
+  if (!feedbackId || !teamId) return { ok: false, code: 'bad_input' }
+  if (!isSupabaseConfigured) return { ok: false, code: 'no_backend' }
+  const { data, error } = await supabase.rpc('fan_club_feedback_detail', { p_feedback_id: Number(feedbackId), p_team_id: teamId })
+  if (error) return { ok: false, code: error.message }
+  return data || { ok: false, code: 'error' }
+}
+
+// ── Club/Admin: Action provenance(내부 traceability — insight/report 존재 여부) ──
+export async function getActionProvenance(actionId) {
+  if (!isSupabaseConfigured) return null
+  const { data, error } = await supabase.rpc('club_action_provenance', { p_action_id: Number(actionId) })
+  if (error || !data?.ok) return null
+  return data
+}
+
 // ── Club/Admin: 내 구단의 조치 목록(공개 관리용, 최소 필드) ──
 export async function listOwnActions(limit = 50) {
   if (!isSupabaseConfigured) return []

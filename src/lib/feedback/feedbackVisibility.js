@@ -44,3 +44,25 @@ export function toFanFeedback(row) {
   for (const k of FAN_PUBLIC_FIELDS) if (k in row) out[k] = row[k]
   return out
 }
+
+// ── Provenance(Phase 2) ──
+// provenance 화이트리스트: Fan 상세에 노출 가능한 aggregate 필드만.
+export const PROVENANCE_PUBLIC_FIELDS = ['level', 'opinion_count', 'survey_count', 'survey_response_count', 'keywords', 'topic']
+
+// Fan 상세에서 provenance 섹션을 실제로 보여줄지 — 실제 검증된 데이터가 있을 때만(§8).
+// level>=1(insight 연결) 이고 count 또는 keyword 가 실제 존재해야 표시. 아니면 정직한 hidden.
+export function hasVisibleProvenance(prov) {
+  if (!prov || typeof prov !== 'object') return false
+  if (!(prov.level >= 1)) return false
+  const counts = (prov.opinion_count || 0) + (prov.survey_count || 0) + (prov.survey_response_count || 0)
+  const kw = Array.isArray(prov.keywords) ? prov.keywords.length : 0
+  return counts > 0 || kw > 0
+}
+
+// provenance 방어적 sanitize: source IDs/내부 필드가 섞여도 화이트리스트만 남긴다.
+export function toPublicProvenance(prov) {
+  if (!prov || typeof prov !== 'object') return null
+  const out = {}
+  for (const k of PROVENANCE_PUBLIC_FIELDS) if (k in prov) out[k] = prov[k]
+  return out
+}
