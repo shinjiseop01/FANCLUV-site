@@ -53,8 +53,8 @@ export default function AdminNewsSources() {
     setAiBusy(true)
     const r = await runAiProcess(mode)
     setAiBusy(false)
-    if (!r?.ok) { toast.error(r?.code === 'RATE_LIMITED' ? t('admin.ai.rate') : t('admin.ai.fail')); return }
-    toast.info(t('admin.ai.queued'))
+    if (!r?.ok) { toast.error(r?.code === 'RATE_LIMITED' ? t('admin.aiq.rate') : t('admin.aiq.fail')); return }
+    toast.info(t('admin.aiq.queued'))
     setTimeout(() => getAiQueueHealth().then(setAiHealth), 8000)
   }
 
@@ -146,22 +146,22 @@ export default function AdminNewsSources() {
           <Icon name="robot" size={18} />
           <div className="ns-ai-body">
             <div className="ns-sched-grid">
-              <div><span className="ns-sched-k">{t('admin.ai.pending')}</span> {aiHealth.pending ?? 0}</div>
-              <div><span className="ns-sched-k">{t('admin.ai.processing')}</span> {aiHealth.processing ?? 0}</div>
-              <div><span className="ns-sched-k">{t('admin.ai.retrying')}</span> {aiHealth.retrying ?? 0}</div>
-              <div><span className="ns-sched-k">{t('admin.ai.failed')}</span> {aiHealth.failed ?? 0}</div>
-              <div><span className="ns-sched-k">{t('admin.ai.done')}</span> {aiHealth.done ?? 0}</div>
-              <div><span className="ns-sched-k">{t('admin.ai.summaries')}</span> {aiHealth.summaries?.ai ?? 0} AI / {aiHealth.summaries?.extractive ?? 0} 추출</div>
-              <div><span className="ns-sched-k">{t('admin.ai.oldest')}</span> {fmtTs(aiHealth.oldestPending)}</div>
-              <div><span className="ns-sched-k">{t('admin.ai.lastDone')}</span> {fmtTs(aiHealth.lastDoneAt)}</div>
+              <div><span className="ns-sched-k">{t('admin.aiq.pending')}</span> {aiHealth.pending ?? 0}</div>
+              <div><span className="ns-sched-k">{t('admin.aiq.processing')}</span> {aiHealth.processing ?? 0}</div>
+              <div><span className="ns-sched-k">{t('admin.aiq.retrying')}</span> {aiHealth.retrying ?? 0}</div>
+              <div><span className="ns-sched-k">{t('admin.aiq.failed')}</span> {aiHealth.failed ?? 0}</div>
+              <div><span className="ns-sched-k">{t('admin.aiq.done')}</span> {aiHealth.done ?? 0}</div>
+              <div><span className="ns-sched-k">{t('admin.aiq.summaries')}</span> {aiHealth.summaries?.ai ?? 0} AI / {aiHealth.summaries?.extractive ?? 0} 추출</div>
+              <div><span className="ns-sched-k">{t('admin.aiq.oldest')}</span> {fmtTs(aiHealth.oldestPending)}</div>
+              <div><span className="ns-sched-k">{t('admin.aiq.lastDone')}</span> {fmtTs(aiHealth.lastDoneAt)}</div>
             </div>
             <div className="ns-ai-actions">
               <button className="adm-btn-ghost" onClick={() => onAiProcess('process')} disabled={aiBusy}>
-                <Icon name="refresh" size={14} className={aiBusy ? 'adm-spin' : ''} /> {aiBusy ? t('admin.ai.processing') : t('admin.ai.processBtn')}
+                <Icon name="refresh" size={14} className={aiBusy ? 'adm-spin' : ''} /> {aiBusy ? t('admin.aiq.processing') : t('admin.aiq.processBtn')}
               </button>
               {(aiHealth.failed ?? 0) > 0 && (
                 <button className="adm-btn-ghost" onClick={() => onAiProcess('retry_failed')} disabled={aiBusy}>
-                  <Icon name="refresh" size={14} /> {t('admin.ai.retryBtn')}
+                  <Icon name="refresh" size={14} /> {t('admin.aiq.retryBtn')}
                 </button>
               )}
             </div>
