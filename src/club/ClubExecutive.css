@@ -92,3 +92,37 @@ html[data-theme="dark"] .exec-root { --exec-accent: var(--team, #a78bff); }
   .exec-title { font-size: 22px; }
   .exec-brief-line { font-size: 15px; }
 }
+
+/* ── 구단 피드백 공개 패널 (ClubFeedbackPublisher) ── */
+.cfp .cfp-sub { font-size: 12.5px; color: var(--exec-muted, var(--muted)); margin: -4px 0 12px; }
+.cfp-empty { font-size: 13px; color: var(--exec-muted, var(--muted)); padding: 12px 0; }
+.cfp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.cfp-item {
+  border: 1px solid var(--exec-border, var(--border));
+  border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+  background: var(--exec-card, var(--card, transparent));
+}
+.cfp-item-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cfp-action-title { font-size: 14px; font-weight: 700; color: var(--exec-ink, var(--ink)); overflow-wrap: anywhere; }
+.cfp-badge {
+  font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  color: var(--exec-muted, var(--muted)); background: color-mix(in srgb, var(--exec-muted, var(--muted)) 14%, transparent);
+}
+.cfp-badge.on {
+  color: var(--exec-accent, var(--team-deep, #863bff));
+  background: color-mix(in srgb, var(--exec-accent, var(--team, #863bff)) 16%, transparent);
+}
+.cfp-field { display: flex; flex-direction: column; gap: 5px; }
+.cfp-field > span { font-size: 12px; font-weight: 600; color: var(--exec-muted, var(--muted)); }
+.cfp-input {
+  width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 9px;
+  border: 1px solid var(--exec-border, var(--border)); background: var(--exec-input-bg, var(--canvas, transparent));
+  color: var(--exec-ink, var(--ink)); font-size: 13.5px; font-family: inherit;
+}
+.cfp-input:focus-visible { outline: 2px solid var(--exec-accent, var(--team, #863bff)); outline-offset: 1px; }
+.cfp-textarea { resize: vertical; min-height: 62px; line-height: 1.5; }
+.cfp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.cfp-btn { font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 9px; cursor: pointer; border: 1px solid transparent; }
+.cfp-btn:disabled { opacity: 0.55; cursor: default; }
+.cfp-btn-primary { background: var(--exec-accent, var(--team-deep, #863bff)); color: #fff; }
+.cfp-btn-ghost { background: transparent; border-color: var(--exec-border, var(--border)); color: var(--exec-ink, var(--ink)); }

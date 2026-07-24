@@ -7,8 +7,10 @@ import Icon from '../components/Icon.jsx'
 import {
   ACTION_CATEGORIES, ACTION_STATUSES,
   adminListActions, createAction, updateAction, setStatus, captureAfterKpi, deleteAction,
+  publishActionFeedback, unpublishActionFeedback,
 } from '../lib/admin/clubActionsRepo.js'
 import { adminListReports } from '../lib/admin/clubReportsRepo.js'
+import { useToast } from '../contexts/ToastContext.jsx'
 
 const EMPTY = { clubId: TEAMS[0].id, title: '', description: '', category: 'match', status: 'planned', actionDate: '', reportId: '', linkLatestInsight: true }
 
@@ -156,6 +158,7 @@ export default function AdminClubActions() {
                             {a.aiInsightId && <span className="ca-link-chip"><Icon name="sparkle" size={12} /> {t('admin.action.linkInsight')}</span>}
                             {a.reportId && <span className="ca-link-chip"><Icon name="news" size={12} /> {t('admin.action.linkReport')}: {reports.find(r => String(r.id) === String(a.reportId))?.title || a.reportId}</span>}
                           </div>
+                          {a.status === 'done' && <ActionPublish action={a} onChange={load} />}
                         </div>
                       </td>
                     </tr>
@@ -228,6 +231,54 @@ export default function AdminClubActions() {
           </form>
         </div>
       )}
+    </div>
+  )
+}
+
+// 팬 공개 · 구단 피드백 — 완료 조치를 팬에게 공개/취소(Admin은 모든 구단 가능). 내부 status 와 분리.
+function ActionPublish({ action, onChange }) {
+  const { t } = useLang()
+  const toast = useToast()
+  const [title, setTitle] = useState(action.publicTitle || '')
+  const [summary, setSummary] = useState(action.publicSummary || '')
+  const [busy, setBusy] = useState(false)
+
+  async function onPublish() {
+    if (!title.trim() || !summary.trim()) { toast.error(t('feedback.needFields')); return }
+    setBusy(true)
+    const res = await publishActionFeedback(action.id, { title: title.trim(), summary: summary.trim(), category: action.category })
+    setBusy(false)
+    if (res.ok) { toast.success(t('feedback.publishOk')); onChange?.() }
+    else toast.error(t('feedback.publishFail'))
+  }
+  async function onUnpublish() {
+    setBusy(true)
+    const res = await unpublishActionFeedback(action.id)
+    setBusy(false)
+    if (res.ok) { toast.success(t('feedback.unpublishOk')); onChange?.() }
+    else toast.error(t('feedback.publishFail'))
+  }
+
+  return (
+    <div className="ca-publish">
+      <div className="ca-publish-head">
+        <span className="ca-publish-title"><Icon name="check" size={13} /> {t('feedback.publishPanelTitle')}</span>
+        <span className={`ca-publish-badge ${action.isPublished ? 'on' : ''}`}>
+          {action.isPublished ? t('feedback.published') : t('feedback.private')}
+        </span>
+      </div>
+      <label className="adm-field">
+        <span>{t('feedback.publicTitleLabel')}</span>
+        <input value={title} maxLength={80} placeholder={t('feedback.publicTitlePh')} onChange={e => setTitle(e.target.value)} />
+      </label>
+      <label className="adm-field">
+        <span>{t('feedback.publicSummaryLabel')}</span>
+        <textarea rows={2} value={summary} maxLength={600} placeholder={t('feedback.publicSummaryPh')} onChange={e => setSummary(e.target.value)} />
+      </label>
+      <div className="ca-publish-actions">
+        <button type="button" className="adm-btn-primary" disabled={busy} onClick={onPublish}>{t('feedback.publishBtn')}</button>
+        {action.isPublished && <button type="button" className="adm-btn" disabled={busy} onClick={onUnpublish}>{t('feedback.unpublishBtn')}</button>}
+      </div>
     </div>
   )
 }

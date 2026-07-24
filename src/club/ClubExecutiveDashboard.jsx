@@ -14,6 +14,7 @@ import { usePagination } from '../lib/usePagination.js'
 import { LineChart } from '../admin/AdminCharts.jsx'
 import { getClubDashboard, getKpiTrend, getClubReports, getBenchmark } from '../lib/club/clubDashboardRepo.js'
 import { generateReportPdfFromDoc } from '../lib/ai/report/index.js'
+import ClubFeedbackPublisher from './ClubFeedbackPublisher.jsx'
 import './ClubExecutive.css'
 
 const TREND_PERIODS = [
@@ -194,6 +195,9 @@ export default function ClubExecutiveDashboard() {
                 </div>
               ) : <EmptyState iconName="check" title={t('exec.noActions')} message={t('exec.noActionsMsg')} compact />}
             </section>
+
+            {/* 팬 공개 · 구단 피드백 — 구단 계정이 완료 조치를 팬에게 공개(Feedback Loop). */}
+            {!admin && <ClubFeedbackPublisher />}
 
             <div className="exec-cols">
               {/* Report Center (요구사항 8) */}

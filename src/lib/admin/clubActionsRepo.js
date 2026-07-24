@@ -46,9 +46,14 @@ function mapRow(r) {
     beforeKpi: r.before_kpi || null, afterKpi: r.after_kpi || null,
     aiInsightId: r.ai_insight_id || null, reportId: r.report_id || null, week: r.week || null,
     resultNote: r.result_note || '',
+    isPublished: r.is_published === true, publicTitle: r.public_title || '', publicSummary: r.public_summary || '',
+    publishedAt: r.published_at || null, completedAt: r.completed_at || null,
     createdAt: r.created_at, updatedAt: r.updated_at,
   }
 }
+
+// 팬 공개/취소(Admin·Club 공용 RPC 재사용). 완료(done) 조치만 공개 가능.
+export { publishAction as publishActionFeedback, unpublishAction as unpublishActionFeedback } from '../feedback/clubFeedbackRepo.js'
 
 // ── 목록 + 검색(구단/상태/카테고리/기간) ──
 export async function adminListActions(filters = {}) {

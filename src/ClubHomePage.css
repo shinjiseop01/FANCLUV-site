@@ -468,3 +468,54 @@
 .ch-st-name { flex: 1; min-width: 0; }
 .ch-st-gd { width: 42px; text-align: right; font-size: 12.5px; color: var(--muted); }
 .ch-st-pts { width: 34px; text-align: right; font-weight: 800; color: var(--ink); }
+
+/* ── 구단 피드백 (Feedback Loop: 팬 의견 → 구단 개선 공개) ── */
+.ch-feedback { margin: 4px 0 22px; }
+.ch-feedback-head { margin-bottom: 14px; }
+.ch-feedback-head h2 {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 18px; font-weight: 800; color: var(--ink); margin: 0 0 4px;
+}
+.ch-feedback-head h2 .fc-inline-ico { color: var(--team-deep); }
+.ch-feedback-head p { font-size: 13px; color: var(--muted); margin: 0; }
+
+.ch-feedback-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;
+}
+.ch-feedback-card {
+  border: 1px solid color-mix(in srgb, var(--team) 22%, var(--border));
+  background: color-mix(in srgb, var(--team) 5%, var(--card, var(--canvas)));
+  border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;
+}
+.ch-feedback-badge {
+  display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+  font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+  color: var(--team-deep);
+  background: color-mix(in srgb, var(--team) 14%, var(--mix-base));
+}
+.ch-feedback-badge .fc-inline-ico { color: var(--team-deep); }
+.ch-feedback-card-title {
+  font-size: 15.5px; font-weight: 800; color: var(--ink); margin: 2px 0 0; line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.ch-feedback-card-summary {
+  font-size: 13.5px; color: var(--body); margin: 0; line-height: 1.6; overflow-wrap: anywhere;
+}
+.ch-feedback-card-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--border-soft);
+  font-size: 12px;
+}
+.ch-feedback-team { font-weight: 700; color: var(--team-deep); }
+.ch-feedback-date { color: var(--muted); }
+
+.ch-feedback-empty {
+  border: 1px dashed var(--border); border-radius: 14px; padding: 22px 18px; text-align: center;
+  background: var(--mix-base);
+}
+.ch-feedback-empty-title { font-size: 14px; font-weight: 700; color: var(--ink); margin: 0 0 4px; }
+.ch-feedback-empty-msg { font-size: 12.5px; color: var(--muted); margin: 0; line-height: 1.6; }
+
+@media (max-width: 520px) {
+  .ch-feedback-list { grid-template-columns: 1fr; }
+}

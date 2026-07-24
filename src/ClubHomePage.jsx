@@ -9,6 +9,7 @@ import { relativeTime } from './lib/relativeTime.js'
 import { getHomeContent, getClubStats } from './lib/homeRepo.js'
 import { loadMatchData, loadStandings, isLeagueApiConfigured } from './lib/matchRepo.js'
 import { listSurveys } from './lib/surveysRepo.js'
+import { getFanFeedback } from './lib/feedback/clubFeedbackRepo.js'
 import Icon from './components/Icon.jsx'
 import './ClubHomePage.css'
 
@@ -17,6 +18,14 @@ const MENU = ['홈', '설문', '팬 의견', '팀 뉴스', '경기센터', 'AI �
 
 // id 는 설문 상세 라우트(/survey/:surveyId)와 연결 — Mock 팬 설문 id 사용.
 const EMPTY_STATS = { fans: 0, opinions: 0, comments: 0, satisfaction: 0, source: 'live' }
+
+// 구단 피드백 완료일 표기(YYYY.MM.DD).
+function fmtFeedbackDate(ts) {
+  if (!ts) return ''
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+}
 
 export default function ClubHomePage() {
   const NICKNAME = getCurrentUser()?.nickname || '팬'
@@ -30,6 +39,7 @@ export default function ClubHomePage() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(EMPTY_STATS)   // 실 집계(RPC club_home_stats)
   const [surveys, setSurveys] = useState([])         // 진행 중 실제 설문
+  const [feedback, setFeedback] = useState([])       // 구단 피드백(공개된 개선 사례, RPC fan_club_feedback)
 
   // 경기/순위 — League Provider(matchRepo→leagueProvider, 5분 캐시·Mock 폴백).
   const [match, setMatch] = useState(null)
@@ -54,6 +64,7 @@ export default function ClubHomePage() {
     })
     getClubStats(team.id).then(s => { if (active) setStats(s) })
     listSurveys(team.id).then(list => { if (active) setSurveys((list || []).filter(s => s.status === 'published').slice(0, 3)) })
+    getFanFeedback(team.id, 5).then(list => { if (active) setFeedback(list || []) })
     return () => { active = false }
   }, [team])
 
@@ -124,6 +135,34 @@ export default function ClubHomePage() {
           <StatCard label={t('home.statOpinions')} value={stats.opinions.toLocaleString()} icon="message" />
           <StatCard label={t('home.statComments')} value={stats.comments.toLocaleString()} icon="comment" />
           <StatCard label={t('home.statSatisfaction')} value={`${stats.satisfaction}%`} icon="heart" />
+        </section>
+
+        {/* 구단 피드백 — 팬 의견이 실제 구단 개선으로 이어진 소식(공개된 완료 조치). */}
+        <section className="ch-feedback" aria-labelledby="ch-feedback-title">
+          <div className="ch-feedback-head">
+            <h2 id="ch-feedback-title"><Icon name="check" size={16} className="fc-inline-ico" /> {t('feedback.title')}</h2>
+            <p>{t('feedback.subtitle')}</p>
+          </div>
+          {feedback.length === 0 ? (
+            <div className="ch-feedback-empty">
+              <p className="ch-feedback-empty-title">{t('feedback.emptyTitle')}</p>
+              <p className="ch-feedback-empty-msg">{t('feedback.emptyMsg')}</p>
+            </div>
+          ) : (
+            <ul className="ch-feedback-list">
+              {feedback.map(f => (
+                <li key={f.id} className="ch-feedback-card">
+                  <span className="ch-feedback-badge"><Icon name="check" size={13} className="fc-inline-ico" /> {t('feedback.reflected')}</span>
+                  <h3 className="ch-feedback-card-title">{f.public_title}</h3>
+                  <p className="ch-feedback-card-summary">{f.public_summary}</p>
+                  <div className="ch-feedback-card-foot">
+                    <span className="ch-feedback-team">{teamName(team, lang)}</span>
+                    <span className="ch-feedback-date">{t('feedback.completed')} · {fmtFeedbackDate(f.completed_at || f.published_at)}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         {/* Content grid */}

@@ -922,3 +922,11 @@
 .lg-detail-block { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .lg-detail-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .lg-detail-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ── 구단 피드백 공개 (AdminClubActions ActionPublish) ── */
+.ca-publish { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border, #e5e7eb); display: flex; flex-direction: column; gap: 9px; }
+.ca-publish-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ca-publish-title { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; color: var(--ink); }
+.ca-publish-badge { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+.ca-publish-badge.on { color: var(--team-deep, #863bff); background: color-mix(in srgb, var(--team, #863bff) 16%, transparent); }
+.ca-publish-actions { display: flex; gap: 8px; flex-wrap: wrap; }
