@@ -502,6 +502,8 @@
 .ns-sched { display: flex; align-items: flex-start; gap: 10px; background: color-mix(in srgb, #10B981 9%, var(--canvas)); border: 1px solid color-mix(in srgb, #10B981 28%, var(--border)); color: var(--ink); border-radius: 10px; padding: 11px 14px; margin-bottom: 16px; }
 .ns-sched > svg { color: #10B981; flex: 0 0 auto; margin-top: 1px; }
 .ns-sched-grid { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; font-weight: 700; color: var(--ink); }
+.ns-ai-body { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 0; }
+.ns-ai-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .ns-sched-k { color: var(--muted); margin-right: 4px; font-weight: 600; }
 .ns-table { min-width: 900px; }
 .ns-club { font-weight: 700; color: var(--ink); }

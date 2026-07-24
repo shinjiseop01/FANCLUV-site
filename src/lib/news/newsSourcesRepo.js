@@ -238,3 +238,23 @@ export async function getSchedulerStatus() {
     return data   // { ok, last_run, sources[], healthy, total }
   } catch { return null }
 }
+
+// ── 뉴스 AI 요약 Queue Health (관리자) — 서버 집계 RPC(브라우저 전체 SELECT 금지). ──
+export async function getAiQueueHealth() {
+  if (!isSupabaseConfigured) return null
+  try {
+    const { data, error } = await supabase.rpc('news_ai_queue_health')
+    if (error || !data || data.ok === false) return null
+    return data   // { ok, pending, processing, retrying, failed, done, total, oldestPending, lastDoneAt, lastError, summaries }
+  } catch { return null }
+}
+
+// 관리자 수동 AI 처리(worker 트리거). mode: 'process' | 'retry_failed'. is_admin/ratelimit 은 서버(RPC).
+export async function runAiProcess(mode = 'process') {
+  if (!isSupabaseConfigured) return { ok: false, code: 'not_configured' }
+  try {
+    const { data, error } = await supabase.rpc('admin_news_ai_process', { p_mode: mode })
+    if (error) return { ok: false, code: 'error', message: error.message }
+    return data || { ok: false, code: 'error' }
+  } catch (e) { return { ok: false, code: 'error', message: String(e?.message || e) } }
+}

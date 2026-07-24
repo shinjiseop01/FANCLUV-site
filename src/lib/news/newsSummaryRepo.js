@@ -4,18 +4,12 @@
 // 호출하고(서버가 news_ai_summary 캐시 → OpenAI → 추출 폴백), DEV/오류 시에는 클라이언트
 // 추출 요약으로 폴백한다. 세션 내 재요청을 막기 위해 메모리 캐시도 둔다.
 import { supabase, isSupabaseConfigured } from '../supabase.js'
+import { newsCacheKey } from './newsCacheKey.js'
 
 const memCache = new Map()
 
-// 뉴스별 안정 캐시 키(같은 뉴스 → 같은 키 → 캐시 재사용).
-function djb2(str) {
-  let h = 5381
-  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0
-  return h.toString(36)
-}
-export function newsCacheKey(teamId, item) {
-  return `${teamId}:${djb2(item.sourceUrl || item.title || String(item.id))}`
-}
+// 뉴스별 안정 캐시 키는 순수 모듈(newsCacheKey.js)로 단일화 — Worker 와 동일 키 보장.
+export { newsCacheKey }
 
 // 클라이언트 추출 요약(폴백) — 문장 단위로 3~4개 뽑는다.
 function clientExtractive(item) {

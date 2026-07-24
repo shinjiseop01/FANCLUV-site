@@ -3,10 +3,13 @@ import { useLang } from '../contexts/LanguageContext.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import Icon from '../components/Icon.jsx'
+import { useToast } from '../contexts/ToastContext.jsx'
 import {
   adminListSources, updateSource, setEnabled, testSource, statusOf, FAILURE_THRESHOLD,
-  getSchedulerStatus,
+  getSchedulerStatus, getAiQueueHealth, runAiProcess,
 } from '../lib/news/newsSourcesRepo.js'
+
+function fmtTs(ts) { if (!ts) return '—'; const d = new Date(ts); return isNaN(d) ? '—' : d.toLocaleString() }
 
 // 상태 코드 → 아이콘/배지 클래스
 const STATUS = {
@@ -33,13 +36,27 @@ export default function AdminNewsSources() {
   const [testing, setTesting] = useState(null)    // clubId being tested
   const [results, setResults] = useState({})      // clubId -> { ok, count, error, at }
   const [sched, setSched] = useState(null)        // 자동 수집 Scheduler 상태(0077 RPC)
+  const [aiHealth, setAiHealth] = useState(null)  // AI 요약 Queue Health(0088 RPC)
+  const [aiBusy, setAiBusy] = useState(false)
+  const toast = useToast()
 
   useEffect(() => {
     let active = true
     adminListSources().then(list => { if (active) { setRows(list); setLoading(false) } })
     getSchedulerStatus().then(s => { if (active) setSched(s) })
+    getAiQueueHealth().then(h => { if (active) setAiHealth(h) })
     return () => { active = false }
   }, [])
+
+  async function onAiProcess(mode) {
+    if (aiBusy) return
+    setAiBusy(true)
+    const r = await runAiProcess(mode)
+    setAiBusy(false)
+    if (!r?.ok) { toast.error(r?.code === 'RATE_LIMITED' ? t('admin.ai.rate') : t('admin.ai.fail')); return }
+    toast.info(t('admin.ai.queued'))
+    setTimeout(() => getAiQueueHealth().then(setAiHealth), 8000)
+  }
 
   // 다음 실행 추정(20분 주기): 최근 시작 + 20분.
   const nextRunAt = sched?.last_run?.started_at
@@ -119,6 +136,35 @@ export default function AdminNewsSources() {
             <div><span className="ns-sched-k">{t('admin.ns.schedHealthy')}</span> {sched.healthy} / {sched.total}</div>
             <div><span className="ns-sched-k">{t('admin.ns.schedWritten')}</span> {sched.last_run.articles_written ?? 0}</div>
             <div><span className="ns-sched-k">{t('admin.ns.schedFailed')}</span> {sched.last_run.failed_sources ?? 0}</div>
+          </div>
+        </div>
+      )}
+
+      {/* AI 요약 Queue Health(뉴스 수집과 독립 — AI 실패해도 뉴스는 extractive 로 노출) */}
+      {aiHealth && (
+        <div className="ns-sched ns-ai" role="status">
+          <Icon name="robot" size={18} />
+          <div className="ns-ai-body">
+            <div className="ns-sched-grid">
+              <div><span className="ns-sched-k">{t('admin.ai.pending')}</span> {aiHealth.pending ?? 0}</div>
+              <div><span className="ns-sched-k">{t('admin.ai.processing')}</span> {aiHealth.processing ?? 0}</div>
+              <div><span className="ns-sched-k">{t('admin.ai.retrying')}</span> {aiHealth.retrying ?? 0}</div>
+              <div><span className="ns-sched-k">{t('admin.ai.failed')}</span> {aiHealth.failed ?? 0}</div>
+              <div><span className="ns-sched-k">{t('admin.ai.done')}</span> {aiHealth.done ?? 0}</div>
+              <div><span className="ns-sched-k">{t('admin.ai.summaries')}</span> {aiHealth.summaries?.ai ?? 0} AI / {aiHealth.summaries?.extractive ?? 0} 추출</div>
+              <div><span className="ns-sched-k">{t('admin.ai.oldest')}</span> {fmtTs(aiHealth.oldestPending)}</div>
+              <div><span className="ns-sched-k">{t('admin.ai.lastDone')}</span> {fmtTs(aiHealth.lastDoneAt)}</div>
+            </div>
+            <div className="ns-ai-actions">
+              <button className="adm-btn-ghost" onClick={() => onAiProcess('process')} disabled={aiBusy}>
+                <Icon name="refresh" size={14} className={aiBusy ? 'adm-spin' : ''} /> {aiBusy ? t('admin.ai.processing') : t('admin.ai.processBtn')}
+              </button>
+              {(aiHealth.failed ?? 0) > 0 && (
+                <button className="adm-btn-ghost" onClick={() => onAiProcess('retry_failed')} disabled={aiBusy}>
+                  <Icon name="refresh" size={14} /> {t('admin.ai.retryBtn')}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
