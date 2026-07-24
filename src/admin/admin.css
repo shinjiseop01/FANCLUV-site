@@ -893,3 +893,9 @@
 .adm-badge.pending { background: rgba(107,114,128,.15); color: #6b7280; }
 .adm-badge.inprogress { background: rgba(37,99,235,.14); color: #2563eb; }
 .adm-badge.resolved { background: rgba(16,185,129,.15); color: #059669; }
+
+/* K리그 수집 시즌 칩(관리자) */
+.lg-seasons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.lg-seasons-label { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.lg-season-chip { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--page-bg); color: var(--body); border: 1px solid var(--border); }
+.lg-season-chip.on { color: var(--team-deep); border-color: color-mix(in srgb, var(--team) 40%, var(--border)); font-weight: 700; }

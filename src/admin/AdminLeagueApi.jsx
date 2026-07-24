@@ -3,9 +3,10 @@ import { useLang } from '../contexts/LanguageContext.jsx'
 import Icon from '../components/Icon.jsx'
 import { SkeletonList } from '../components/Skeleton.jsx'
 import {
-  getLeagueStatus, testLeagueApi, resetLeagueOps, getApiQuota, forceSyncLeague,
-  getLeagueSyncHealth, STANDING_FIELDS, MATCH_FIELDS, FAILURE_THRESHOLD,
+  getLeagueStatus, testLeagueApi, resetLeagueOps, getApiQuota,
+  getLeagueSyncHealth, getLeagueSeasons, runLeagueSync, STANDING_FIELDS, MATCH_FIELDS, FAILURE_THRESHOLD,
 } from '../lib/admin/leagueOpsRepo.js'
+import { useToast } from '../contexts/ToastContext.jsx'
 
 function fmtTs(ts) { if (!ts) return '—'; const d = new Date(ts); return isNaN(d) ? '—' : d.toLocaleString() }
 
@@ -75,6 +76,7 @@ function NormalizeBlock({ t, titleKey, fields, chk }) {
 
 export default function AdminLeagueApi() {
   const { t } = useLang()
+  const toast = useToast()
   const [status, setStatus] = useState(null)
   const [quota, setQuota] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -83,14 +85,17 @@ export default function AdminLeagueApi() {
   const [simulate, setSimulate] = useState(false)
   const [test, setTest] = useState(null)
   const [health, setHealth] = useState(null)
+  const [seasons, setSeasons] = useState([])
+  const [confirmBackfill, setConfirmBackfill] = useState(false)
 
   async function refresh() {
     const s = await getLeagueStatus()
     setStatus(s); setLoading(false)
     // 실 Provider(edge/api)일 때만 계정 quota/응답시간 조회.
     if (s && s.mode !== 'mock') getApiQuota().then(setQuota)
-    // K리그 공식 소스(kleague-sync) 수집 상태.
+    // K리그 공식 소스(kleague-sync) 수집 상태 + 시즌 요약.
     getLeagueSyncHealth().then(setHealth)
+    getLeagueSeasons().then(setSeasons)
   }
   useEffect(() => { refresh() }, [])
 
@@ -101,11 +106,16 @@ export default function AdminLeagueApi() {
     setTesting(false)
     refresh()
   }
-  async function onForceSync() {
-    setSyncing(true)
-    await forceSyncLeague()
+  // 지금 동기화(incremental) / 시즌 전체 동기화(backfill) — admin_league_sync RPC 경유(서버 인증·rate limit).
+  async function onSync(mode) {
+    if (syncing) return
+    setSyncing(true); setConfirmBackfill(false)
+    const r = await runLeagueSync(mode)
     setSyncing(false)
-    refresh()
+    if (!r?.ok) { toast.error(r?.code === 'RATE_LIMITED' ? t('admin.lg.syncRate') : t('admin.lg.syncFail')); return }
+    toast.info(t('admin.lg.syncQueued'))
+    // 수집은 서버에서 비동기 진행 → 몇 초 후 상태 갱신.
+    setTimeout(refresh, 6000)
   }
   async function onReset() {
     resetLeagueOps()
@@ -116,6 +126,9 @@ export default function AdminLeagueApi() {
   if (loading) return <div className="adm-page"><SkeletonList count={4} lines={1} /></div>
 
   const modeKey = { edge: 'admin.lg.modeEdge', api: 'admin.lg.modeApi', mock: 'admin.lg.modeMock' }[status.mode] || 'admin.lg.modeMock'
+  // 레거시 API-FOOTBALL 진단 UI(quota/test/normalize/simulate)는 그 provider 가 실제 활성일 때만 노출.
+  //   현재 소스는 K리그 공식(db) → 아래 legacy 블록은 숨김(코드는 보존, DB 미변경 — §18).
+  const legacyApi = status.mode === 'edge' || status.mode === 'api'
 
   return (
     <div className="adm-page">
@@ -125,18 +138,34 @@ export default function AdminLeagueApi() {
           <p className="adm-sub">{t('admin.lg.sub')}</p>
         </div>
         <div className="lg-head-actions">
+          {legacyApi && (
           <label className="lg-sim">
             <input type="checkbox" checked={simulate} onChange={e => setSimulate(e.target.checked)} />
             <span>{t('admin.lg.simulate')}</span>
           </label>
-          <button className="adm-btn-ghost" onClick={onForceSync} disabled={syncing || status.mode === 'mock'}>
-            <Icon name="refresh" size={14} className={syncing ? 'adm-spin' : ''} /> {syncing ? t('admin.lg.syncing') : t('admin.lg.forceSync')}
+          )}
+          <button className="adm-btn-ghost" onClick={() => onSync('incremental')} disabled={syncing}>
+            <Icon name="refresh" size={14} className={syncing ? 'adm-spin' : ''} /> {syncing ? t('admin.lg.syncing') : t('admin.lg.syncNow')}
           </button>
-          <button className="adm-btn-primary" onClick={onTest} disabled={testing}>
-            <Icon name="refresh" size={14} /> {testing ? t('admin.lg.testing') : t('admin.lg.testBtn')}
+          <button className="adm-btn-ghost" onClick={() => setConfirmBackfill(true)} disabled={syncing}>
+            <Icon name="refresh" size={14} /> {t('admin.lg.syncFull')}
           </button>
         </div>
       </header>
+
+      {confirmBackfill && (
+        <div className="adm-modal-overlay" role="dialog" aria-modal="true"
+          onClick={e => { if (e.target === e.currentTarget) setConfirmBackfill(false) }}>
+          <div className="adm-modal">
+            <h2 className="adm-h2">{t('admin.lg.syncFull')}</h2>
+            <p className="adm-sub">{t('admin.lg.syncFullConfirm')}</p>
+            <div className="adm-sup-actions">
+              <button className="adm-btn-sm" onClick={() => setConfirmBackfill(false)}>{t('common.cancel')}</button>
+              <button className="adm-btn-sm primary" onClick={() => onSync('backfill')}>{t('admin.lg.syncFull')}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* K리그 공식 소스(kleague-sync) 수집 상태 — §24 Source Health */}
       {health && (
@@ -160,11 +189,21 @@ export default function AdminLeagueApi() {
               </div>
             ))}
           </dl>
+          {seasons.length > 0 && (
+            <div className="lg-seasons">
+              <span className="lg-seasons-label">{t('admin.lg.kSeasonsCollected')}</span>
+              {seasons.map(s => (
+                <span key={s.season} className={`lg-season-chip${s.isCurrent ? ' on' : ''}`}>
+                  {s.season}{s.isCurrent ? ' ★' : ''} · {t('admin.lg.kMatchShort', { n: s.matches })}
+                </span>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
-      {/* API 계정 상태 / quota (실 Provider 일 때) */}
-      {status.mode !== 'mock' && (
+      {/* (레거시) API-FOOTBALL 계정 상태 / quota — 해당 provider 활성 시에만 */}
+      {legacyApi && (
         <section className="lg-status-card">
           <h2 className="adm-h2 lg-section-title">{t('admin.lg.quotaTitle')}</h2>
           <dl className="lg-status-grid">
@@ -242,11 +281,16 @@ export default function AdminLeagueApi() {
         </div>
       </section>
 
-      {/* 연결 테스트 결과 */}
+      {/* (레거시) 연결 테스트 결과 + normalize 검증 — API-FOOTBALL provider 활성 시에만 */}
+      {legacyApi && (
+      <>
       <section className="lg-tests">
         <h2 className="adm-h2 lg-section-title">
           {t('admin.lg.testTitle')}
           {test && <span className="lg-test-at"> · {fmt(test.at)}</span>}
+          <button className="adm-btn-sm" onClick={onTest} disabled={testing} style={{ marginLeft: 8 }}>
+            {testing ? t('admin.lg.testing') : t('admin.lg.testBtn')}
+          </button>
         </h2>
         <div className="sys-grid">
           <TestCard t={t} labelKey="admin.lg.standings" icon="trophy" res={test?.standings} />
@@ -255,7 +299,6 @@ export default function AdminLeagueApi() {
         </div>
       </section>
 
-      {/* normalize 검증 */}
       <section className="lg-normalize">
         <h2 className="adm-h2 lg-section-title">{t('admin.lg.normTitle')}</h2>
         <p className="adm-sub lg-norm-sub">{t('admin.lg.normSub')}</p>
@@ -264,6 +307,8 @@ export default function AdminLeagueApi() {
           <NormalizeBlock t={t} titleKey="admin.lg.normMatch" fields={MATCH_FIELDS} chk={test?.normalize?.match} />
         </div>
       </section>
+      </>
+      )}
 
       <p className="lg-foot-note">{t('admin.lg.footNote', { n: FAILURE_THRESHOLD })}</p>
     </div>

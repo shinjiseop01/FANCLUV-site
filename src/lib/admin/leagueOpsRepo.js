@@ -253,3 +253,20 @@ export async function getLeagueSyncHealth() {
   const { data, error } = await supabase.rpc('league_sync_health')
   return (!error && data && data.ok !== false) ? data : null
 }
+
+// 수집된 시즌 목록 + 시즌별 순위/경기 건수(§15).
+export async function getLeagueSeasons() {
+  if (!isAdmin() || !isSupabaseConfigured) return []
+  const { data, error } = await supabase.rpc('league_seasons_summary')
+  return (!error && data && data.ok !== false) ? (data.seasons || []) : []
+}
+
+// 관리자 수동 동기화(§16/§17) — is_admin 게이트 + rate limit 은 서버(admin_league_sync)에서.
+//   mode: 'incremental'(지금 동기화) | 'backfill'(시즌 전체). 브라우저는 시크릿 미접촉.
+export async function runLeagueSync(mode = 'incremental') {
+  if (!isAdmin()) return { ok: false, code: 'forbidden' }
+  if (!isSupabaseConfigured) return { ok: false, code: 'not_configured' }
+  const { data, error } = await supabase.rpc('admin_league_sync', { p_mode: mode })
+  if (error) return { ok: false, code: 'error', message: error.message }
+  return data || { ok: false, code: 'error' }
+}

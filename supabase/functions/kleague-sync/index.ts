@@ -74,20 +74,24 @@ Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } })
   const body = await req.json().catch(() => ({}))
   const leagueId = 1
-  // 시즌: 지정값 우선, 없으면 KST 현재 연도(하드코딩 금지).
+  // 시즌: 지정값 우선, 없으면 KST 현재 연도(하드코딩 금지). year validation.
   const kstNow = new Date(Date.now() + 9 * 3600 * 1000)
   const year = num(body.year) || kstNow.getUTCFullYear()
+  if (year < 2000 || year > 2100) return json({ ok: false, code: 'bad_year' })
   const kstMonth = kstNow.getUTCMonth() + 1
+  // mode: 'backfill'(시즌 전체 월 1~12) | 'incremental'(기본, 현재월±window). is_current 는 현재연도만.
+  const mode = String(body.mode || 'incremental') === 'backfill' ? 'backfill' : 'incremental'
+  const isCurrentYear = year === kstNow.getUTCFullYear()
 
   // season upsert + is_current 설정
   const { data: seasonRow, error: seErr } = await admin.from('league_seasons')
-    .upsert({ league_id: leagueId, season_year: year, is_current: true, updated_at: new Date().toISOString() }, { onConflict: 'league_id,season_year' })
+    .upsert({ league_id: leagueId, season_year: year, is_current: isCurrentYear, updated_at: new Date().toISOString() }, { onConflict: 'league_id,season_year' })
     .select('id').single()
   if (seErr || !seasonRow) return json({ ok: false, code: 'season_upsert_failed', message: String(seErr?.message || '').slice(0, 160) })
-  await admin.from('league_seasons').update({ is_current: false }).eq('league_id', leagueId).neq('season_year', year)
+  if (isCurrentYear) await admin.from('league_seasons').update({ is_current: false }).eq('league_id', leagueId).neq('season_year', year)
   const seasonId = seasonRow.id
 
-  const result: Record<string, unknown> = { ok: true, league: leagueId, season: year }
+  const result: Record<string, unknown> = { ok: true, league: leagueId, season: year, mode }
 
   // ── 1) 순위 ── (실패/빈값이면 기존 유지, 에러만 기록)
   try {
@@ -114,8 +118,11 @@ Deno.serve(async (req) => {
 
   // ── 2) 일정/결과 ── 현재월 기준 창(전1~후2월) 수집. 부분 실패 격리.
   try {
+    // backfill: 시즌 전체(월 1~12). incremental: 현재월-1~+2(최근 결과 + 예정 일정 변경).
+    //   외부 서버 부하 최소화 위해 월 순회는 순차(concurrency 1) + 각 요청 timeout/retry.
     const months: number[] = []
-    for (let m = kstMonth - 1; m <= kstMonth + 2; m++) if (m >= 1 && m <= 12) months.push(m)
+    if (mode === 'backfill') { for (let m = 1; m <= 12; m++) months.push(m) }
+    else { for (let m = kstMonth - 1; m <= kstMonth + 2; m++) if (m >= 1 && m <= 12) months.push(m) }
     let all: any[] = []
     let monthErrors = 0
     for (const m of months) {

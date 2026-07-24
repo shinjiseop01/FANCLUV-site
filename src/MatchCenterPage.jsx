@@ -60,8 +60,8 @@ export default function MatchCenterPage() {
     )
   }
 
-  const goWrite = () => navigate(`/club/${team.id}/write`)
-  const goSurvey = () => navigate(`/club/${team.id}/survey`)
+  // 경기의견 작성 — 선택적으로 상대팀 context(vs=)를 전달해 작성 화면 제목을 프리필한다.
+  const goWrite = (vs) => navigate(`/club/${team.id}/write${vs ? `?vs=${encodeURIComponent(vs)}` : ''}`)
   const goOpinions = () => navigate(`/club/${team.id}/opinions`)
 
   const { next, live, upcoming, recent } = data || {}
@@ -172,13 +172,13 @@ export default function MatchCenterPage() {
                 <p className="mc-next-empty">{t('match.noUpcoming')}</p>
               )}
 
-              {/* CTA */}
+              {/* CTA — 다음 경기 카드의 유일한 팬 참여 CTA(경기의견 작성하기). 현재 표시 경기 기준. */}
               <div className="mc-cta">
-                <button className="mc-cta-btn primary" onClick={goWrite}>
+                <button className="mc-cta-btn primary" onClick={() => goWrite(
+                  next && next.home && next.away
+                    ? teamName(next.home.id === team.id ? next.away : next.home, lang)
+                    : null)}>
                   {t('match.ctaWrite')}
-                </button>
-                <button className="mc-cta-btn secondary" onClick={goSurvey}>
-                  {t('match.ctaSurvey')}
                 </button>
               </div>
             </section>
@@ -308,8 +308,7 @@ export default function MatchCenterPage() {
             <section className="mc-panel">
               <h2 className="mc-panel-title">{t('match.quick')}</h2>
               <div className="mc-quick">
-                <button className="ic-txt" onClick={goWrite}><Icon name="edit" size={16} /> 경기 의견 작성</button>
-                <button className="ic-txt" onClick={goSurvey}><Icon name="chart" size={16} /> 경기 설문 참여</button>
+                <button className="ic-txt" onClick={() => goWrite()}><Icon name="edit" size={16} /> 경기 의견 작성</button>
                 <button className="ic-txt" onClick={goOpinions}><Icon name="comment" size={16} /> 팬 의견 보러 가기</button>
               </div>
             </section>

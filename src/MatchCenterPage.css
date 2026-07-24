@@ -91,7 +91,7 @@
 }
 
 /* CTA */
-.mc-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mc-cta { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .mc-cta-btn {
   height: 56px;
   display: flex; align-items: center; justify-content: center; gap: 8px;
