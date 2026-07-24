@@ -101,6 +101,97 @@ async function postForm(path: string, params: Record<string, string>): Promise<a
   throw lastErr
 }
 
+// ── 공식 라인업(match.do HTML) 파서 — 순수 모듈 src/lib/league/kleagueLineup.js 와 동일 규칙(테스트가 규격 고정). ──
+//   선발: pitch playerDetailPop('K##','id') + <div class="player"><p>번호.이름(c)?</p> (팀당 11). 교체: <div class="standby">.
+//   홈/원정 = 팀코드(onclick/이미지) 를 home_code/away_code 대조 → 불일치/11아님/중복/빈이름이면 null(§15 보호).
+function parseLabel(label: string) {
+  const m = /^(\d+)\.(.+?)(\(c\))?$/.exec(cleanStr(label))
+  return m ? { number: Number(m[1]), name: cleanStr(m[2]), captain: !!m[3] } : null
+}
+const cleanStr = (v: unknown) => String(v ?? '').replace(/\s+/g, ' ').trim()
+function pStarters(seg: string) {
+  const out: any[] = []; const re = /playerDetailPop\('(K\d+)',\s*'(\d+)'\)[\s\S]*?<div class="player">[\s\S]*?<p>([^<]+)<\/p>/g; let m
+  while ((m = re.exec(seg))) { const l = parseLabel(m[3]); if (l) out.push({ code: m[1].toUpperCase(), playerId: m[2], number: l.number, name: l.name, captain: l.captain }) }
+  return out
+}
+function pSubs(seg: string) {
+  const out: any[] = []; const seen = new Set<string>(); let m
+  const re1 = /url\('[^']*?\/(K\d+)\/player_(\d+)\.png'\)[\s\S]*?<p>(\d+)\.([^<]+)<\/p>/g
+  while ((m = re1.exec(seg))) { if (seen.has(m[2])) continue; seen.add(m[2]); out.push({ code: m[1].toUpperCase(), playerId: m[2], number: Number(m[3]), name: cleanStr(m[4]) }) }
+  const re2 = /<p>(\d+)\.([^<]+)<\/p>\s*<ul class="player_(\d+)"/g
+  while ((m = re2.exec(seg))) { if (seen.has(m[3])) continue; seen.add(m[3]); out.push({ code: null, playerId: m[3], number: Number(m[1]), name: cleanStr(m[2]) }) }
+  return out
+}
+function parseLineupHtml(html: string, homeCode: string, awayCode: string) {
+  if (!html) return null
+  const hi = html.indexOf('hFormation'); const ai = html.indexOf('aFormation', hi >= 0 ? hi : 0)
+  if (hi < 0 || ai < 0) return null
+  const nx = html.indexOf('hFormation', ai)
+  const hStart = pStarters(html.slice(hi, ai)).slice(0, 11)
+  const aStart = pStarters(html.slice(ai, nx > 0 ? nx : html.length)).slice(0, 11)
+  const stand: string[] = []; const sre = /<div class="standby">([\s\S]*?)<\/div>\s*<\/div>/g; let sm
+  while ((sm = sre.exec(html))) stand.push(sm[1])
+  const hSub = stand[0] ? pSubs(stand[0]) : []; const aSub = stand[1] ? pSubs(stand[1]) : []
+  const HC = String(homeCode || '').toUpperCase(); const AC = String(awayCode || '').toUpperCase()
+  if (hStart.length !== 11 || (HC && !hStart.every(p => p.code === HC))) return null
+  if (aStart.length !== 11 || (AC && !aStart.every(p => p.code === AC))) return null
+  const strip = (p: any) => ({ playerId: p.playerId, number: p.number, name: p.name, ...(p.captain ? { captain: true } : {}) })
+  const all = [...hStart, ...aStart, ...hSub, ...aSub]; const ids = all.map(p => p.playerId)
+  if (new Set(ids).size !== ids.length) return null
+  if (all.some(p => !p.name)) return null
+  return { home: { starters: hStart.map(strip), substitutes: hSub.map(strip) }, away: { starters: aStart.map(strip), substitutes: aSub.map(strip) } }
+}
+async function fetchMatchHtml(gameId: string, year: string, leagueId: string): Promise<string> {
+  const url = `${HOST}/match.do?year=${year}&leagueId=${leagueId}&gameId=${gameId}&meetSeq=1&startTabNum=1`
+  let lastErr: unknown = null
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 12000)
+    try {
+      const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': UA, 'Accept-Language': 'ko-KR,ko;q=0.9' } })
+      if (!res.ok) throw new Error(`http ${res.status}`)
+      const t = await res.text()
+      if (t.length > 4_000_000) throw new Error('oversize')  // 비정상적으로 큰 응답 방어
+      return t
+    } catch (e) { lastErr = e } finally { clearTimeout(timer) }
+  }
+  throw lastErr
+}
+
+// 라인업 수집(별도 모드) — 기존 events/stats 파이프라인과 독립(§10/§14). immutable: synced_at 있으면 제외.
+async function runLineup(admin: any, mode: string): Promise<Response> {
+  const limit = mode === 'lineup_backfill' ? 12 : 8
+  let q = admin.from('league_matches').select('external_id, season_year, league_id, home_code, away_code').eq('status', 'finished')
+  q = mode === 'lineup_backfill'
+    ? q.or('detail_lineup_synced_at.is.null,detail_lineup_status.eq.error')
+    : q.is('detail_lineup_synced_at', null)
+  const { data } = await q.order('kickoff_at', { ascending: false, nullsFirst: false }).limit(limit)
+  const targets = data || []
+  let ok = 0, failed = 0
+  for (const m of targets) {
+    let html = '', err = ''
+    try { html = await fetchMatchHtml(String(m.external_id), String(m.season_year), String(m.league_id || 1)) }
+    catch (e) { err = String(e).slice(0, 100) }
+    const lineups = html ? parseLineupHtml(html, m.home_code, m.away_code) : null
+    if (lineups) {
+      ok++
+      await admin.from('league_matches').update({
+        detail_lineups: lineups, detail_lineup_synced_at: new Date().toISOString(),
+        detail_lineup_status: 'ok', detail_lineup_error: null,
+      }).eq('external_id', m.external_id)
+    } else {
+      // 파싱 실패/불량 → 기존 라인업 보존(덮어쓰지 않음). 시도 기록(재수집 폭주 방지), backfill 로 재시도 가능.
+      failed++
+      await admin.from('league_matches').update({
+        detail_lineup_synced_at: new Date().toISOString(),
+        detail_lineup_status: 'error', detail_lineup_error: (err || 'parse_failed').slice(0, 200),
+      }).eq('external_id', m.external_id)
+    }
+    await sleep(400)  // HTML(대용량) 외부 부하 완화
+  }
+  await admin.from('league_sync_state').upsert({ resource: 'match_lineup', last_success_at: new Date().toISOString(), last_rows: ok, updated_at: new Date().toISOString() }, { onConflict: 'resource' })
+  return json({ ok: true, mode, targets: targets.length, collected: ok, failed })
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   const SECRET = Deno.env.get('LEAGUE_SYNC_SECRET') || ''
@@ -108,7 +199,10 @@ Deno.serve(async (req) => {
 
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } })
   const body = await req.json().catch(() => ({}))
-  const mode = ['recent', 'backfill', 'match'].includes(String(body.mode)) ? String(body.mode) : 'recent'
+  const rawMode = String(body.mode || 'recent')
+  // 라인업 모드는 별도 파이프라인(events/stats 와 독립).
+  if (rawMode === 'lineup_recent' || rawMode === 'lineup_backfill') return await runLineup(admin, rawMode)
+  const mode = ['recent', 'backfill', 'match'].includes(rawMode) ? rawMode : 'recent'
   const LIMITS: Record<string, number> = { recent: 15, backfill: 40, match: 1 }
 
   // 대상 선정: finished + 상세 미수집(immutable). match 모드는 특정 gameId 강제 재수집.

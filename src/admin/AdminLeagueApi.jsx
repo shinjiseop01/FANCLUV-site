@@ -224,6 +224,12 @@ export default function AdminLeagueApi() {
                   <button className="adm-btn-ghost" onClick={() => setConfirmDetailBackfill(true)} disabled={detailSyncing}>
                     <Icon name="refresh" size={14} /> {t('admin.lg.detailSyncBackfill')}
                   </button>
+                  <button className="adm-btn-ghost" onClick={() => onDetailSync('lineup_recent')} disabled={detailSyncing}>
+                    <Icon name="refresh" size={14} className={detailSyncing ? 'adm-spin' : ''} /> {t('admin.lg.lineupSyncRecent')}
+                  </button>
+                  <button className="adm-btn-ghost" onClick={() => onDetailSync('lineup_backfill')} disabled={detailSyncing}>
+                    <Icon name="refresh" size={14} /> {t('admin.lg.lineupSyncBackfill')}
+                  </button>
                 </div>
               </div>
               <dl className="lg-status-grid">
@@ -231,6 +237,10 @@ export default function AdminLeagueApi() {
                 <div><dt>{t('admin.lg.detailPending')}</dt><dd>{health.detail.pending ?? 0}</dd></div>
                 <div><dt>{t('admin.lg.detailFailed')}</dt><dd>{health.detail.failed ? <span className="lg-err">{health.detail.failed}</span> : 0}</dd></div>
                 <div><dt>{t('admin.lg.detailLastSync')}</dt><dd className="lg-mono">{fmtTs(health.detail.lastSyncedAt)}</dd></div>
+                <div><dt>{t('admin.lg.lineupCollected')}</dt><dd><strong>{health.detail.lineupCollected ?? 0}</strong> / {health.detail.finished ?? 0}</dd></div>
+                <div><dt>{t('admin.lg.lineupPending')}</dt><dd>{health.detail.lineupPending ?? 0}</dd></div>
+                <div><dt>{t('admin.lg.lineupFailed')}</dt><dd>{health.detail.lineupFailed ? <span className="lg-err">{health.detail.lineupFailed}</span> : 0}</dd></div>
+                <div><dt>{t('admin.lg.lineupLastSync')}</dt><dd className="lg-mono">{fmtTs(health.detail.lineupLastSyncedAt)}</dd></div>
               </dl>
             </div>
           )}

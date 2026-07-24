@@ -58,6 +58,7 @@ export default function MatchDetailPage() {
   const detail = m?.detail || null
   const events = detail?.events || null
   const stats = detail?.stats || null
+  const lineups = detail?.lineups || null
   const goals = events?.goals || []
   const timeline = events?.timeline || []
   const statusText = m ? t(`match.status.${m.status}`) : ''
@@ -203,11 +204,46 @@ export default function MatchDetailPage() {
             </section>
           )}
 
-          {/* ── 라인업: 공식 JSON 미제공 → 정직한 Empty State (가짜 명단 금지) ── */}
+          {/* ── 라인업: 공식 HTML 파싱 실데이터가 있을 때만 표시. 없으면 정직한 Empty State (가짜 명단 금지) ── */}
           {finished && (
             <section className="mc-panel">
               <h2 className="mc-panel-title">{t('match.lineup')}</h2>
-              <EmptyState iconName="users" title={t('match.lineupEmptyTitle')} message={t('match.lineupEmptyMsg')} />
+              {lineups && lineups.home?.starters?.length && lineups.away?.starters?.length ? (
+                <div className="md-lineups">
+                  {['home', 'away'].map(sideKey => {
+                    const side = lineups[sideKey]
+                    const teamObj = sideKey === 'home' ? m.home : m.away
+                    const teamNm = teamObj ? teamName(teamObj, lang) : (sideKey === 'home' ? m.homeTeamName : m.awayTeamName)
+                    return (
+                      <div key={sideKey} className={`md-lu-col ${sideKey}`}>
+                        <div className="md-lu-team"><TeamEmblem color={teamObj?.color || '#888'} size={20} /> <span>{teamNm}</span></div>
+                        <div className="md-lu-group-label">{t('match.starters')}</div>
+                        <ul className="md-lu-list">
+                          {side.starters.map(p => (
+                            <li key={p.playerId} className="md-lu-player">
+                              <span className="md-lu-num">{p.number}</span>
+                              <span className="md-lu-name">{p.name}{p.captain ? <em className="md-lu-cap" title={t('match.captain')}>C</em> : null}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {side.substitutes?.length > 0 && <>
+                          <div className="md-lu-group-label sub">{t('match.substitutes')}</div>
+                          <ul className="md-lu-list sub">
+                            {side.substitutes.map(p => (
+                              <li key={p.playerId} className="md-lu-player">
+                                <span className="md-lu-num">{p.number}</span>
+                                <span className="md-lu-name">{p.name}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <EmptyState iconName="users" title={t('match.lineupEmptyTitle')} message={t('match.lineupEmptyMsg')} />
+              )}
             </section>
           )}
 

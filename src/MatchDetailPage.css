@@ -65,6 +65,19 @@
 .md-tl-txt { font-size: 13.5px; color: var(--body); }
 .md-tl-txt strong { color: var(--ink); font-weight: 700; }
 
+/* Lineups */
+.md-lineups { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.md-lu-team { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 14px; color: var(--ink); margin-bottom: 10px; }
+.md-lu-group-label { font-size: 11.5px; font-weight: 800; letter-spacing: .03em; color: var(--team-deep); margin: 10px 0 6px; text-transform: uppercase; }
+.md-lu-group-label.sub { color: var(--muted); }
+.md-lu-list { display: flex; flex-direction: column; gap: 2px; }
+.md-lu-player { display: flex; align-items: center; gap: 9px; padding: 5px 8px; border-radius: 7px; }
+.md-lu-list:not(.sub) .md-lu-player:nth-child(odd) { background: var(--mix-base); }
+.md-lu-num { flex: 0 0 24px; text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.md-lu-name { font-size: 13.5px; color: var(--body); }
+.md-lu-list.sub .md-lu-name { color: var(--muted); }
+.md-lu-cap { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; width: 15px; height: 15px; border-radius: 4px; background: var(--team); color: #fff; font-style: normal; font-size: 9.5px; font-weight: 800; vertical-align: middle; }
+
 .md-cta { margin-top: 20px; }
 .md-cta .mc-cta-btn { width: 100%; }
 
@@ -74,4 +87,6 @@
   .md-score { font-size: 28px; }
   .md-goal { grid-template-columns: 38px 1fr; }
   .md-goal-side { display: none; }
+  .md-lineups { grid-template-columns: 1fr; gap: 8px; }   /* 모바일: 홈→원정 세로 배치 */
+  .md-lu-col.away { border-top: 1px solid var(--border); padding-top: 12px; }
 }
