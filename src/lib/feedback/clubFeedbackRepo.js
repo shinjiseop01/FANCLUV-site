@@ -41,6 +41,45 @@ export async function listOwnActions(limit = 50) {
   return data || []
 }
 
+// ── Club: 자기 구단 개선 조치 생성(club_id·status=planned는 서버 강제) ──
+export async function createAction({ title, description, category, actionDate, aiInsightId, reportId } = {}) {
+  if (!title || !title.trim()) return { ok: false, code: 'bad_title' }
+  if (!isSupabaseConfigured) return { ok: false, code: 'no_backend' }
+  const { data, error } = await supabase.rpc('club_create_action', {
+    p_title: title.trim(), p_description: description || null, p_category: category || 'etc',
+    p_action_date: actionDate || null, p_ai_insight_id: aiInsightId || null, p_report_id: reportId || null,
+  })
+  if (error) return { ok: false, code: error.message }
+  return data || { ok: false, code: 'error' }
+}
+
+// ── Club/Admin: 조치 내부 필드 수정(공개/상태 제외) ──
+export async function updateActionFields(id, { title, description, category, actionDate, resultNote } = {}) {
+  if (!isSupabaseConfigured) return { ok: false, code: 'no_backend' }
+  const { data, error } = await supabase.rpc('club_update_action', {
+    p_action_id: id, p_title: title ?? null, p_description: description ?? null,
+    p_category: category ?? null, p_action_date: actionDate ?? null, p_result_note: resultNote ?? null,
+  })
+  if (error) return { ok: false, code: error.message }
+  return data || { ok: false, code: 'error' }
+}
+
+// ── Club/Admin: 상태 변경(planned/in_progress/done/closed) ──
+export async function setActionStatus(id, status) {
+  if (!isSupabaseConfigured) return { ok: false, code: 'no_backend' }
+  const { data, error } = await supabase.rpc('club_set_action_status', { p_action_id: id, p_status: status })
+  if (error) return { ok: false, code: error.message }
+  return data || { ok: false, code: 'error' }
+}
+
+// ── Club/Admin: 조치 삭제(planned + 미공개만) ──
+export async function deleteActionSelf(id) {
+  if (!isSupabaseConfigured) return { ok: false, code: 'no_backend' }
+  const { data, error } = await supabase.rpc('club_delete_action', { p_action_id: id })
+  if (error) return { ok: false, code: error.message }
+  return data || { ok: false, code: 'error' }
+}
+
 // ── Club/Admin: 완료 조치를 팬에게 공개 ──
 export async function publishAction(id, { title, summary, category } = {}) {
   const v = validatePublicFields({ title, summary })

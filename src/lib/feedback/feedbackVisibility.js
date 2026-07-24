@@ -66,3 +66,16 @@ export function toPublicProvenance(prov) {
   for (const k of PROVENANCE_PUBLIC_FIELDS) if (k in prov) out[k] = prov[k]
   return out
 }
+
+// ── Club 조치 상태/삭제 정책(Phase 3) — 서버 RPC 규칙 미러 ──
+export const ACTION_STATUSES = ['planned', 'in_progress', 'done', 'closed']
+
+export function isValidActionStatus(s) {
+  return ACTION_STATUSES.includes(s)
+}
+
+// 삭제 허용: planned + 미공개 조치만(기록 보존). in_progress/done/published 는 불가.
+export function canDeleteAction(action) {
+  if (!action) return false
+  return action.status === 'planned' && action.is_published !== true
+}

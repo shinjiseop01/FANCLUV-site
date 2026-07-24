@@ -4,6 +4,7 @@ import {
   isFanVisible, canPublish, validatePublicFields, toFanFeedback,
   FAN_PUBLIC_FIELDS, INTERNAL_FIELDS, nonEmpty,
   hasVisibleProvenance, toPublicProvenance, PROVENANCE_PUBLIC_FIELDS,
+  isValidActionStatus, canDeleteAction, ACTION_STATUSES,
 } from './feedbackVisibility.js'
 
 const base = (over = {}) => ({
@@ -125,4 +126,22 @@ test('toPublicProvenance strips source ids', () => {
 // 20) provenance whitelist has no source-id fields
 test('provenance whitelist excludes ids', () => {
   assert.equal(PROVENANCE_PUBLIC_FIELDS.some(f => /_id/.test(f)), false)
+})
+
+// ── Club action policy (Phase 3) ──
+// 21) valid statuses
+test('isValidActionStatus', () => {
+  for (const s of ACTION_STATUSES) assert.equal(isValidActionStatus(s), true)
+  assert.equal(isValidActionStatus('published'), false)
+  assert.equal(isValidActionStatus('deleted'), false)
+  assert.equal(isValidActionStatus(''), false)
+})
+// 22) delete only planned + unpublished
+test('canDeleteAction: planned + unpublished only', () => {
+  assert.equal(canDeleteAction({ status: 'planned', is_published: false }), true)
+  assert.equal(canDeleteAction({ status: 'planned', is_published: true }), false)
+  assert.equal(canDeleteAction({ status: 'in_progress', is_published: false }), false)
+  assert.equal(canDeleteAction({ status: 'done', is_published: false }), false)
+  assert.equal(canDeleteAction({ status: 'done', is_published: true }), false)
+  assert.equal(canDeleteAction(null), false)
 })
