@@ -141,12 +141,14 @@ export default function MatchCenterPage() {
           {/* Left */}
           <div className="mc-col-main">
 
-            {/* Next match (hero) */}
+            {/* Next match (hero) — 예정 경기가 없으면(시즌 말 등) 안내로 대체 */}
             <section className="mc-next">
               <div className="mc-next-top">
                 <span className="mc-next-label">{t('match.next')}</span>
-                <span className="mc-dday">{next.dday}</span>
+                {next && <span className="mc-dday">{next.dday}</span>}
               </div>
+              {next && next.home && next.away ? (
+              <>
               <div className="mc-matchup">
                 <div className="mc-side">
                   <TeamEmblem color={next.home.color} size={64} />
@@ -165,6 +167,10 @@ export default function MatchCenterPage() {
                 <span className="ic-txt"><Icon name="clock" size={15} /> {next.time}</span>
                 <span className="ic-txt"><Icon name="pin" size={15} /> {next.stadium}</span>
               </div>
+              </>
+              ) : (
+                <p className="mc-next-empty">{t('match.noUpcoming')}</p>
+              )}
 
               {/* CTA */}
               <div className="mc-cta">
@@ -237,7 +243,8 @@ export default function MatchCenterPage() {
           {/* Right */}
           <aside className="mc-col-side">
 
-            {/* Live match */}
+            {/* Live match — 공식 소스에 안정적 LIVE 가 있을 때만 표시(Phase 1: 미제공 → 숨김) */}
+            {live && live.home && live.away && (
             <section className="mc-panel mc-live">
               <div className="mc-live-head">
                 <span className="mc-live-badge"><span className="mc-live-dot" /> LIVE</span>
@@ -256,6 +263,7 @@ export default function MatchCenterPage() {
               </div>
               <p className="mc-live-stadium ic-txt"><Icon name="pin" size={14} /> {live.stadium}</p>
             </section>
+            )}
 
             {/* Standings (실시간 순위표 — API 미연결 시 Mock) */}
             <section className="mc-panel">

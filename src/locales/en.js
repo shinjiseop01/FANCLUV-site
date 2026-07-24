@@ -497,6 +497,7 @@ export default {
   'match.title': 'Match Center',
   'match.subtitle': 'Check upcoming matches and past results, and share your opinions.',
   'match.next': 'Next Match',
+  'match.noUpcoming': 'No upcoming matches.',
   'match.ctaWrite': 'Write match opinion',
   'match.ctaSurvey': 'Join match survey',
   'match.schedule': 'Schedule',

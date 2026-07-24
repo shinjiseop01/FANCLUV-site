@@ -497,6 +497,7 @@ export default {
   'match.title': '경기센터',
   'match.subtitle': '다가오는 경기와 지난 경기 결과를 확인하고 팬들의 의견을 남겨보세요.',
   'match.next': '다음 경기',
+  'match.noUpcoming': '예정된 경기가 없습니다.',
   'match.ctaWrite': '경기 의견 작성하기',
   'match.ctaSurvey': '경기 설문 참여하기',
   'match.schedule': '경기 일정',
